@@ -86,9 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Brand Header
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Icon(Icons.eco, color: ecoGreen, size: 32),
                         SizedBox(width: 8),
                         Text(
@@ -244,8 +244,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
 
                     // Divider
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Expanded(child: Divider(color: surfaceVariant)),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
@@ -278,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ), // Pengganti icon google
                             label: const Text(
                               'Google',
-                              style: TextStyle(color: deepForest),  
+                              style: TextStyle(color: deepForest),
                             ),
                             onPressed: () {},
                           ),

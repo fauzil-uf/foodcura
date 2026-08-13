@@ -91,9 +91,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
       } else {
         _isSearching = true;
         _displayedFoods = _catalogFoods
-            .where((f) =>
-                f.name.toLowerCase().contains(query.toLowerCase()) ||
-                f.category.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (f) =>
+                  f.name.toLowerCase().contains(query.toLowerCase()) ||
+                  f.category.toLowerCase().contains(query.toLowerCase()),
+            )
             .toList();
       }
       if (_displayedFoods.isNotEmpty &&
@@ -123,10 +125,57 @@ class _AddFoodModalState extends State<AddFoodModal> {
       note: _noteController.text.trim(),
     );
 
-    await DBHelper().addFoodLog(log);
+    final notif = await DBHelper().addFoodLog(log);
     widget.onFoodAdded();
     if (mounted) {
       Navigator.pop(context);
+
+      if (notif != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.urgent,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notif.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        notif.message,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -236,89 +285,87 @@ class _AddFoodModalState extends State<AddFoodModal> {
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _displayedFoods.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Makanan "${_searchController.text}" tidak ditemukan',
-                              style: AppTextStyles.subtitleSmall,
-                            ),
-                          )
-                        : ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _displayedFoods.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 14),
-                            itemBuilder: (context, index) {
-                              final food = _displayedFoods[index];
-                              final isSelected =
-                                  _selectedFood?.name == food.name;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedFood = food;
-                                  });
-                                },
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : Colors.transparent,
-                                          width: 2.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.05),
-                                            blurRadius: 6,
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipOval(
-                                        child: Image.asset(
-                                          food.imagePath,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Container(
-                                            color: Colors.grey.shade200,
-                                            child: const Icon(
-                                              Icons.fastfood,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    SizedBox(
-                                      width: 64,
-                                      child: Text(
-                                        food.name,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style:
-                                            AppTextStyles.subtitleSmall.copyWith(
-                                          fontSize: 11,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : AppColors.textPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
+                    ? Center(
+                        child: Text(
+                          'Makanan "${_searchController.text}" tidak ditemukan',
+                          style: AppTextStyles.subtitleSmall,
+                        ),
+                      )
+                    : ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _displayedFoods.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 14),
+                        itemBuilder: (context, index) {
+                          final food = _displayedFoods[index];
+                          final isSelected = _selectedFood?.name == food.name;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedFood = food;
+                              });
                             },
-                          ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.transparent,
+                                      width: 2.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                        blurRadius: 6,
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      food.imagePath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                color: Colors.grey.shade200,
+                                                child: const Icon(
+                                                  Icons.fastfood,
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                SizedBox(
+                                  width: 64,
+                                  child: Text(
+                                    food.name,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.subtitleSmall.copyWith(
+                                      fontSize: 11,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
               ),
               const SizedBox(height: 16),
 

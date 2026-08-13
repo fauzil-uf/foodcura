@@ -74,10 +74,14 @@ class _AppTextFieldState extends State<AppTextField> {
             decoration: InputDecoration(
               border: InputBorder.none,
               hintText: widget.hint,
-              hintStyle: (widget.textStyle ?? AppTextStyles.inputText)
-                  .copyWith(color: AppColors.textGray.withOpacity(0.7)),
-              prefixIcon: Icon(widget.icon,
-                  size: 20, color: AppColors.primary.withOpacity(0.8)),
+              hintStyle: (widget.textStyle ?? AppTextStyles.inputText).copyWith(
+                color: AppColors.textGray.withValues(alpha: 0.7),
+              ),
+              prefixIcon: Icon(
+                widget.icon,
+                size: 20,
+                color: AppColors.primary.withValues(alpha: 0.8),
+              ),
               suffixIcon: widget.isPassword
                   ? IconButton(
                       icon: Icon(
@@ -85,13 +89,15 @@ class _AppTextFieldState extends State<AppTextField> {
                             ? Icons.visibility_off_outlined
                             : Icons.visibility_outlined,
                         size: 20,
-                        color: AppColors.primary.withOpacity(0.8),
+                        color: AppColors.primary.withValues(alpha: 0.8),
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     )
                   : null,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 14,
+                horizontal: 8,
+              ),
             ),
           ),
         ),

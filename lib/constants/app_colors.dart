@@ -28,4 +28,17 @@ class AppColors {
 
   static const error = Color(0xFFDC2626);
   static const white = Color(0xFFFFFFFF);
+
+  // Pantry & Notification colors (from Stitch design)
+  static const urgent = Color(0xFFD95338);
+  static const segera = Color(0xFFE68A2E);
+  static const ecoGreen = Color(0xFF347A4B);
+  static const deepForest = Color(0xFF0F2C1B);
+  static const mintTint = Color(0xFFE4F0E8);
+  static const surfaceDim = Color(0xFFDBDAD4);
+  static const surfaceContainer = Color(0xFFEFEEE8);
+  static const glassSurface = Color(0xBFFFFFFF); // 75% opacity white
+  static const warningBg = Color(0xFFFDE9E5);
+  static const warningBorder = Color(0xFFFFD8C2);
+  static const warningBgLight = Color(0xFFFFF4ED);
 }

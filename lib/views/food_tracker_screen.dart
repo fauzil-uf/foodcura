@@ -8,6 +8,7 @@ import '../constants/app_typography.dart';
 import '../database/db_helper.dart';
 import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
+import 'notification_screen.dart';
 import 'widgets/add_food_modal.dart';
 import 'widgets/all_catalog_modal.dart';
 import 'widgets/app_food_image.dart';
@@ -31,6 +32,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   List<FoodItemModel> _searchResults = [];
   bool _isSearching = false;
   bool _loading = true;
+  int _unreadNotifsCount = 0;
 
   final List<String> _tabs = [
     'Ringkasan',
@@ -54,14 +56,23 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     );
     final catalog = await DBHelper().getFoodCatalog();
     final recentAdded = await DBHelper().getRecentAddedFoods(limit: 5);
+    final unread = await DBHelper().getUnreadNotificationCount();
     if (mounted) {
       setState(() {
         _allLogs = logs;
         _fullCatalog = catalog;
         _recentCatalog = recentAdded;
+        _unreadNotifsCount = unread;
         _loading = false;
       });
     }
+  }
+
+  void _openNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationScreen()),
+    ).then((_) => _refreshData());
   }
 
   void _onSearchChanged(String query) {
@@ -152,13 +163,43 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                       color: AppColors.primaryDark,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none_rounded,
-                      color: AppColors.primary,
-                      size: 24,
+                  GestureDetector(
+                    onTap: _openNotifications,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Icon(
+                          Icons.notifications_none_rounded,
+                          color: AppColors.primary,
+                          size: 26,
+                        ),
+                        if (_unreadNotifsCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 15,
+                                minHeight: 15,
+                              ),
+                              child: Text(
+                                _unreadNotifsCount > 9 ? '9+' : '$_unreadNotifsCount',
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    onPressed: () {},
                   ),
                 ],
               ),
@@ -187,7 +228,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                               border: Border.all(color: AppColors.border),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
+                                  color: Colors.black.withOpacity(0.03),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -241,7 +282,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: _tabs.length,
-                              separatorBuilder: (_, _) =>
+                              separatorBuilder: (_, __) =>
                                   const SizedBox(width: 8),
                               itemBuilder: (context, index) {
                                 final tabName = _tabs[index];
@@ -272,7 +313,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                                           ? [
                                               BoxShadow(
                                                 color: AppColors.primary
-                                                    .withValues(alpha: 0.2),
+                                                    .withOpacity(0.2),
                                                 blurRadius: 8,
                                               ),
                                             ]
@@ -326,13 +367,17 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       totalFat += l.fat;
     }
 
+    double totalCholesterol = (totalFat * 4.5 + totalProtein * 3.5);
+    if (totalCholesterol <= 0) totalCholesterol = 180.0;
+
     final List<Map<String, dynamic>> nutrientWarnings = [];
 
+    // 1. Lemak Jenuh
     if (totalFat >= 25.0) {
       nutrientWarnings.add({
         'title': 'Peringatan Lemak Jenuh Tinggi!',
         'message':
-            'Asupan Lemak Jenuh hari ini (${totalFat.toStringAsFixed(1)}g / 25g) telah melebihi batas harian. Kurangi makanan gorengan atau olahan bersantan.',
+            'Asupan Lemak Jenuh hari ini (${totalFat.toStringAsFixed(1)}g / 25g) telah melebihi batas harian. Batasi gorengan atau olahan bersantan.',
         'color': AppColors.error,
         'icon': Icons.warning_amber_rounded,
       });
@@ -346,6 +391,18 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       });
     }
 
+    // 2. Kolesterol
+    if (totalCholesterol >= 300.0) {
+      nutrientWarnings.add({
+        'title': 'Peringatan Kolesterol Tinggi!',
+        'message':
+            'Estimasi Kolesterol hari ini (${totalCholesterol.toInt()} mg / 300 mg) telah melebihi batas harian yang disarankan.',
+        'color': AppColors.error,
+        'icon': Icons.favorite_rounded,
+      });
+    }
+
+    // 3. Kalori
     if (totalCals > 2000) {
       nutrientWarnings.add({
         'title': 'Peringatan Kalori Berlebih!',
@@ -356,23 +413,33 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       });
     }
 
-    if (totalCarbs > 250.0) {
+    // 4. Karbohidrat
+    if (totalCarbs > 300.0) {
       nutrientWarnings.add({
         'title': 'Peringatan Karbohidrat Tinggi!',
         'message':
-            'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 250g) telah melebihi rekomendasi harian.',
+            'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
         'color': const Color(0xFFFD9C40),
         'icon': Icons.bakery_dining_rounded,
       });
     }
 
+    // 5. Protein
+    if (totalProtein > 105.0) {
+      nutrientWarnings.add({
+        'title': 'Asupan Protein Sangat Tinggi',
+        'message':
+            'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah jauh melampaui kebutuhan harian.',
+        'color': const Color(0xFF3B82F6),
+        'icon': Icons.fitness_center_rounded,
+      });
+    }
+
     final sarapanLogs = _allLogs.where((l) => l.mealType == 'Sarapan').toList();
-    final makanSiangLogs = _allLogs
-        .where((l) => l.mealType == 'Makan Siang')
-        .toList();
-    final makanMalamLogs = _allLogs
-        .where((l) => l.mealType == 'Makan Malam')
-        .toList();
+    final makanSiangLogs =
+        _allLogs.where((l) => l.mealType == 'Makan Siang').toList();
+    final makanMalamLogs =
+        _allLogs.where((l) => l.mealType == 'Makan Malam').toList();
     final camilanLogs = _allLogs.where((l) => l.mealType == 'Camilan').toList();
 
     int sumCals(List<FoodLogModel> list) =>
@@ -387,10 +454,10 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.border.withOpacity(0.5)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 16,
               ),
             ],
@@ -408,7 +475,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                 style: AppTextStyles.subtitleSmall,
               ),
               const SizedBox(height: 20),
-
               Row(
                 children: [
                   // Circular Progress Ring & Percentage Badge
@@ -465,7 +531,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: totalCals > 2000
-                              ? AppColors.error.withValues(alpha: 0.1)
+                              ? AppColors.error.withOpacity(0.1)
                               : AppColors.infoContainer,
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -491,20 +557,20 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                         _buildNutrientBar(
                           icon: Icons.egg_alt_outlined,
                           name: 'Protein',
-                          valText: '${totalProtein.toInt()} / 70 g',
-                          ratio: (totalProtein / 70).clamp(0.0, 1.0),
+                          valText: '${totalProtein.toInt()} / 65 g',
+                          ratio: (totalProtein / 65).clamp(0.0, 1.0),
                           color: const Color(0xFF2E8B57),
                         ),
                         const SizedBox(height: 8),
                         _buildNutrientBar(
                           icon: Icons.bakery_dining_outlined,
                           name: 'Karbohidrat',
-                          valText: '${totalCarbs.toInt()} / 250 g',
-                          ratio: (totalCarbs / 250).clamp(0.0, 1.0),
-                          color: totalCarbs > 250
+                          valText: '${totalCarbs.toInt()} / 300 g',
+                          ratio: (totalCarbs / 300).clamp(0.0, 1.0),
+                          color: totalCarbs > 300
                               ? const Color(0xFFFD9C40)
                               : AppColors.primaryLight,
-                          isWarning: totalCarbs > 250,
+                          isWarning: totalCarbs > 300,
                         ),
                         const SizedBox(height: 8),
                         _buildNutrientBar(
@@ -521,9 +587,12 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                         _buildNutrientBar(
                           icon: Icons.favorite_outline,
                           name: 'Kolesterol',
-                          valText: '180 / 300 mg',
-                          ratio: 0.60,
-                          color: const Color(0xFFFD9C40),
+                          valText: '${totalCholesterol.toInt()} / 300 mg',
+                          ratio: (totalCholesterol / 300).clamp(0.0, 1.0),
+                          color: totalCholesterol > 300
+                              ? AppColors.error
+                              : const Color(0xFFEAB308),
+                          isWarning: totalCholesterol > 300,
                         ),
                       ],
                     ),
@@ -542,10 +611,10 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: (w['color'] as Color).withValues(alpha: 0.08),
+                color: (w['color'] as Color).withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: (w['color'] as Color).withValues(alpha: 0.4),
+                  color: (w['color'] as Color).withOpacity(0.4),
                   width: 1.5,
                 ),
               ),
@@ -555,7 +624,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: (w['color'] as Color).withValues(alpha: 0.15),
+                      color: (w['color'] as Color).withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -721,7 +790,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: logs.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final log = logs[index];
               return _buildFoodLogCard(log);
@@ -785,7 +854,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                       style: AppTextStyles.subtitle.copyWith(
                         fontSize: 12,
                         height: 1.4,
-                        color: AppColors.primaryDark.withValues(alpha: 0.85),
+                        color: AppColors.primaryDark.withOpacity(0.85),
                       ),
                     ),
                   ],
@@ -820,7 +889,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _recentCatalog.take(3).length,
-          separatorBuilder: (_, _) => const SizedBox(height: 10),
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final food = _recentCatalog[index];
             return Container(
@@ -928,7 +997,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
           border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 8,
             ),
           ],
@@ -1084,7 +1153,9 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, size: 14, color: isWarning ? AppColors.error : AppColors.primaryDark),
+                Icon(icon,
+                    size: 14,
+                    color: isWarning ? AppColors.error : AppColors.primaryDark),
                 const SizedBox(width: 4),
                 Text(
                   name,
@@ -1096,7 +1167,8 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                 ),
                 if (isWarning) ...[
                   const SizedBox(width: 3),
-                  const Icon(Icons.warning_amber_rounded, size: 12, color: AppColors.error),
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 12, color: AppColors.error),
                 ],
               ],
             ),
@@ -1157,9 +1229,8 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       );
     }
 
-    final currentMealType = _selectedTabIndex > 0
-        ? _tabs[_selectedTabIndex]
-        : 'Makan Siang';
+    final currentMealType =
+        _selectedTabIndex > 0 ? _tabs[_selectedTabIndex] : 'Makan Siang';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -1167,10 +1238,10 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
           ),
         ],
@@ -1199,7 +1270,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _searchResults.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final food = _searchResults[index];
               return Container(

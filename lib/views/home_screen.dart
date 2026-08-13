@@ -23,10 +23,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _usersFuture = DBHelper().getAllUsers();
   }
 
-  void _refresh() {
-    setState(() => _usersFuture = DBHelper().getAllUsers());
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

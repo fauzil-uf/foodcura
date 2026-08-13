@@ -5,6 +5,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_date_formatter.dart';
 import '../constants/app_typography.dart';
 import '../database/db_helper.dart';
+import 'notification_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onNavigateToTracker;
@@ -20,11 +21,16 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _totalCalories = 1245;
-  int _targetCalories = 2000;
+  final int _targetCalories = 2000;
+  double _proteinGrams = 45.0;
+  final double _proteinMax = 65.0;
+  double _carbsGrams = 180.0;
+  final double _carbsMax = 300.0;
   double _lemakJenuhGrams = 18.0;
-  double _lemakJenuhMax = 25.0;
+  final double _lemakJenuhMax = 25.0;
   double _kolesterolMg = 180.0;
-  double _kolesterolMax = 300.0;
+  final double _kolesterolMax = 300.0;
+  int _unreadNotifsCount = 0;
 
   @override
   void initState() {
@@ -34,18 +40,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchSummaryFromDB() async {
     final logs = await DBHelper().getFoodLogs(date: AppDateFormatter.formatToday());
-    if (logs.isNotEmpty && mounted) {
+    final unread = await DBHelper().getUnreadNotificationCount();
+    if (mounted) {
       int totalCals = 0;
       double totalFat = 0;
+      double totalProt = 0;
+      double totalCarbs = 0;
       for (var log in logs) {
         totalCals += log.calories;
         totalFat += log.fat;
+        totalProt += log.protein;
+        totalCarbs += log.carbs;
       }
       setState(() {
         _totalCalories = totalCals;
+        _proteinGrams = totalProt > 0 ? totalProt : 45.0;
+        _carbsGrams = totalCarbs > 0 ? totalCarbs : 180.0;
         _lemakJenuhGrams = totalFat > 0 ? totalFat : 18.0;
+        _kolesterolMg = (totalFat * 4.5 + totalProt * 3.5) > 0
+            ? (totalFat * 4.5 + totalProt * 3.5)
+            : 180.0;
+        _unreadNotifsCount = unread;
       });
     }
+  }
+
+  void _openNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationScreen()),
+    ).then((_) => _fetchSummaryFromDB());
   }
 
   @override
@@ -93,47 +117,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
+                  GestureDetector(
+                    onTap: _openNotifications,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
                             Icons.notifications_none_rounded,
                             color: AppColors.textPrimary,
                             size: 24,
                           ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tidak ada notifikasi baru'),
+                        ),
+                        if (_unreadNotifsCount > 0)
+                          Positioned(
+                            top: -2,
+                            right: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          width: 9,
-                          height: 9,
-                          decoration: const BoxDecoration(
-                            color: Colors.redAccent,
-                            shape: BoxShape.circle,
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                _unreadNotifsCount > 9 ? '9+' : '$_unreadNotifsCount',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -248,6 +282,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Protein Bar
+                              _buildMacroLinearBar(
+                                label: 'Protein',
+                                valueText:
+                                    '${_proteinGrams.toStringAsFixed(0)} g',
+                                maxText:
+                                    '/ ${_proteinMax.toStringAsFixed(0)} g',
+                                percentageText:
+                                    '${((_proteinGrams / _proteinMax) * 100).toInt()}%',
+                                ratio: (_proteinGrams / _proteinMax)
+                                    .clamp(0.0, 1.0),
+                                barColor: AppColors.ecoGreen,
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Karbohidrat Bar
+                              _buildMacroLinearBar(
+                                label: 'Karbohidrat',
+                                valueText:
+                                    '${_carbsGrams.toStringAsFixed(0)} g',
+                                maxText:
+                                    '/ ${_carbsMax.toStringAsFixed(0)} g',
+                                percentageText:
+                                    '${((_carbsGrams / _carbsMax) * 100).toInt()}%',
+                                ratio: (_carbsGrams / _carbsMax)
+                                    .clamp(0.0, 1.0),
+                                barColor: const Color(0xFF3B82F6), // Blue
+                              ),
+                              const SizedBox(height: 10),
+
                               // Lemak Jenuh Bar
                               _buildMacroLinearBar(
                                 label: 'Lemak Jenuh',
@@ -263,7 +327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ? AppColors.error
                                     : const Color(0xFFF97316),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 10),
 
                               // Kolesterol Bar
                               _buildMacroLinearBar(
@@ -349,7 +413,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'Akan kedaluwarsa',
+                                    'Akan kadaluwarsa',
                                     style: AppTextStyles.subtitleSmall.copyWith(
                                       fontSize: 10,
                                     ),

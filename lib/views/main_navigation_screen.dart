@@ -4,6 +4,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_typography.dart';
 import 'dashboard_screen.dart';
 import 'food_tracker_screen.dart';
+import 'pantry_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialTab;
@@ -39,7 +40,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onNavigateToTracker: () => _onTabTapped(1),
       ),
       const FoodTrackerScreen(),
-      const _PlaceholderScreen(title: 'Pantry / Stok Dapur'),
+      const PantryScreen(),
       const _PlaceholderScreen(title: 'FoodInfo / Informasi Gizi'),
       const _PlaceholderScreen(title: 'Profil Saya'),
     ];

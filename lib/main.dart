@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
-import 'views/onboarding_screen.dart';
+import 'views/splash_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const FoodCuraApp());
 }
 
@@ -17,8 +18,7 @@ class FoodCuraApp extends StatelessWidget {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const OnboardingScreen(),
+      home: const SplashScreen(),
     );
   }
 }
-
