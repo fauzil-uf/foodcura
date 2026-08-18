@@ -7,7 +7,7 @@ import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../widgets/app_text_field.dart';
-import 'forgot_password_screen.dart';
+// import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -41,6 +41,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) setState(() {});
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _login() async {
     final success = await _authController.login(
       emailController.text,
@@ -56,9 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         (route) => false,
       );
     } else if (_authController.errorMessage != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_authController.errorMessage!)));
+      _showSnackBar(_authController.errorMessage!);
     }
   }
 
@@ -109,17 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Selamat Datang ',
-                                  style: AppTextStyles.heading1,
-                                ),
-                                const TextSpan(text: '👋'),
-                              ],
-                            ),
+                          Text(
+                            'Selamat Datang 👋',
                             textAlign: TextAlign.center,
+                            style: AppTextStyles.heading1,
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -145,19 +143,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             radius: 18,
                             height: 58,
                           ),
-                          const SizedBox(height: 4),
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ForgotPasswordScreen(),
-                                  ),
-                                );
-                              },
+                              onPressed: () => _showSnackBar(
+                                'Fitur reset password belum tersedia pada mode database lokal (offline).',
+                              ),
                               child: Text(
                                 'Lupa Password?',
                                 style: AppTextStyles.linkBold,
@@ -223,15 +214,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                               ),
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Google Sign-In belum tersedia',
-                                    ),
-                                  ),
-                                );
-                              },
+                              onPressed: () => _showSnackBar('Google Sign-In belum tersedia'),
                               icon: SvgPicture.asset(
                                 AppImages.icGoogle,
                                 width: 22,

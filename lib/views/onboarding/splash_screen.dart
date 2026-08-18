@@ -46,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Text animation
+    // Text animation with a soft left-to-right slide
     _textController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -55,12 +55,12 @@ class _SplashScreenState extends State<SplashScreen>
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
-    _textSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
+    _textSlide = Tween<Offset>(begin: const Offset(-0.45, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
+        );
 
-    // Shimmer effect
+    // Shimmer effect stays on the text itself
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -198,7 +198,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // App name with shimmer
+                  // App name with a subtle left-to-right slide and shimmer
                   SlideTransition(
                     position: _textSlide,
                     child: FadeTransition(

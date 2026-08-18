@@ -95,8 +95,8 @@ class AuthController extends ChangeNotifier {
       return false;
     }
 
-    if (password.length < 6) {
-      _errorMessage = 'Password minimal 6 karakter!';
+    if (password.length < 8) {
+      _errorMessage = 'Password minimal 8 karakter!';
       notifyListeners();
       return false;
     }

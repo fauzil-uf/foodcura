@@ -8,12 +8,14 @@ import '../../database/db_helper.dart';
 import '../../models/food_item_model.dart';
 import '../../models/food_log_model.dart';
 import '../notification/notification_screen.dart';
-import '../widgets/app_circular_progress.dart';
-import '../widgets/app_food_image.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/add_food_modal.dart';
 import 'widgets/all_catalog_modal.dart';
 import 'widgets/food_detail_modal.dart';
+import 'widgets/food_meal_tab.dart';
+import 'widgets/food_search_results.dart';
+import 'widgets/food_summary_card.dart';
+import 'widgets/food_tracker_header.dart';
 
 class FoodTrackerScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -279,144 +281,85 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Interactive Date Navigator & Quick Day Switcher
-                          _buildDateNavigator(),
-
-                          // Search Bar
-                          Container(
-                            height: 48,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: AppColors.border),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.search,
-                                  color: AppColors.textGray,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _searchController,
-                                    onChanged: _onSearchChanged,
-                                    style: AppTextStyles.body.copyWith(
-                                      fontSize: 13,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Cari makanan, minuman, atau scan barcode',
-                                      border: InputBorder.none,
-                                      suffixIcon: _controller.isSearching
-                                          ? IconButton(
-                                              icon: const Icon(
-                                                Icons.clear,
-                                                size: 18,
-                                              ),
-                                              onPressed: () {
-                                                _searchController.clear();
-                                                _onSearchChanged('');
-                                              },
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: _openFoodScanner,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.mintTint,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.qr_code_scanner_rounded,
-                                      color: AppColors.primary,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Horizontal Meal Filter Tabs
-                          SizedBox(
-                            height: 40,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _tabs.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(width: 8),
-                              itemBuilder: (context, index) {
-                                final tabName = _tabs[index];
-                                final isSelected = _selectedTabIndex == index;
-                                return GestureDetector(
-                                  onTap: () {
-                                    _controller.setSelectedTab(index);
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : AppColors.white,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? AppColors.primary
-                                            : AppColors.border,
-                                      ),
-                                      boxShadow: isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: AppColors.primary
-                                                    .withValues(alpha: 0.2),
-                                                blurRadius: 8,
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Text(
-                                      tabName,
-                                      style: AppTextStyles.bodyMd.copyWith(
-                                        fontSize: 13,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : AppColors.textGray,
+                          FoodTrackerHeader(
+                            tabs: _tabs,
+                            selectedTabIndex: _selectedTabIndex,
+                            selectedDate: _controller.selectedDate,
+                            dateDisplayLabel: _controller.dateDisplayLabel,
+                            searchController: _searchController,
+                            isSearching: _controller.isSearching,
+                            onBack: () => _controller.setSelectedTab(0),
+                            onDateTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _controller.selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: AppColors.primary,
+                                        onPrimary: Colors.white,
+                                        onSurface: AppColors.deepForest,
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                _controller.setSelectedDate(picked);
+                              }
+                            },
+                            onPreviousDay: () => _controller.previousDay(),
+                            onNextDay: () => _controller.nextDay(),
+                            onSearchChanged: _onSearchChanged,
+                            onFoodScannerTap: _openFoodScanner,
+                            onTabChanged: (index) => _controller.setSelectedTab(index),
                           ),
                           const SizedBox(height: 20),
 
-                          // Display Selected Tab Content
                           if (_controller.isSearching)
-                            _buildSearchResultsView()
+                            FoodSearchResults(
+                              searchQuery: _searchController.text,
+                              searchResults: _controller.searchResults,
+                              currentMealType: _selectedTabIndex > 0
+                                  ? _tabs[_selectedTabIndex]
+                                  : 'Makan Siang',
+                              recentlyAddedFoodNames: _recentlyAddedFoodNames,
+                              onClear: () {
+                                _searchController.clear();
+                                _onSearchChanged('');
+                              },
+                              onQuickAdd: _quickAddFood,
+                            )
                           else if (_selectedTabIndex == 0)
-                            _buildSummaryTab()
+                            FoodSummaryCard(
+                              controller: _controller,
+                              nutrientWarnings: _controller.warnings,
+                              onAddFood: _openAddFoodModal,
+                              onOpenMealTab: (index) => _controller.setSelectedTab(index),
+                            )
                           else
-                            _buildMealCategoryTab(_tabs[_selectedTabIndex]),
+                            FoodMealTab(
+                              mealType: _tabs[_selectedTabIndex],
+                              logs: _controller.allLogs
+                                  .where((log) => log.mealType == _tabs[_selectedTabIndex])
+                                  .toList(),
+                              totalCalories: _controller.allLogs
+                                  .where((log) => log.mealType == _tabs[_selectedTabIndex])
+                                  .fold(0, (sum, item) => sum + item.calories),
+                              selectedDate: _controller.selectedDate,
+                              recentCatalog: _controller.recentCatalog,
+                              recentlyAddedFoodNames: _recentlyAddedFoodNames,
+                              onAddFood: _openAddFoodModal,
+                              onOpenDetail: _openDetailModal,
+                              onOpenAllCatalog: () => _openAllCatalogModal(
+                                    _tabs[_selectedTabIndex],
+                                  ),
+                              onQuickAdd: _quickAddFood,
+                            ),
                         ],
                       ),
                     ),
@@ -427,1342 +370,146 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     );
   }
 
-  // --- SIMPLE & INTUITIVE DATE NAVIGATOR ---
-  Widget _buildDateNavigator() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.12),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Previous Day Button (<)
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _controller.previousDay(),
-              child: Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.chevron_left_rounded,
-                  size: 26,
-                  color: AppColors.deepForest,
-                ),
-              ),
-            ),
-          ),
+  // legacy helper removed after extracting widgets
 
-          // Center Interactive Date Pill (Tap to open DatePicker)
-          Expanded(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _controller.selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: AppColors.primary,
-                            onPrimary: Colors.white,
-                            onSurface: AppColors.deepForest,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (picked != null) {
-                    _controller.setSelectedDate(picked);
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: AppColors.mintTint,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_today_rounded,
-                          size: 15,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _controller.dateDisplayLabel,
-                          style: AppTextStyles.bodyMd.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.deepForest,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 18,
-                        color: AppColors.textGray,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+  // legacy helper removed after extracting widgets
 
-          // Next Day Button (>)
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _controller.nextDay(),
-              child: Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 26,
-                  color: AppColors.deepForest,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // legacy helper removed after extracting widgets
 
-  // --- RINGKASAN TAB ---
-  Widget _buildSummaryTab() {
-    final totalCals = _controller.totalCalories;
-    final totalProtein = _controller.totalProtein;
-    final totalCarbs = _controller.totalCarbs;
-    final totalFat = _controller.totalFat;
-    final totalCholesterol = _controller.totalCholesterol;
-    final nutrientWarnings = _controller.warnings;
+  // legacy helper removed after extracting widgets
 
-    final sarapanLogs = _controller.sarapanLogs;
-    final makanSiangLogs = _controller.makanSiangLogs;
-    final makanMalamLogs = _controller.makanMalamLogs;
-    final camilanLogs = _controller.camilanLogs;
+  // legacy helper removed after extracting widgets
 
-    int sumCals(List<FoodLogModel> list) =>
-        list.fold(0, (sum, item) => sum + item.calories);
+  // legacy helper removed after extracting widgets
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Nutrition Summary Main Card (Eco-Tech Modern Refresh)
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row: Title + Date & Target Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _controller.isToday
-                              ? 'Ringkasan Nutrisi Hari Ini'
-                              : 'Ringkasan Nutrisi (${_controller.isYesterday ? 'Kemarin' : AppDateFormatter.formatShortDate(_controller.selectedDate)})',
-                          style: AppTextStyles.heading2.copyWith(
-                            fontSize: 16,
-                            color: AppColors.deepForest,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_today_rounded,
-                              size: 11,
-                              color: AppColors.textGray,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              AppDateFormatter.formatToday(
-                                _controller.selectedDate,
-                              ),
-                              style: AppTextStyles.subtitleSmall.copyWith(
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.mintTint,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.track_changes_rounded,
-                          size: 13,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          '2.000 kcal Target',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
+  // legacy helper removed after extracting widgets
 
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Circular Progress Ring & Percentage Badge
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 110,
-                        height: 110,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CustomPaint(
-                              size: const Size(110, 110),
-                              painter: AppCircularProgressPainter(
-                                progress: (totalCals / 2000).clamp(0.0, 1.0),
-                                color: totalCals > 2000
-                                    ? AppColors.error
-                                    : AppColors.primary,
-                                bgColor: AppColors.surfaceContainerHigh,
-                              ),
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '$totalCals',
-                                  style: AppTextStyles.heading1.copyWith(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: totalCals > 2000
-                                        ? AppColors.error
-                                        : AppColors.deepForest,
-                                  ),
-                                ),
-                                Text(
-                                  'kcal tercatat',
-                                  style: AppTextStyles.subtitleSmall.copyWith(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textGray,
-                                    height: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  totalCals >= 2000
-                                      ? 'Tercapai'
-                                      : 'Sisa ${(2000 - totalCals).clamp(0, 2000)}',
-                                  style: TextStyle(
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: totalCals > 2000
-                                        ? AppColors.error
-                                        : AppColors.ecoGreen,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: totalCals > 2000
-                              ? AppColors.error.withValues(alpha: 0.12)
-                              : (totalCals == 0
-                                    ? AppColors.surfaceContainerLow
-                                    : AppColors.primary.withValues(alpha: 0.1)),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          totalCals == 0
-                              ? '0% tercapai'
-                              : '${((totalCals / 2000) * 100).toStringAsFixed(1)}% tercapai',
-                          style: AppTextStyles.label.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: totalCals > 2000
-                                ? AppColors.error
-                                : (totalCals == 0
-                                      ? AppColors.textGray
-                                      : AppColors.primary),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
+  // legacy helper removed after extracting widgets
 
-                  // Linear Progress Bars for Nutrients
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildNutrientBar(
-                          icon: Icons.egg_alt_outlined,
-                          name: 'Protein',
-                          valText: '${totalProtein.toInt()} / 65 g',
-                          ratio: (totalProtein / 65).clamp(0.0, 1.0),
-                          color: totalProtein > 65.0
-                              ? AppColors.secondaryContainer
-                              : AppColors.seaGreen,
-                          iconBgColor: AppColors.seaGreen.withValues(
-                            alpha: 0.12,
-                          ),
-                          isWarning: totalProtein > 65.0,
-                        ),
-                        _buildNutrientBar(
-                          icon: Icons.bakery_dining_outlined,
-                          name: 'Karbohidrat',
-                          valText: '${totalCarbs.toInt()} / 300 g',
-                          ratio: (totalCarbs / 300).clamp(0.0, 1.0),
-                          color: totalCarbs > 300
-                              ? AppColors.secondaryContainer
-                              : AppColors.infoBlue,
-                          iconBgColor: AppColors.infoBlue.withValues(
-                            alpha: 0.12,
-                          ),
-                          isWarning: totalCarbs > 300,
-                        ),
-                        _buildNutrientBar(
-                          icon: Icons.water_drop_outlined,
-                          name: 'Lemak',
-                          valText: '${totalFat.toInt()} / 67 g',
-                          ratio: (totalFat / 67).clamp(0.0, 1.0),
-                          color: totalFat >= 67.0
-                              ? AppColors.error
-                              : const Color(0xFFE65100),
-                          iconBgColor:
-                              (totalFat >= 67.0
-                                      ? AppColors.error
-                                      : const Color(0xFFE65100))
-                                  .withValues(alpha: 0.12),
-                          isWarning: totalFat >= 67.0,
-                        ),
-                        _buildNutrientBar(
-                          icon: Icons.favorite_outline,
-                          name: 'Kolesterol',
-                          valText: '${totalCholesterol.toInt()} / 300 mg',
-                          ratio: (totalCholesterol / 300).clamp(0.0, 1.0),
-                          color: totalCholesterol > 300
-                              ? AppColors.error
-                              : const Color(0xFFD97706),
-                          iconBgColor: const Color(
-                            0xFFD97706,
-                          ).withValues(alpha: 0.12),
-                          isWarning: totalCholesterol > 300,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+  // legacy helper removed after extracting widgets
 
-        // Warning Alert Cards Section
-        if (nutrientWarnings.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          ...nutrientWarnings.map(
-            (w) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: (w['color'] as Color).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: (w['color'] as Color).withValues(alpha: 0.4),
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: (w['color'] as Color).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      w['icon'] as IconData,
-                      color: w['color'] as Color,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          w['title'] as String,
-                          style: AppTextStyles.label.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: w['color'] as Color,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          w['message'] as String,
-                          style: AppTextStyles.subtitleSmall.copyWith(
-                            fontSize: 11.5,
-                            height: 1.35,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
+  // legacy helper removed after extracting widgets
 
-        // "Makanan Hari Ini" Meal Summary Cards
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _controller.isToday
-                  ? 'Makanan Hari Ini'
-                  : 'Makanan (${_controller.isYesterday ? 'Kemarin' : AppDateFormatter.formatShortDate(_controller.selectedDate)})',
-              style: AppTextStyles.heading2.copyWith(fontSize: 16),
-            ),
-            if (!_controller.isToday)
-              GestureDetector(
-                onTap: () => _controller.setToday(),
-                child: Text(
-                  'Lihat Hari Ini',
-                  style: AppTextStyles.badgeText.copyWith(
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
+  // legacy helper removed after extracting widgets
 
-        if (_controller.allLogs.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.border.withValues(alpha: 0.6),
-              ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.restaurant_outlined,
-                    color: AppColors.textGraySoft,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _controller.isToday
-                      ? 'Belum Ada Santapan Hari Ini'
-                      : 'Tidak Ada Catatan Makanan',
-                  style: AppTextStyles.heading2.copyWith(
-                    fontSize: 15,
-                    color: AppColors.deepForest,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _controller.isToday
-                      ? 'Mulai hari sehatmu dengan mencatat sarapan atau santapan pertama!'
-                      : 'Tidak ada makanan yang dicatat pada ${AppDateFormatter.formatToday(_controller.selectedDate)}.',
-                  style: AppTextStyles.subtitleSmall.copyWith(fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => _openAddFoodModal('Sarapan'),
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Catat Makanan Baru'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else ...[
-          _buildMealCategoryCard(
-            title: 'Sarapan',
-            countText: '${sarapanLogs.length} makanan',
-            calsText: '${sumCals(sarapanLogs)} kcal',
-            icon: Icons.wb_twilight_rounded,
-            iconColor: AppColors.seaGreen,
-            onTap: () => _controller.setSelectedTab(1),
-          ),
-          const SizedBox(height: 10),
+  // legacy helper removed after extracting widgets
 
-          _buildMealCategoryCard(
-            title: 'Makan Siang',
-            countText: '${makanSiangLogs.length} makanan',
-            calsText: '${sumCals(makanSiangLogs)} kcal',
-            icon: Icons.light_mode_rounded,
-            iconColor: AppColors.secondaryContainer,
-            onTap: () => _controller.setSelectedTab(2),
-          ),
-          const SizedBox(height: 10),
+  // legacy helper removed after extracting widgets
 
-          _buildMealCategoryCard(
-            title: 'Makan Malam',
-            countText: '${makanMalamLogs.length} makanan',
-            calsText: '${sumCals(makanMalamLogs)} kcal',
-            icon: Icons.dark_mode_rounded,
-            iconColor: AppColors.urgent,
-            onTap: () => _controller.setSelectedTab(3),
-          ),
-          const SizedBox(height: 10),
+  // legacy helper removed after extracting widgets
 
-          _buildMealCategoryCard(
-            title: 'Camilan',
-            countText: '${camilanLogs.length} makanan',
-            calsText: '${sumCals(camilanLogs)} kcal',
-            icon: Icons.tapas_rounded,
-            iconColor: AppColors.infoBlue,
-            onTap: () => _controller.setSelectedTab(4),
-          ),
-        ],
-      ],
-    );
-  }
+  // legacy helper removed after extracting widgets
 
-  // --- MEAL CATEGORY TAB (Sarapan, Makan Siang, Makan Malam, Camilan) ---
-  Widget _buildMealCategoryTab(String mealType) {
-    final logs = _controller.allLogs
-        .where((l) => l.mealType == mealType)
-        .toList();
-    final totalCals = logs.fold(0, (sum, item) => sum + item.calories);
+  // legacy helper removed after extracting widgets
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Category Header Row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mealType,
-                  style: AppTextStyles.heading1.copyWith(
-                    fontSize: 20,
-                    color: AppColors.primaryDark,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  AppDateFormatter.formatToday(_controller.selectedDate),
-                  style: AppTextStyles.subtitleSmall,
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('Total', style: AppTextStyles.subtitleSmall),
-                Text(
-                  '$totalCals kcal',
-                  style: AppTextStyles.heading2.copyWith(
-                    fontSize: 16,
-                    color: AppColors.primaryLight,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+  // legacy helper removed after extracting widgets
 
-        // List of Logged Food Cards
-        if (logs.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.no_meals_outlined,
-                  size: 44,
-                  color: AppColors.textGray,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Belum ada makanan dicatat untuk $mealType',
-                  style: AppTextStyles.subtitle.copyWith(fontSize: 13),
-                ),
-              ],
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: logs.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final log = logs[index];
-              return _buildFoodLogCard(log);
-            },
-          ),
-        const SizedBox(height: 16),
+  // legacy helper removed after extracting widgets
 
-        // "Tambah Makanan" Button
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              elevation: 2,
-            ),
-            onPressed: () => _openAddFoodModal(mealType),
-            icon: const Icon(Icons.add_rounded, size: 22),
-            label: Text(
-              'Tambah Makanan',
-              style: AppTextStyles.button.copyWith(fontSize: 15),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
+  // legacy helper removed after extracting widgets
 
-        // Tips Sehat Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.infoContainer,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.lightbulb_outline_rounded,
-                color: AppColors.primaryLight,
-                size: 22,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tips Sehat',
-                      style: AppTextStyles.label.copyWith(
-                        fontSize: 13,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _getTipForMeal(mealType),
-                      style: AppTextStyles.subtitle.copyWith(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: AppColors.primaryDark.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
+  // legacy helper removed after extracting widgets
 
-        // Terakhir Ditambahkan Section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Terakhir Ditambahkan',
-              style: AppTextStyles.heading2.copyWith(fontSize: 16),
-            ),
-            TextButton(
-              onPressed: () => _openAllCatalogModal(mealType),
-              child: Text(
-                'Lihat Semua',
-                style: AppTextStyles.linkBold.copyWith(fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
+  // legacy helper removed after extracting widgets
 
-        // Quick add list from catalog
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _controller.recentCatalog.take(3).length,
-          separatorBuilder: (_, _) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final food = _controller.recentCatalog[index];
-            return Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.asset(
-                      food.imagePath,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 56,
-                        height: 56,
-                        color: Colors.grey.shade200,
-                        child: const Icon(
-                          Icons.fastfood,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          food.name,
-                          style: AppTextStyles.body.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${food.calories} kcal · Baru saja',
-                          style: AppTextStyles.subtitleSmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${food.calories}',
-                    style: AppTextStyles.heading2.copyWith(fontSize: 15),
-                  ),
-                  const SizedBox(width: 12),
-                  Builder(
-                    builder: (context) {
-                      final isAdded = _recentlyAddedFoodNames.contains(food.name);
-                      return GestureDetector(
-                        onTap: isAdded ? null : () => _quickAddFood(food, mealType),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: isAdded
-                                ? AppColors.mintTint
-                                : AppColors.infoContainer,
-                            shape: BoxShape.circle,
-                            border: isAdded
-                                ? Border.all(
-                                    color: AppColors.primary,
-                                    width: 1.5,
-                                  )
-                                : null,
-                          ),
-                          child: Icon(
-                            isAdded ? Icons.check_rounded : Icons.add,
-                            size: 20,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+  // legacy helper removed after extracting widgets
 
-  Widget _buildFoodLogCard(FoodLogModel log) {
-    return GestureDetector(
-      onTap: () => _openDetailModal(log),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                log.imagePath,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 60,
-                  height: 60,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.fastfood, color: AppColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    log.foodName,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(log.time, style: AppTextStyles.subtitleSmall),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Protein ${log.protein} g · Karbo ${log.carbs} g · Lemak ${log.fat} g',
-                    style: AppTextStyles.subtitleSmall.copyWith(
-                      fontSize: 10.5,
-                      color: AppColors.textGraySoft,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${log.calories}',
-                  style: AppTextStyles.heading2.copyWith(
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text('kcal', style: AppTextStyles.subtitleSmall),
-              ],
-            ),
-            const SizedBox(width: 6),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textGray,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // legacy helper removed after extracting widgets
 
-  Widget _buildMealCategoryCard({
-    required String title,
-    required String countText,
-    required String calsText,
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    final hasCals = !calsText.startsWith('0');
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.7)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.deepForest,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      countText,
-                      style: AppTextStyles.subtitleSmall.copyWith(
-                        fontSize: 11.5,
-                        color: AppColors.textGray,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: hasCals
-                        ? AppColors.mintTint
-                        : AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: hasCals
-                          ? AppColors.primary.withValues(alpha: 0.25)
-                          : AppColors.border,
-                    ),
-                  ),
-                  child: Text(
-                    calsText,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: hasCals ? AppColors.primary : AppColors.textGray,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textGray,
-                  size: 20,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // legacy helper removed after extracting widgets
 
-  Widget _buildNutrientBar({
-    required IconData icon,
-    required String name,
-    required String valText,
-    required double ratio,
-    required Color color,
-    required Color iconBgColor,
-    bool isWarning = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 7),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAF9),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isWarning
-              ? AppColors.error.withValues(alpha: 0.3)
-              : AppColors.border.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3.5),
-                    decoration: BoxDecoration(
-                      color: iconBgColor,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(icon, size: 11.5, color: color),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    name,
-                    style: AppTextStyles.label.copyWith(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.deepForest,
-                    ),
-                  ),
-                  if (isWarning) ...[
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      size: 12,
-                      color: AppColors.error,
-                    ),
-                  ],
-                ],
-              ),
-              Text(
-                valText,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: isWarning ? AppColors.error : AppColors.textGray,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 5,
-              backgroundColor: AppColors.surfaceContainerHigh,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // legacy helper removed after extracting widgets
 
-  String _getTipForMeal(String mealType) {
-    switch (mealType) {
-      case 'Sarapan':
-        return 'Awali hari dengan sarapan yang mengandung karbohidrat dan protein agar energi lebih terjaga.';
-      case 'Makan Siang':
-        return 'Lengkapi makan siang dengan sumber karbohidrat, protein, dan sayuran agar lebih seimbang.';
-      case 'Makan Malam':
-        return 'Padukan sumber protein dengan sayuran untuk membuat makan malam lebih seimbang.';
-      case 'Camilan':
-        return 'Pilih camilan yang lebih mengenyangkan dan tetap perhatikan jumlah porsinya.';
-      default:
-        return 'Jaga pola makan seimbang setiap hari.';
-    }
-  }
+  // legacy helper removed after extracting widgets
 
-  Widget _buildSearchResultsView() {
-    if (_controller.searchResults.isEmpty) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Center(
-          child: Text(
-            'Tidak ada makanan cocok dengan "${_searchController.text}"',
-            style: AppTextStyles.subtitle,
-          ),
-        ),
-      );
-    }
+  // legacy helper removed after extracting widgets
 
-    final currentMealType = _selectedTabIndex > 0
-        ? _tabs[_selectedTabIndex]
-        : 'Makan Siang';
+  // legacy helper removed after extracting widgets
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Hasil Pencarian (${_controller.searchResults.length})',
-                style: AppTextStyles.heading2.copyWith(fontSize: 15),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: () {
-                  _searchController.clear();
-                  _onSearchChanged('');
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _controller.searchResults.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final food = _controller.searchResults[index];
-              final isAdded = _recentlyAddedFoodNames.contains(food.name);
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(16),
-                  border: isAdded
-                      ? Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.35),
-                          width: 1.2,
-                        )
-                      : null,
-                ),
-                child: Row(
-                  children: [
-                    AppFoodImage(
-                      imagePath: food.imagePath,
-                      width: 50,
-                      height: 50,
-                      borderRadius: 12,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            food.name,
-                            style: AppTextStyles.body.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            '${food.calories} kcal · ${food.category}',
-                            style: AppTextStyles.subtitleSmall.copyWith(
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isAdded
-                              ? AppColors.mintTint
-                              : AppColors.primary,
-                          elevation: isAdded ? 0 : 2,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: isAdded
-                                ? const BorderSide(
-                                    color: AppColors.primary,
-                                    width: 1.2,
-                                  )
-                                : BorderSide.none,
-                          ),
-                        ),
-                        onPressed: isAdded
-                            ? null
-                            : () => _quickAddFood(food, currentMealType),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isAdded
-                                  ? Icons.check_rounded
-                                  : Icons.add_rounded,
-                              size: 16,
-                              color: isAdded
-                                  ? AppColors.primary
-                                  : Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isAdded ? 'Tercatat' : 'Tambah',
-                              style: AppTextStyles.buttonSmall.copyWith(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isAdded
-                                    ? AppColors.primary
-                                    : Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
+  // legacy helper removed after extracting widgets
+
 }

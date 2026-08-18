@@ -43,6 +43,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (mounted) setState(() {});
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _register() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
@@ -59,21 +66,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (success) {
       await _authController.login(email, pass);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Selamat datang, $name!'),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+      _showSnackBar('Selamat datang, $name!');
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
     } else if (_authController.errorMessage != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_authController.errorMessage!)));
+      _showSnackBar(_authController.errorMessage!);
     }
   }
 
@@ -280,17 +280,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                       ),
                                     ),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Google Sign-In belum tersedia',
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                    onPressed: () => _showSnackBar('Google Sign-In belum tersedia'),
                                     icon: SvgPicture.asset(
                                       AppImages.icGoogle,
                                       width: 20,
