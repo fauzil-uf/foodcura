@@ -20,7 +20,8 @@ class AppFoodImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isNetwork = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+    final isNetwork =
+        imagePath.startsWith('http://') || imagePath.startsWith('https://');
 
     Widget imageWidget;
     if (isNetwork) {
@@ -67,11 +68,7 @@ class AppFoodImage extends StatelessWidget {
       width: width,
       height: height,
       color: Colors.grey.shade200,
-      child: const Icon(
-        Icons.fastfood,
-        color: AppColors.primary,
-        size: 20,
-      ),
+      child: const Icon(Icons.fastfood, color: AppColors.primary, size: 20),
     );
   }
 }

@@ -1,5 +1,12 @@
 import '../constants/app_date_formatter.dart';
 
+/// Model representasi notifikasi dalam aplikasi FoodCura.
+///
+/// Mendukung berbagai tipe notifikasi:
+/// - `expiry_warning`: Pengingat masa kadaluwarsa bahan makanan di Pantry.
+/// - `nutrition_excess`: Peringatan kelebihan batas asupan nutrisi harian.
+/// - `tips`: Edukasi & tips pencegahan food waste.
+/// - `system`: Informasi pembaruan sistem dan pencapaian.
 class NotificationModel {
   final int? id;
   final String title;
@@ -32,6 +39,7 @@ class NotificationModel {
         createdAt.day == now.day;
   }
 
+  /// Mengonversi objek [NotificationModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -45,6 +53,7 @@ class NotificationModel {
     };
   }
 
+  /// Membuat instance [NotificationModel] dari hasil pembacaan baris [Map] SQLite.
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
     return NotificationModel(
       id: map['id'] as int?,
@@ -55,6 +64,29 @@ class NotificationModel {
       isRead: (map['is_read'] as int?) == 1,
       relatedPantryId: map['related_pantry_id'] as int?,
       createdAt: DateTime.parse(map['created_at'] as String),
+    );
+  }
+
+  /// Membuat salinan objek dengan opsi pembaruan field tertentu.
+  NotificationModel copyWith({
+    int? id,
+    String? title,
+    String? message,
+    String? type,
+    String? iconType,
+    bool? isRead,
+    int? relatedPantryId,
+    DateTime? createdAt,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      type: type ?? this.type,
+      iconType: iconType ?? this.iconType,
+      isRead: isRead ?? this.isRead,
+      relatedPantryId: relatedPantryId ?? this.relatedPantryId,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

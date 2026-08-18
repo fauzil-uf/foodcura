@@ -1,3 +1,7 @@
+/// Model representasi catatan konsumsi makanan harian pengguna.
+///
+/// Menyimpan data makanan yang dicatat (nama, waktu, tanggal, tipe makan,
+/// kalori, makronutrisi, serta catatan tambahan opsional).
 class FoodLogModel {
   final int? id;
   final int? userId;
@@ -27,6 +31,10 @@ class FoodLogModel {
     this.note,
   });
 
+  /// Estimasi kolesterol (mg) berdasarkan profil makronutrisi lemak & protein
+  double get cholesterol => fat * 4.5 + protein * 3.5;
+
+  /// Mengonversi objek [FoodLogModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -44,6 +52,7 @@ class FoodLogModel {
     };
   }
 
+  /// Membuat instance [FoodLogModel] dari hasil pembacaan baris [Map] SQLite.
   factory FoodLogModel.fromMap(Map<String, dynamic> map) {
     return FoodLogModel(
       id: map['id'] as int?,
@@ -58,6 +67,37 @@ class FoodLogModel {
       time: map['time'] as String,
       date: map['date'] as String,
       note: map['note'] as String?,
+    );
+  }
+
+  /// Membuat salinan objek dengan opsi pembaruan field tertentu.
+  FoodLogModel copyWith({
+    int? id,
+    int? userId,
+    String? foodName,
+    String? mealType,
+    int? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    String? imagePath,
+    String? time,
+    String? date,
+    String? note,
+  }) {
+    return FoodLogModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      foodName: foodName ?? this.foodName,
+      mealType: mealType ?? this.mealType,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
+      imagePath: imagePath ?? this.imagePath,
+      time: time ?? this.time,
+      date: date ?? this.date,
+      note: note ?? this.note,
     );
   }
 }

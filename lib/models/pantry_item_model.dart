@@ -1,3 +1,10 @@
+/// Model representasi bahan makanan yang disimpan di dalam Pantry/Inventaris.
+///
+/// Menyediakan kalkulasi dinamis untuk:
+/// - [daysUntilExpiry]: Sisa hari menuju tanggal kedaluwarsa.
+/// - [expiryStatus]: Kategori status ('expired', 'urgent', 'segera', 'aman').
+/// - [expiryProgress]: Nilai persentase (0.0 - 1.0) untuk progress bar visual.
+/// - [quantityDisplay]: Format display jumlah, unit, dan lokasi penyimpanan.
 class PantryItemModel {
   final int? id;
   final String name;
@@ -48,7 +55,9 @@ class PantryItemModel {
 
   /// Format display jumlah + unit + storage
   String get quantityDisplay {
-    final qty = quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toString();
+    final qty = quantity % 1 == 0
+        ? quantity.toInt().toString()
+        : quantity.toString();
     return '$qty $unit · $storage';
   }
 

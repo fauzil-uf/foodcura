@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'package:intl/date_symbol_data_local.dart';
+
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
-import 'views/splash_screen.dart';
+import 'services/notification_service.dart';
+import 'views/onboarding/splash_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
+  await NotificationService.instance.init();
   runApp(const FoodCuraApp());
 }
 

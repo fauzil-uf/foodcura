@@ -1,3 +1,9 @@
+import 'dart:convert';
+
+/// Model representasi data katalog makanan dan kandungan nutrisinya.
+///
+/// Menyimpan informasi kalori, makronutrisi (protein, karbohidrat, lemak),
+/// kategori waktu makan, dan path gambar lokal/network.
 class FoodItemModel {
   final int? id;
   final String name;
@@ -19,6 +25,10 @@ class FoodItemModel {
     required this.imagePath,
   });
 
+  /// Estimasi kolesterol (mg) berdasarkan profil makronutrisi lemak & protein
+  double get cholesterol => fat * 4.5 + protein * 3.5;
+
+  /// Mengonversi objek [FoodItemModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -43,26 +53,6 @@ class FoodItemModel {
       category: map['category'] as String,
       imagePath: map['image_path'] as String,
     );
-  }
-
-  static List<String> _parseCsvFields(String line) {
-    final fields = <String>[];
-    final sb = StringBuffer();
-    bool inQuotes = false;
-
-    for (int i = 0; i < line.length; i++) {
-      final char = line[i];
-      if (char == '"') {
-        inQuotes = !inQuotes;
-      } else if (char == ',' && !inQuotes) {
-        fields.add(sb.toString().trim());
-        sb.clear();
-      } else {
-        sb.write(char);
-      }
-    }
-    fields.add(sb.toString().trim());
-    return fields;
   }
 
   static String _inferCategory(String name) {
@@ -127,53 +117,26 @@ class FoodItemModel {
     return 'Makan Siang';
   }
 
-  factory FoodItemModel.fromCsvLine(String line) {
-    final parts = _parseCsvFields(line);
-    if (parts.length >= 7) {
-      // Check if schema is id,calories,proteins,fat,carbohydrate,name,image
-      final secondPartVal = double.tryParse(parts[1]);
-      if (secondPartVal != null) {
-        final rawId = int.tryParse(parts[0]);
-        final cals = (double.tryParse(parts[1]) ?? 0).toInt();
-        final prot = double.tryParse(parts[2]) ?? 0.0;
-        final ft = double.tryParse(parts[3]) ?? 0.0;
-        final crbs = double.tryParse(parts[4]) ?? 0.0;
-        final nm = parts[5].replaceAll('"', '').trim();
-        final img = parts[6].replaceAll('"', '').trim();
-        final cat = _inferCategory(nm);
-
-        return FoodItemModel(
-          id: rawId,
-          name: nm,
-          calories: cals,
-          protein: prot,
-          carbs: crbs,
-          fat: ft,
-          category: cat,
-          imagePath: img,
-        );
-      }
-    }
-
-    // Older schema fallback: id,name,calories,protein,carbs,fat,category,image_path
-    final rawId = int.tryParse(parts[0]);
-    final nm = parts.length > 1 ? parts[1] : 'Makanan';
-    final cals = parts.length > 2 ? (double.tryParse(parts[2]) ?? 0).toInt() : 0;
-    final prot = parts.length > 3 ? (double.tryParse(parts[3]) ?? 0) : 0.0;
-    final crbs = parts.length > 4 ? (double.tryParse(parts[4]) ?? 0) : 0.0;
-    final ft = parts.length > 5 ? (double.tryParse(parts[5]) ?? 0) : 0.0;
-    final cat = parts.length > 6 ? parts[6] : 'Makan Siang';
-    final img = parts.length > 7 ? parts[7] : 'assets/images/food/nasi.png';
-
+  /// Parse dari satu entry JSON object (Map)
+  factory FoodItemModel.fromJson(Map<String, dynamic> json) {
+    final nm = (json['name'] as String? ?? '').trim();
     return FoodItemModel(
-      id: rawId,
+      id: (json['id'] as num?)?.toInt(),
       name: nm,
-      calories: cals,
-      protein: prot,
-      carbs: crbs,
-      fat: ft,
-      category: cat,
-      imagePath: img,
+      calories: (json['calories'] as num? ?? 0).toInt(),
+      protein: (json['proteins'] as num? ?? 0).toDouble(),
+      carbs: (json['carbohydrate'] as num? ?? 0).toDouble(),
+      fat: (json['fat'] as num? ?? 0).toDouble(),
+      category: _inferCategory(nm),
+      imagePath: (json['image'] as String? ?? '').trim(),
     );
+  }
+
+  /// Parse seluruh file JSON asset menjadi list FoodItemModel
+  static List<FoodItemModel> listFromJsonString(String jsonString) {
+    final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
+    return list
+        .map((e) => FoodItemModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }
