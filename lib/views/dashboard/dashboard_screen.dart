@@ -6,6 +6,7 @@ import '../../constants/app_typography.dart';
 import '../../controllers/dashboard_controller.dart';
 import '../../database/db_helper.dart';
 import '../../models/pantry_item_model.dart';
+import '../../services/gemini_service.dart';
 import '../food_tracker/widgets/add_food_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_circular_progress.dart';
@@ -53,6 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     NotificationNotifier.instance.refresh();
     EcoPointsNotifier.instance.addListener(_onEcoPointsChanged);
     EcoPointsNotifier.instance.init();
+    PantryUpdateNotifier.instance.addListener(_onPantryChanged);
   }
 
   @override
@@ -62,6 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _controller.dispose();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
     EcoPointsNotifier.instance.removeListener(_onEcoPointsChanged);
+    PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     super.dispose();
   }
 
@@ -74,6 +77,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _onEcoPointsChanged() {
+    if (mounted) _controller.loadDashboardData();
+  }
+
+  void _onPantryChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
@@ -109,19 +116,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  void _openEcoImpactModal(PantryItemModel item) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EcoImpactModal(
-        item: item,
-        impactNarrative:
-            'Kamu berhasil menyelamatkan ${item.name}! Tindakan ini mencegah emisi karbon CO2e dan menghemat pengeluaran dapur.',
-        earnedPoints: 10,
-        onDismiss: _fetchSummaryFromDB,
-      ),
+  Future<void> _openEcoImpactModal(PantryItemModel item) async {
+    if (item.id != null) {
+      await DBHelper().markPantryItemUsed(item.id!);
+      PantryUpdateNotifier.instance.notifyPantryChanged();
+    }
+
+    final totalRescued = await DBHelper().getUsedPantryItemsCount();
+    final impactResult = await GeminiService.instance.generateEcoImpactInsight(
+      rescuedCount: totalRescued,
+      ecoPoints: EcoPointsNotifier.instance.value,
+      lastRescuedItem: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      category: item.storage,
     );
+
+    if (mounted) {
+      EcoImpactModal.show(
+        context: context,
+        item: item,
+        impactResult: impactResult,
+        onDismiss: _fetchSummaryFromDB,
+      );
+    }
   }
 
   String _getTimeGreeting() {
@@ -1052,7 +1070,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.savings_rounded,
+                        Icons.payments_rounded,
                         size: 14,
                         color: AppColors.primary,
                       ),

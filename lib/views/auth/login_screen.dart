@@ -114,13 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text(
+                          const Text(
                             'Selamat Datang 👋',
                             textAlign: TextAlign.center,
                             style: AppTextStyles.heading1,
                           ),
                           const SizedBox(height: 10),
-                          Text(
+                          const Text(
                             'Masuk untuk memantau kesehatan\ndan stok dapurmu.',
                             textAlign: TextAlign.center,
                             style: AppTextStyles.subtitle,
@@ -147,9 +147,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () => _showSnackBar(
-                                'Fitur reset password belum tersedia pada mode database lokal (offline).',
+                                'Fitur Lupa Password belum tersedia',
                               ),
-                              child: Text(
+                              child: const Text(
                                 'Lupa Password?',
                                 style: AppTextStyles.linkBold,
                               ),
@@ -179,17 +179,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                  : Text('Masuk', style: AppTextStyles.button),
+                                  : const Text('Masuk', style: AppTextStyles.button),
                             ),
                           ),
                           const SizedBox(height: 24),
-                          Row(
+                          const Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Divider(color: AppColors.border),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
+                                padding: EdgeInsets.symmetric(
                                   horizontal: 12,
                                 ),
                                 child: Text(
@@ -197,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: AppTextStyles.subtitleSmall,
                                 ),
                               ),
-                              const Expanded(
+                              Expanded(
                                 child: Divider(color: AppColors.border),
                               ),
                             ],
@@ -232,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
+                              const Text(
                                 'Belum memiliki akun? ',
                                 style: AppTextStyles.body,
                               ),
@@ -245,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   );
                                 },
-                                child: Text(
+                                child: const Text(
                                   'Daftar',
                                   style: AppTextStyles.linkBold,
                                 ),

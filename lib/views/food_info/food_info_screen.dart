@@ -189,7 +189,61 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
       content:
           'Memakai minyak goreng berulang-ulang adalah kebiasaan umum di rumah tangga Indonesia untuk menghemat pengeluaran. Namun di balik penghematan itu tersimpan risiko kesehatan yang serius yang jarang disadari.\n\nApa yang terjadi pada minyak saat dipanaskan berulang kali?\n\nSetiap kali minyak dipanaskan, struktur molekulnya berubah. Proses oksidasi menghasilkan asam lemak trans dan radikal bebas yang berbahaya bagi sel tubuh. Semakin sering dipanaskan, semakin banyak senyawa berbahaya yang terakumulasi.\n\nTanda minyak sudah tidak layak pakai:\n\n1. Warna sudah cokelat tua hingga kehitaman — minyak segar berwarna kuning pucat atau jernih. Perubahan warna menandakan kerusakan molekul yang parah.\n2. Berbusa berlebihan saat dipanaskan — gelembung yang tidak wajar menandakan kontaminasi dan perubahan kimia minyak.\n3. Berbau tengik atau tidak segar — bau asam atau seperti cat adalah tanda oksidasi lanjutan.\n4. Berasap pada suhu rendah — minyak yang sudah rusak memiliki smoke point yang jauh lebih rendah dari normalnya.\n\nPanduan aman penggunaan minyak:\n\n1. Maksimal pakai 2-3 kali untuk minyak sawit, maksimal 1-2 kali untuk minyak kanola atau bunga matahari.\n2. Saring minyak setelah digunakan dengan saringan halus untuk membuang sisa remah yang mempercepat kerusakan.\n3. Jangan buang minyak jelantah ke saluran air — kumpulkan dalam botol bekas dan bawa ke bank sampah atau depo daur ulang terdekat.',
     ),
+    ArticleModel(
+      id: 13,
+      title: 'Sup Kaldu Sayur dari Sisa Batang & Kulit Umbi',
+      category: 'RESEP RECOVERY',
+      readTime: '5 menit',
+      date: '01 Agustus 2026',
+      summary:
+          'Ubah sisa batang brokoli, kulit wortel, dan seledri menjadi kaldu sayur alami kaya rasa.',
+      imageUrl:
+          'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80',
+      content:
+          'Batang brokoli, ujung wortel, batang seledri, dan kulit bawang bombay sering berakhir di tempat sampah. Padahal bagian-bagian ini mengandung konsentrasi mineral dan rasa gurih alami yang sangat tinggi.\n\nCara membuat kaldu sayur zero-waste:\n\n1. Kumpulkan sisa potongan sayur bersih dalam kantong ziplock di freezer selama seminggu.\n2. Ketika kantong sudah penuh, masukkan semua potongan sayur beku ke dalam panci besar.\n3. Tambahkan 2 liter air, 2 lembar daun salam, beberapa butir merica utuh, dan 1 siung bawang putih geprek.\n4. Rebus dengan api kecil (simmer) selama 45-60 menit hingga air menyusut dan berwarna keemasan.\n5. Saring kaldu sayur, buang ampasnya, dan simpan kaldunya dalam jar kaca di kulkas (tahan 5 hari) atau bekukan dalam cetakan es batu (tahan 3 bulan).\n\nKaldu ini bisa dijadikan dasar aneka sup, tumisan, atau pengganti air saat menanak nasi gurih.',
+    ),
+    ArticleModel(
+      id: 14,
+      title: 'Pancake Pisang 2 Bahan: Olah Pisang Terlalu Lembek',
+      category: 'RESEP RECOVERY',
+      readTime: '4 menit',
+      date: '30 Juli 2026',
+      summary:
+          'Resep sarapan kilat sehat hanya dengan 2 butir telur dan 1 buah pisang matang tanpa tepung.',
+      imageUrl:
+          'https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=600&auto=format&fit=crop&q=80',
+      content:
+          'Pisang yang kulitnya sudah berbintik cokelat atau menghitam adalah bahan baku sempurna untuk pancake alami bebas gluten dan tanpa tambahan gula pasir.\n\nBahan:\n• 1 buah pisang ambon/cavendish matang ukuran besar\n• 2 butir telur ayam\n• Sejumput bubuk kayu manis (opsional)\n• 1/2 sdt minyak kelapa atau mentega untuk memanggang\n\nCara membuat:\n1. Haluskan pisang dengan garpu di dalam mangkuk hingga lembut.\n2. Masukkan 2 butir telur, kocok bersama pisang hingga tercampur rata.\n3. Panaskan wajan anti-lengket dengan api kecil, olesi sedikit minyak atau mentega.\n4. Tuang 2 sendok makan adonan, masak selama 2 menit hingga muncul gelembung kecil.\n5. Balik perlahan dan masak sisi lainnya selama 1 menit hingga kecokelatan.\n6. Sajikan hangat dengan potongan buah segar atau sedikit madu.',
+    ),
+    ArticleModel(
+      id: 15,
+      title: 'Mikronutrien Penting: Zat Besi, Kalsium & Seng',
+      category: 'NUTRISI',
+      readTime: '4 menit',
+      date: '28 Juli 2026',
+      summary:
+          'Mengenal mineral esensial penjaga stamina, pembentukan sel darah, dan ketahanan imun.',
+      imageUrl:
+          'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=80',
+      content:
+          'Meskipun dibutuhkan dalam jumlah kecil dibandingkan makronutrien, mikronutrien (vitamin dan mineral) adalah pemicu ribuan reaksi enzimatik penting di dalam tubuh manusia.\n\nTiga mineral penting yang sering terabaikan:\n\n1. Zat Besi (Iron) — komponen utama hemoglobin pembawa oksigen ke seluruh sel tubuh. Kekurangan zat besi menyebabkan anemia, rasa lelah kronis, dan sulit berkonsentrasi. Sumber: bayam, hati ayam, daging sapi, dan kacang merah. Tip: konsumsi bersama vitamin C untuk meningkatkan penyerapan.\n2. Kalsium (Calcium) — bukan hanya untuk kepadatan tulang dan gigi, tapi juga penting untuk kontraksi otot jantung dan transmisi saraf. Sumber: teri kering, tahu, tempe, brokoli, dan yogurt.\n3. Seng (Zinc) — mineral kunci untuk sintesis DNA, penyembuhan luka, dan fungsi sel darah putih dalam melawan kuman penyakit. Sumber: telur, biji labu, kacang mete, dan makanan laut.',
+    ),
+    ArticleModel(
+      id: 16,
+      title: 'Panduan Membaca Label: Best Before vs Use By',
+      category: 'FOOD WASTE',
+      readTime: '3 menit',
+      date: '26 Juli 2026',
+      summary:
+          'Pahami perbedaan tanggal batas rasa dan keamanan makanan agar tidak terburu-buru membuang makanan layak.',
+      imageUrl:
+          'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80',
+      content:
+          'Salah satu penyebab terbesar food waste rumah tangga adalah kebingungan membaca label tanggal kedaluwarsa pada kemasan makanan.\n\nPerbedaan mendasar:\n\n1. "Best Before" / "Baik Digunakan Sebelum" — mengacu pada KUALITAS dan rasa terbaik makanan. Setelah tanggal ini terlewati, makanan biasanya masih aman dikonsumsi asalkan kemasan utuh, tidak berbau aneh, dan teksturnya normal, meski rasanya mungkin sedikit berkurang. Umum ditemukan pada makanan kering, biskuit, dan makanan kaleng.\n2. "Use By" / "Batas Penggunaan" — mengacu pada KEAMANAN konsumsi. Makanan tidak boleh dikonsumsi setelah tanggal ini karena risiko pertumbuhan bakteri berbahaya. Umum ditemukan pada produk segar seperti susu pasteurisasi, daging segar, dan salad siap santap.\n\nPrinsip 3S sebelum membuang makanan berlabel Best Before: Lihat (Sight), Cium (Smell), dan Cicipi sedikit (Taste).',
+    ),
   ];
+
+  bool _showAllArticles = false;
 
   @override
   void initState() {
@@ -268,32 +322,29 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     final latestArticles = _filteredArticles.length > 1
         ? _filteredArticles.sublist(1)
         : <ArticleModel>[];
+    final displayedLatestArticles = _showAllArticles
+        ? latestArticles
+        : latestArticles.take(2).toList();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundWarm,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              // Clean Modern Top App Bar
-              SliverAppBar(
-                pinned: true,
-                floating: false,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                backgroundColor: const Color(0xFFF7F5EE),
-                toolbarHeight: 70,
-                automaticallyImplyLeading: false,
-                flexibleSpace: AppTopBar(
-                  title: 'FoodInfo',
-                  unreadNotifications: _unreadNotifCount,
-                  onNotificationTap: _openNotifications,
-                ),
-              ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Fixed Top App Bar across all screens
+            AppTopBar(
+              title: 'FoodInfo',
+              unreadNotifications: _unreadNotifCount,
+              onNotificationTap: _openNotifications,
+            ),
 
-              // Content Body
-              SliverToBoxAdapter(
-                child: Padding(
+            // Scrollable Content
+            Expanded(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => NotificationNotifier.instance.refresh(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,6 +361,47 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
 
                       const SizedBox(height: 24),
 
+                      // Empty State if no articles match
+                      if (_filteredArticles.isEmpty) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 36,
+                            horizontal: 20,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.surfaceDim),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.menu_book_outlined,
+                                size: 44,
+                                color: AppColors.textGray,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Belum ada artikel ditemukan',
+                                style: AppTextStyles.heading2.copyWith(
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Coba ubah kata kunci pencarian atau pilih kategori lain.',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textGray,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                      ],
+
                       // Featured Article Section ("Pilihan Untukmu")
                       if (featured != null) ...[
                         Row(
@@ -321,12 +413,21 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                                 color: AppColors.deepForest,
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () => _openArticleDetail(featured),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.mintTint,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
                               child: Text(
-                                'Lihat Semua',
+                                'Unggulan',
                                 style: AppTextStyles.badgeText.copyWith(
                                   color: AppColors.ecoGreen,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 10,
                                 ),
                               ),
                             ),
@@ -337,27 +438,72 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                         const SizedBox(height: 28),
                       ],
 
-                      // Latest Articles Section ("Artikel Terbaru")
+                      // Latest Articles Section ("Artikel Terbaru" / "Artikel Kategori")
                       if (latestArticles.isNotEmpty) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Artikel Terbaru',
+                              _selectedCategory == 0
+                                  ? 'Artikel Terbaru'
+                                  : 'Artikel ${_categories[_selectedCategory]}',
                               style: AppTextStyles.headlineSm.copyWith(
                                 color: AppColors.deepForest,
                               ),
                             ),
-                            Text(
-                              'Lihat Semua',
-                              style: AppTextStyles.badgeText.copyWith(
-                                color: AppColors.ecoGreen,
+                            if (latestArticles.length > 2)
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _showAllArticles = !_showAllArticles;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _showAllArticles
+                                        ? AppColors.surfaceDim
+                                        : AppColors.mintTint,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _showAllArticles
+                                            ? 'Tampilkan Sedikit'
+                                            : 'Lihat Semua (${latestArticles.length})',
+                                        style: AppTextStyles.badgeText.copyWith(
+                                          color: _showAllArticles
+                                              ? AppColors.textGray
+                                              : AppColors.ecoGreen,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Icon(
+                                        _showAllArticles
+                                            ? Icons.keyboard_arrow_up_rounded
+                                            : Icons.keyboard_arrow_down_rounded,
+                                        size: 16,
+                                        color: _showAllArticles
+                                            ? AppColors.textGray
+                                            : AppColors.ecoGreen,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        ...latestArticles.map((a) => _buildArticleListItem(a)),
+                        ...displayedLatestArticles.map(
+                          (a) => _buildArticleListItem(a),
+                        ),
                         const SizedBox(height: 28),
                       ],
 
@@ -374,9 +520,9 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -404,7 +550,10 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
-              onChanged: (val) => setState(() => _searchQuery = val),
+              onChanged: (val) => setState(() {
+                _searchQuery = val;
+                _showAllArticles = false;
+              }),
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.deepForest,
                 fontSize: 13,
@@ -435,7 +584,10 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
         itemBuilder: (context, index) {
           final isSelected = _selectedCategory == index;
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = index),
+            onTap: () => setState(() {
+              _selectedCategory = index;
+              _showAllArticles = false;
+            }),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

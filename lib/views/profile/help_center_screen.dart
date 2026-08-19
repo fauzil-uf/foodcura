@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
+import '../widgets/app_top_bar.dart';
 
 class HelpFaqItem {
   final String question;
@@ -409,7 +410,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Tuliskan kendala atau pertanyaanmu secara detail:',
               style: AppTextStyles.bodySmall,
             ),
@@ -474,7 +475,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 ),
               );
             },
-            child: Text('Kirim', style: AppTextStyles.buttonSmall),
+            child: const Text('Kirim', style: AppTextStyles.buttonSmall),
           ),
         ],
       ),
@@ -514,80 +515,19 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     return Scaffold(
       backgroundColor: AppColors.surfaceContainerLow,
       body: SafeArea(
-        top: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Clean Modern Top App Bar (Warm Oatmeal & Silk Cream)
-            SliverAppBar(
-              pinned: true,
-              backgroundColor: const Color(0xFFF7F5EE),
-              surfaceTintColor: Colors.transparent,
-              elevation: 0,
-              toolbarHeight: 70,
-              automaticallyImplyLeading: false,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF7F5EE),
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFE5DFC9), width: 1.2),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x0C3A3222),
-                      blurRadius: 10,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Container(
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBE6D8),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFDFD7C2),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_rounded,
-                              color: AppColors.deepForest,
-                              size: 22,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'Pusat Bantuan',
-                          style: AppTextStyles.heading2.copyWith(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.deepForest,
-                          ),
-                        ),
-                        const SizedBox(width: 42, height: 42),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+        child: Column(
+          children: [
+            // Standard Centralized AppTopBar
+            AppTopBar(
+              title: 'Pusat Bantuan',
+              showBackButton: true,
+              onBack: () => Navigator.pop(context),
             ),
 
-            // Content Header & Body
-            SliverToBoxAdapter(
-              child: Padding(
+            // Main Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

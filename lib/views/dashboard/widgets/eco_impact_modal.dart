@@ -3,27 +3,26 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/pantry_item_model.dart';
+import '../../../services/gemini_service.dart';
 
-/// Modal apresiasi dampak lingkungan (Eco Impact & Savings) saat bahan makanan diselamatkan
+/// Modal feedback apresiasi dampak penyelamatan makanan (Finansial & Lingkungan)
+/// Muncul sebagai feedback interaktif setelah menekan 'Tandai Habis'.
 class EcoImpactModal extends StatelessWidget {
   final PantryItemModel item;
-  final String impactNarrative;
-  final int earnedPoints;
+  final EcoImpactResult impactResult;
   final VoidCallback onDismiss;
 
   const EcoImpactModal({
     super.key,
     required this.item,
-    required this.impactNarrative,
-    this.earnedPoints = 10,
+    required this.impactResult,
     required this.onDismiss,
   });
 
   static Future<void> show({
     required BuildContext context,
     required PantryItemModel item,
-    required String impactNarrative,
-    int earnedPoints = 10,
+    required EcoImpactResult impactResult,
     VoidCallback? onDismiss,
   }) {
     return showModalBottomSheet(
@@ -32,8 +31,7 @@ class EcoImpactModal extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => EcoImpactModal(
         item: item,
-        impactNarrative: impactNarrative,
-        earnedPoints: earnedPoints,
+        impactResult: impactResult,
         onDismiss: onDismiss ?? () => Navigator.pop(context),
       ),
     );
@@ -41,6 +39,11 @@ class EcoImpactModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formattedRupiah = impactResult.savedRupiah.toString().replaceAllMapped(
+      RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"),
+      (m) => "${m[1]}.",
+    );
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.background,
@@ -68,10 +71,10 @@ class EcoImpactModal extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Eco Celebration Icon
+          // Eco Icon Badge
           Container(
-            width: 72,
-            height: 72,
+            width: 68,
+            height: 68,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF2E7D32), Color(0xFF66BB6A)],
@@ -88,31 +91,48 @@ class EcoImpactModal extends StatelessWidget {
               ],
             ),
             child: const Center(
-              child: Icon(Icons.eco_rounded, size: 38, color: Colors.white),
+              child: Icon(Icons.check_circle_rounded, size: 36, color: Colors.white),
             ),
           ),
           const SizedBox(height: 16),
 
           // Title & Subtitle
           Text(
-            'Makanan Terselamatkan!',
+            'Bahan Berhasil Dihabiskan!',
             style: AppTextStyles.heading2.copyWith(
-              fontSize: 22,
+              fontSize: 20,
               color: AppColors.deepForest,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
-          Text(
-            'Kamu berhasil mengolah "${item.name}" sebelum kedaluwarsa.',
-            style: AppTextStyles.subtitleSmall,
+          RichText(
             textAlign: TextAlign.center,
+            text: TextSpan(
+              style: AppTextStyles.subtitleSmall.copyWith(
+                fontSize: 13,
+                color: AppColors.textGray,
+                height: 1.4,
+              ),
+              children: [
+                const TextSpan(text: 'Aksi hebat! Kamu telah mengolah '),
+                TextSpan(
+                  text: item.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepForest,
+                  ),
+                ),
+                const TextSpan(text: ' tepat waktu sebelum terbuang.'),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 
-          // Badges Grid (Eco Points + Zero Waste)
+          // 2 Impact Metrics (Rupiah Hemat & CO2 Tercegah)
           Row(
             children: [
+              // Saved Money
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -120,35 +140,34 @@ class EcoImpactModal extends StatelessWidget {
                     horizontal: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.infoContainer,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.borderSoft),
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFFFE0B2)),
                   ),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.stars_rounded,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '+$earnedPoints Poin',
-                            style: AppTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
+                      const Icon(
+                        Icons.payments_rounded,
+                        color: Color(0xFFE65100),
+                        size: 22,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        'Eco Points Didapat',
+                        'Rp $formattedRupiah',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: const Color(0xFFE65100),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Estimasi Uang Hemat',
                         style: AppTextStyles.subtitleSmall.copyWith(
                           fontSize: 11,
+                          color: const Color(0xFF8D6E63),
                         ),
                       ),
                     ],
@@ -156,6 +175,8 @@ class EcoImpactModal extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
+
+              // Prevented CO2
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -163,35 +184,34 @@ class EcoImpactModal extends StatelessWidget {
                     horizontal: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceCard,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.borderSoft),
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFC8E6C9)),
                   ),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.savings_rounded,
-                            color: Color(0xFFE65100),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '~Rp 15.000',
-                            style: AppTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFFE65100),
-                            ),
-                          ),
-                        ],
+                      const Icon(
+                        Icons.forest_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 22,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        'Estimasi Hemat',
+                        '${impactResult.kgCO2} kg CO₂',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: const Color(0xFF2E7D32),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Emisi Jejak Tercegah',
                         style: AppTextStyles.subtitleSmall.copyWith(
                           fontSize: 11,
+                          color: const Color(0xFF388E3C),
                         ),
                       ),
                     ],
@@ -202,13 +222,13 @@ class EcoImpactModal extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // AI Narrative Insight Card
+          // AI / Category Narrative Insight Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.mintTint.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: AppColors.ecoGreen.withValues(alpha: 0.2),
               ),
@@ -217,26 +237,50 @@ class EcoImpactModal extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 16,
-                      color: AppColors.ecoGreen,
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 16,
+                          color: AppColors.ecoGreen,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Dampak bagi Lingkungan',
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.ecoGreen,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Dampak Nyata bagi Lingkungan',
-                      style: AppTextStyles.label.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ecoGreen,
+                    if (impactResult.isAiGenerated)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '✨ Gemini AI',
+                          style: AppTextStyles.caption.copyWith(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  impactNarrative,
+                  impactResult.narrative,
                   style: AppTextStyles.body.copyWith(
                     fontSize: 13,
                     height: 1.5,
@@ -251,10 +295,11 @@ class EcoImpactModal extends StatelessWidget {
           // Action Button
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 50,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
@@ -265,8 +310,12 @@ class EcoImpactModal extends StatelessWidget {
                 onDismiss();
               },
               child: Text(
-                'Lanjutkan Menjaga Bumi',
-                style: AppTextStyles.button.copyWith(fontSize: 15),
+                'Selesai',
+                style: AppTextStyles.button.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

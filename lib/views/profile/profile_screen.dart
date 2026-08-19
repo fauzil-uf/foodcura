@@ -164,6 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _showPrivacyModal() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const PrivacySecurityModal(),
     );
@@ -183,14 +184,14 @@ class _ProfileScreenState extends State<ProfileScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.logout_rounded, color: AppColors.error, size: 24),
-            const SizedBox(width: 10),
+            Icon(Icons.logout_rounded, color: AppColors.error, size: 24),
+            SizedBox(width: 10),
             Text('Keluar Akun', style: AppTextStyles.headlineSm),
           ],
         ),
-        content: Text(
+        content: const Text(
           'Apakah kamu yakin ingin keluar dari akun FoodCura?',
           style: AppTextStyles.bodyMd,
         ),
@@ -672,7 +673,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section: Akun & Preferensi
-        Text('PENGATURAN & AKUN', style: AppTextStyles.sectionHeader),
+        const Text('PENGATURAN & AKUN', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
           _buildMenuTile(
@@ -696,22 +697,22 @@ class _ProfileScreenState extends State<ProfileScreen>
         const SizedBox(height: 18),
 
         // Section: Keamanan & Privasi
-        Text('KEAMANAN & PRIVASI', style: AppTextStyles.sectionHeader),
+        const Text('KEAMANAN & PRIVASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
           _buildMenuTile(
-            icon: Icons.lock_outline_rounded,
-            iconBg: const Color(0xFFEDE7F6),
-            iconColor: const Color(0xFF5E35B1),
-            title: 'Privasi & Enkripsi Data',
-            subtitle: 'Basis data lokal SQLite mandiri',
+            icon: Icons.shield_outlined,
+            iconBg: const Color(0xFFE8F5E9),
+            iconColor: AppColors.primary,
+            title: 'Privasi & Keamanan Data',
+            subtitle: 'Pengelolaan data lokal & layanan online',
             onTap: _showPrivacyModal,
           ),
         ]),
         const SizedBox(height: 18),
 
         // Section: Bantuan & Komunitas
-        Text('BANTUAN & INFORMASI', style: AppTextStyles.sectionHeader),
+        const Text('BANTUAN & INFORMASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
           _buildMenuTile(

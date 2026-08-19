@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
+import '../../database/db_helper.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../food_info/food_info_screen.dart';
 import '../food_tracker/food_tracker_screen.dart';
@@ -31,6 +32,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       setState(() {
         _currentIndex = index;
       });
+      // Synchronize state across active tab screens
+      PantryUpdateNotifier.instance.notifyPantryChanged();
+      NotificationNotifier.instance.refresh();
     }
   }
 

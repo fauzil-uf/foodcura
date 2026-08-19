@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 
+/// Widget visualisasi gambar makanan dan bahan dapur terpusat.
+/// Mendukung URL online (Network), asset lokal, fallback icon elegan,
+/// serta loading indicator otomatis.
 class AppFoodImage extends StatelessWidget {
-  final String imagePath;
+  final String? imagePath;
   final double width;
   final double height;
   final BoxFit fit;
   final double borderRadius;
+  final BorderRadiusGeometry? customBorderRadius;
+  final IconData fallbackIcon;
 
   const AppFoodImage({
     super.key,
@@ -16,17 +21,30 @@ class AppFoodImage extends StatelessWidget {
     this.height = 50,
     this.fit = BoxFit.cover,
     this.borderRadius = 12,
+    this.customBorderRadius,
+    this.fallbackIcon = Icons.fastfood_rounded,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBorderRadius =
+        customBorderRadius ?? BorderRadius.circular(borderRadius);
+
+    if (imagePath == null || imagePath!.trim().isEmpty) {
+      return ClipRRect(
+        borderRadius: effectiveBorderRadius,
+        child: _buildFallback(),
+      );
+    }
+
+    final path = imagePath!.trim();
     final isNetwork =
-        imagePath.startsWith('http://') || imagePath.startsWith('https://');
+        path.startsWith('http://') || path.startsWith('https://');
 
     Widget imageWidget;
     if (isNetwork) {
       imageWidget = Image.network(
-        imagePath,
+        path,
         width: width,
         height: height,
         fit: fit,
@@ -49,7 +67,7 @@ class AppFoodImage extends StatelessWidget {
       );
     } else {
       imageWidget = Image.asset(
-        imagePath,
+        path,
         width: width,
         height: height,
         fit: fit,
@@ -58,7 +76,7 @@ class AppFoodImage extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
+      borderRadius: effectiveBorderRadius,
       child: imageWidget,
     );
   }
@@ -67,8 +85,14 @@ class AppFoodImage extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      color: Colors.grey.shade200,
-      child: const Icon(Icons.fastfood, color: AppColors.primary, size: 20),
+      color: const Color(0xFFF0EBE0),
+      child: Center(
+        child: Icon(
+          fallbackIcon,
+          color: AppColors.primaryLight,
+          size: width > 40 ? 24 : 16,
+        ),
+      ),
     );
   }
 }

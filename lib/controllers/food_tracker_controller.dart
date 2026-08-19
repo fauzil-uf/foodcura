@@ -25,7 +25,7 @@ class FoodTrackerController extends ChangeNotifier {
   bool _isLoading = true;
   bool _isSearching = false;
 
-  final List<String> _tabs = [
+  static const List<String> _tabs = [
     'Semua',
     'Sarapan',
     'Makan Siang',
@@ -47,30 +47,20 @@ class FoodTrackerController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSearching => _isSearching;
 
-  List<FoodLogModel> get filteredLogs {
-    if (_selectedTabIndex == 0) return _allLogs;
-    final meal = _tabs[_selectedTabIndex];
-    return _allLogs.where((l) => l.mealType == meal).toList();
-  }
+  List<FoodLogModel> get filteredLogs => _selectedTabIndex == 0
+      ? _allLogs
+      : _allLogs.where((l) => l.mealType == _tabs[_selectedTabIndex]).toList();
 
-  List<FoodLogModel> get sarapanLogs =>
-      _allLogs.where((l) => l.mealType == 'Sarapan').toList();
-  List<FoodLogModel> get makanSiangLogs =>
-      _allLogs.where((l) => l.mealType == 'Makan Siang').toList();
-  List<FoodLogModel> get makanMalamLogs =>
-      _allLogs.where((l) => l.mealType == 'Makan Malam').toList();
-  List<FoodLogModel> get camilanLogs =>
-      _allLogs.where((l) => l.mealType == 'Camilan').toList();
+  List<FoodLogModel> get sarapanLogs => _allLogs.where((l) => l.mealType == 'Sarapan').toList();
+  List<FoodLogModel> get makanSiangLogs => _allLogs.where((l) => l.mealType == 'Makan Siang').toList();
+  List<FoodLogModel> get makanMalamLogs => _allLogs.where((l) => l.mealType == 'Makan Malam').toList();
+  List<FoodLogModel> get camilanLogs => _allLogs.where((l) => l.mealType == 'Camilan').toList();
 
   int get totalCalories => _allLogs.fold(0, (sum, log) => sum + log.calories);
-  double get totalProtein =>
-      _allLogs.fold(0.0, (sum, log) => sum + log.protein);
+  double get totalProtein => _allLogs.fold(0.0, (sum, log) => sum + log.protein);
   double get totalCarbs => _allLogs.fold(0.0, (sum, log) => sum + log.carbs);
   double get totalFat => _allLogs.fold(0.0, (sum, log) => sum + log.fat);
-  double get totalCholesterol {
-    if (_allLogs.isEmpty) return 0.0;
-    return totalFat * 4.5 + totalProtein * 3.5;
-  }
+  double get totalCholesterol => _allLogs.isEmpty ? 0.0 : totalFat * 4.5 + totalProtein * 3.5;
 
   bool get isToday {
     final now = DateTime.now();
@@ -87,13 +77,9 @@ class FoodTrackerController extends ChangeNotifier {
   }
 
   String get dateDisplayLabel {
-    if (isToday) {
-      return 'Hari Ini, ${AppDateFormatter.formatShortDate(_selectedDate)}';
-    } else if (isYesterday) {
-      return 'Kemarin, ${AppDateFormatter.formatShortDate(_selectedDate)}';
-    } else {
-      return AppDateFormatter.formatDayDate(_selectedDate);
-    }
+    if (isToday) return 'Hari Ini, ${_selectedDate.toShortDate()}';
+    if (isYesterday) return 'Kemarin, ${_selectedDate.toShortDate()}';
+    return _selectedDate.toDayDate();
   }
 
   /// Memuat data log makanan dan katalog terkini
@@ -102,7 +88,7 @@ class FoodTrackerController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final dateStr = AppDateFormatter.formatToday(_selectedDate);
+      final dateStr = _selectedDate.toFullDate();
       final logs = await _db.getFoodLogs(date: dateStr);
       final catalog = await _db.getRecentAddedFoods();
 
@@ -147,66 +133,64 @@ class FoodTrackerController extends ChangeNotifier {
     loadData();
   }
 
-  /// Menghitung peringatan nutrisi jika melebihi batas aman
+  /// Menghitung peringatan batas nutrisi secara efisien
   void _calculateWarnings() {
     _warnings = [];
 
+    void addWarn(String title, String msg, Color color, IconData icon) {
+      _warnings.add({'title': title, 'message': msg, 'color': color, 'icon': icon});
+    }
+
     if (totalFat >= 67.0) {
-      _warnings.add({
-        'title': 'Peringatan Lemak Tinggi!',
-        'message':
-            'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & santan.',
-        'color': AppColors.urgent,
-        'icon': Icons.warning_amber_rounded,
-      });
+      addWarn(
+        'Peringatan Lemak Tinggi!',
+        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & santan.',
+        AppColors.urgent,
+        Icons.warning_amber_rounded,
+      );
     } else if (totalFat >= 55.0) {
-      _warnings.add({
-        'title': 'Perhatian Lemak',
-        'message':
-            'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) mendekati batas harian disarankan (67g).',
-        'color': AppColors.secondaryContainer,
-        'icon': Icons.info_outline_rounded,
-      });
+      addWarn(
+        'Perhatian Lemak',
+        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) mendekati batas harian disarankan (67g).',
+        AppColors.secondaryContainer,
+        Icons.info_outline_rounded,
+      );
     }
 
     if (totalCalories > 2000) {
-      _warnings.add({
-        'title': 'Peringatan Kalori Berlebih!',
-        'message':
-            'Total kalori ($totalCalories kcal / 2000 kcal) telah melebihi batas harian rekomendasi.',
-        'color': AppColors.urgent,
-        'icon': Icons.local_fire_department_rounded,
-      });
+      addWarn(
+        'Peringatan Kalori Berlebih!',
+        'Total kalori ($totalCalories kcal / 2000 kcal) telah melebihi batas harian rekomendasi.',
+        AppColors.urgent,
+        Icons.local_fire_department_rounded,
+      );
     }
 
     if (totalCholesterol > 300.0) {
-      _warnings.add({
-        'title': 'Peringatan Kolesterol Tinggi!',
-        'message':
-            'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) telah melebihi batas yang disarankan.',
-        'color': AppColors.urgent,
-        'icon': Icons.favorite_border_rounded,
-      });
+      addWarn(
+        'Peringatan Kolesterol Tinggi!',
+        'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) telah melebihi batas yang disarankan.',
+        AppColors.urgent,
+        Icons.favorite_border_rounded,
+      );
     }
 
     if (totalCarbs > 300.0) {
-      _warnings.add({
-        'title': 'Peringatan Karbohidrat Tinggi!',
-        'message':
-            'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
-        'color': AppColors.secondaryContainer,
-        'icon': Icons.bakery_dining_rounded,
-      });
+      addWarn(
+        'Peringatan Karbohidrat Tinggi!',
+        'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
+        AppColors.secondaryContainer,
+        Icons.bakery_dining_rounded,
+      );
     }
 
     if (totalProtein > 65.0) {
-      _warnings.add({
-        'title': 'Peringatan Protein Tinggi!',
-        'message':
-            'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian Anda.',
-        'color': AppColors.secondaryContainer,
-        'icon': Icons.fitness_center_rounded,
-      });
+      addWarn(
+        'Peringatan Protein Tinggi!',
+        'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian Anda.',
+        AppColors.secondaryContainer,
+        Icons.fitness_center_rounded,
+      );
     }
   }
 
@@ -227,9 +211,7 @@ class FoodTrackerController extends ChangeNotifier {
   Future<void> searchCatalog(String query) async {
     final q = query.trim();
     if (q.isEmpty) {
-      _isSearching = false;
-      _searchResults = [];
-      notifyListeners();
+      clearSearch();
       return;
     }
 

@@ -50,12 +50,20 @@ class FakeGeminiService implements GeminiService {
   }
 
   @override
-  Future<String> generateEcoImpactInsight({
+  Future<EcoImpactResult> generateEcoImpactInsight({
     required int rescuedCount,
     required int ecoPoints,
     required String lastRescuedItem,
+    double quantity = 1.0,
+    String unit = 'pcs',
+    String? category,
   }) async {
-    return 'Mock AI Eco Insight: Hebat! $lastRescuedItem terselamatkan.';
+    return EcoImpactResult(
+      kgCO2: 1.2,
+      savedRupiah: 15000,
+      narrative: 'Mock AI Eco Insight: Hebat! $lastRescuedItem terselamatkan.',
+      isAiGenerated: true,
+    );
   }
 }
 
@@ -101,7 +109,7 @@ void main() {
         confirmPassword: '123',
       );
       expect(res3, isFalse);
-      expect(auth.errorMessage, contains('minimal 6 karakter'));
+      expect(auth.errorMessage, contains('minimal 8 karakter'));
 
       final res4 = await auth.register(
         name: 'User',
@@ -185,7 +193,7 @@ void main() {
       expect(grouped.containsKey('Lemari Kering'), isTrue);
     });
 
-    test('getEcoRescueImpact generates appreciation narrative', () async {
+    test('getEcoRescueImpact generates appreciation narrative and metrics', () async {
       final pantryCtrl = PantryController(gemini: FakeGeminiService());
       final testItem = PantryItemModel(
         id: 1,
@@ -198,8 +206,16 @@ void main() {
       );
 
       final impact = await pantryCtrl.getEcoRescueImpact(testItem);
-      expect(impact, contains('Mock AI Eco Insight'));
-      expect(impact, contains('Bayam Segar'));
+      expect(impact.narrative, contains('Mock AI Eco Insight'));
+      expect(impact.narrative, contains('Bayam Segar'));
+      expect(impact.kgCO2, greaterThan(0));
+      expect(impact.savedRupiah, greaterThan(0));
+
+      // Test offline category impact calculator
+      final categoryImpact = pantryCtrl.getEstimatedImpactForItem(testItem);
+      expect(categoryImpact.kgCO2, equals(0.2));
+      expect(categoryImpact.savedRupiah, equals(3500));
+      expect(categoryImpact.isAiGenerated, isFalse);
     });
   });
 

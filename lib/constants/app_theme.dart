@@ -14,7 +14,7 @@ class AppTheme {
       seedColor: AppColors.primary,
       secondary: AppColors.primaryLight,
     ),
-    textTheme: TextTheme(
+    textTheme: const TextTheme(
       headlineLarge: AppTextStyles.heading1,
       headlineMedium: AppTextStyles.heading2,
       bodyMedium: AppTextStyles.body,

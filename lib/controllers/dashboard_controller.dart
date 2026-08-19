@@ -6,7 +6,6 @@ import '../database/db_helper.dart';
 import '../models/food_log_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
-
 import '../services/gemini_service.dart';
 
 /// Controller untuk mengelola data dan kalkulasi ringkasan harian pada layar Dashboard/Home.
@@ -18,24 +17,20 @@ class DashboardController extends ChangeNotifier {
     : _db = db ?? DBHelper(),
       _gemini = gemini ?? GeminiService.instance;
 
+  static const int defaultTargetCalories = 2000;
+  static const double defaultProteinMax = 65.0;
+  static const double defaultCarbsMax = 300.0;
+  static const double defaultLemakMax = 67.0;
+  static const double defaultKolesterolMax = 300.0;
+
   UserModelSQL? _user;
   int _ecoPoints = 0;
   int _streak = 0;
   int _totalCalories = 0;
-  final int _targetCalories = 2000;
-
   double _proteinGrams = 0;
-  final double _proteinMax = 65.0;
-
   double _carbsGrams = 0;
-  final double _carbsMax = 300.0;
-
   double _lemakGrams = 0;
-  final double _lemakMax = 67.0;
-
   double _kolesterolMg = 0;
-  final double _kolesterolMax = 300.0;
-
   int _rescuedCount = 0;
   List<PantryItemModel> _urgentPantryItems = [];
   List<FoodLogModel> _todayLogs = [];
@@ -53,18 +48,17 @@ class DashboardController extends ChangeNotifier {
   double get rescuedKg => _rescuedCount * 0.35;
   int get savedMoney => _rescuedCount * 15000;
   int get totalCalories => _totalCalories;
-  int get targetCalories => _targetCalories;
-  double get caloriesRatio =>
-      (_totalCalories / _targetCalories).clamp(0.0, 1.0);
+  int get targetCalories => defaultTargetCalories;
+  double get caloriesRatio => (_totalCalories / defaultTargetCalories).clamp(0.0, 1.0);
 
   double get proteinGrams => _proteinGrams;
-  double get proteinMax => _proteinMax;
+  double get proteinMax => defaultProteinMax;
   double get carbsGrams => _carbsGrams;
-  double get carbsMax => _carbsMax;
+  double get carbsMax => defaultCarbsMax;
   double get lemakGrams => _lemakGrams;
-  double get lemakMax => _lemakMax;
+  double get lemakMax => defaultLemakMax;
   double get kolesterolMg => _kolesterolMg;
-  double get kolesterolMax => _kolesterolMax;
+  double get kolesterolMax => defaultKolesterolMax;
 
   List<PantryItemModel> get urgentPantryItems => _urgentPantryItems;
   List<FoodLogModel> get todayLogs => _todayLogs;
@@ -80,14 +74,13 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final advice = await _gemini.evaluateDailyNutrition(
+      _aiNutritionAdvice = await _gemini.evaluateDailyNutrition(
         calories: _totalCalories,
         protein: _proteinGrams,
         carbs: _carbsGrams,
         fat: _lemakGrams,
         cholesterol: _kolesterolMg,
       );
-      _aiNutritionAdvice = advice;
     } catch (e) {
       debugPrint('Error fetching AI advice: $e');
     } finally {
@@ -124,24 +117,12 @@ class DashboardController extends ChangeNotifier {
       final prefs = results[6] as SharedPreferences;
       _ecoPoints = prefs.getInt(EcoPointsNotifier.keyEcoPoints) ?? 0;
 
-      // Kalkulasi total nutrisi
-      int cals = 0;
-      double prot = 0;
-      double carbs = 0;
-      double fat = 0;
-
-      for (final log in _todayLogs) {
-        cals += log.calories;
-        prot += log.protein;
-        carbs += log.carbs;
-        fat += log.fat;
-      }
-
-      _totalCalories = cals;
-      _proteinGrams = prot;
-      _carbsGrams = carbs;
-      _lemakGrams = fat;
-      _kolesterolMg = (fat * 4.5 + prot * 3.5).clamp(0.0, 500.0);
+      // Akumulasi nutrisi ringkas
+      _totalCalories = _todayLogs.fold(0, (s, l) => s + l.calories);
+      _proteinGrams = _todayLogs.fold(0.0, (s, l) => s + l.protein);
+      _carbsGrams = _todayLogs.fold(0.0, (s, l) => s + l.carbs);
+      _lemakGrams = _todayLogs.fold(0.0, (s, l) => s + l.fat);
+      _kolesterolMg = (_lemakGrams * 4.5 + _proteinGrams * 3.5).clamp(0.0, 500.0);
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
     } finally {

@@ -15,12 +15,14 @@ class NotificationController extends ChangeNotifier {
   int _unreadCount = 0;
   bool _isLoading = true;
 
-  final List<String> _filterNames = [
+  static const List<String> _filterNames = [
     'Semua',
     'Belum Dibaca',
     'Kadaluwarsa',
     'Info & Tips',
   ];
+
+  static const List<String?> _filterArgs = [null, 'unread', 'expiry', 'foodcura'];
 
   // Getters
   List<NotificationModel> get notifications => _notifications;
@@ -31,17 +33,9 @@ class NotificationController extends ChangeNotifier {
 
   /// Mengelompokkan notifikasi ke dalam section 'Hari Ini' dan 'Sebelumnya'
   Map<String, List<NotificationModel>> get groupedNotifications {
-    final Map<String, List<NotificationModel>> grouped = {
-      'Hari Ini': [],
-      'Sebelumnya': [],
-    };
-
+    final Map<String, List<NotificationModel>> grouped = {'Hari Ini': [], 'Sebelumnya': []};
     for (final notif in _notifications) {
-      if (notif.isToday) {
-        grouped['Hari Ini']!.add(notif);
-      } else {
-        grouped['Sebelumnya']!.add(notif);
-      }
+      grouped[notif.isToday ? 'Hari Ini' : 'Sebelumnya']!.add(notif);
     }
     return grouped;
   }
@@ -52,20 +46,9 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      String? filterArg;
-      if (_selectedFilterIndex == 1) {
-        filterArg = 'unread';
-      } else if (_selectedFilterIndex == 2) {
-        filterArg = 'expiry';
-      } else if (_selectedFilterIndex == 3) {
-        filterArg = 'foodcura';
-      }
-
-      final notifs = await _db.getNotifications(filter: filterArg);
-      final unread = await _db.getUnreadNotificationCount();
-
-      _notifications = notifs;
-      _unreadCount = unread;
+      final filterArg = _filterArgs[_selectedFilterIndex.clamp(0, _filterArgs.length - 1)];
+      _notifications = await _db.getNotifications(filter: filterArg);
+      _unreadCount = await _db.getUnreadNotificationCount();
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     } finally {
@@ -82,7 +65,6 @@ class NotificationController extends ChangeNotifier {
   /// Menandai satu notifikasi sudah dibaca
   Future<void> markRead(NotificationModel notif) async {
     if (notif.id == null || notif.isRead) return;
-
     await _db.markNotificationRead(notif.id!);
     await loadNotifications();
   }

@@ -20,7 +20,6 @@ class QuizController extends ChangeNotifier {
   bool _answered = false;
   bool _isCompleted = false;
   bool _pointsAwarded = false;
-  final int _rewardPoints = 50;
 
   // Getters
   List<QuizQuestion> get questions => _questions;
@@ -31,13 +30,12 @@ class QuizController extends ChangeNotifier {
   bool get answered => _answered;
   bool get isCompleted => _isCompleted;
   bool get pointsAwarded => _pointsAwarded;
-  int get rewardPoints => _rewardPoints;
   int get totalQuestions => _questions.length;
 
   QuizQuestion? get currentQuestion =>
       _questions.isNotEmpty && _currentIndex < _questions.length
-      ? _questions[_currentIndex]
-      : null;
+          ? _questions[_currentIndex]
+          : null;
 
   /// Memuat kuis baru (online via Gemini atau offline pool)
   Future<void> fetchQuiz() async {
@@ -51,8 +49,7 @@ class QuizController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final q = await _geminiService.generateQuiz();
-      _questions = q;
+      _questions = await _geminiService.generateQuiz();
     } catch (e) {
       debugPrint('Error fetching quiz: $e');
     } finally {
@@ -71,7 +68,6 @@ class QuizController extends ChangeNotifier {
     if (optionIndex == currentQuestion!.correctAnswerIndex) {
       _score += 10;
     }
-
     notifyListeners();
   }
 
@@ -81,12 +77,11 @@ class QuizController extends ChangeNotifier {
       _currentIndex++;
       _selectedOptionIndex = null;
       _answered = false;
-      notifyListeners();
     } else {
       _isCompleted = true;
       _awardPoints();
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   /// Memberikan reward Eco Points ke user

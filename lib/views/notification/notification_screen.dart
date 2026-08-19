@@ -4,6 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
+import '../widgets/app_top_bar.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -57,203 +58,143 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundWarm,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              // Clean Modern Top App Bar (Warm Oatmeal & Silk Cream)
-              SliverAppBar(
-                pinned: true,
-                floating: false,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                backgroundColor: const Color(0xFFF7F5EE),
-                toolbarHeight: 70,
-                automaticallyImplyLeading: false,
-                flexibleSpace: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF7F5EE),
-                    border: Border(
-                      bottom: BorderSide(color: Color(0xFFE5DFC9), width: 1.2),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Standard Centralized AppTopBar
+            AppTopBar(
+              title: 'Notifikasi',
+              showBackButton: true,
+              onBack: () => Navigator.pop(context),
+              actions: [
+                GestureDetector(
+                  onTap: _markAllRead,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEBE6D8),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFDFD7C2),
+                        width: 1,
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x0C3A3222),
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Container(
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Back button
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBE6D8),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFDFD7C2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back_rounded,
-                                color: AppColors.deepForest,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            'Notifikasi',
-                            style: AppTextStyles.heading2.copyWith(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.deepForest,
-                            ),
-                          ),
-                          // Mark all read button
-                          GestureDetector(
-                            onTap: _markAllRead,
-                            child: Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBE6D8),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFDFD7C2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.done_all_rounded,
-                                color: AppColors.deepForest,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: const Icon(
+                      Icons.done_all_rounded,
+                      color: AppColors.deepForest,
+                      size: 22,
                     ),
                   ),
                 ),
-              ),
+              ],
+            ),
 
-              // Filter chips
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: SizedBox(
-                    height: 40,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filters.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final isSelected = _selectedFilter == index;
-                        return GestureDetector(
-                          onTap: () => _onFilterChanged(index),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
+            // Filter chips
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _filters.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final isSelected = _selectedFilter == index;
+                    return GestureDetector(
+                      onTap: () => _onFilterChanged(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primary : Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          border: isSelected
+                              ? null
+                              : Border.all(color: AppColors.surfaceDim),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _filters[index],
+                            style: AppTextStyles.chipText.copyWith(
+                              fontSize: 13,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
                               color: isSelected
-                                  ? AppColors.primary
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                              border: isSelected
-                                  ? null
-                                  : Border.all(color: AppColors.surfaceDim),
-                            ),
-                            child: Center(
-                              child: Text(
-                                _filters[index],
-                                style: AppTextStyles.chipText.copyWith(
-                                  fontSize: 13,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.textGray,
-                                ),
-                              ),
+                                  ? Colors.white
+                                  : AppColors.textGray,
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
+            ),
 
-              if (_controller.isLoading)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.ecoGreen),
-                  ),
-                )
-              else if (_controller.notifications.isEmpty)
-                SliverFillRemaining(child: _buildEmptyState())
-              else
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Today section
-                        if (_controller
-                            .groupedNotifications['Hari Ini']!
-                            .isNotEmpty) ...[
-                          _buildSectionLabel('Hari Ini'),
-                          const SizedBox(height: 10),
-                          ..._controller.groupedNotifications['Hari Ini']!.map(
-                            (n) => _buildNotificationCard(n, false),
-                          ),
-                        ],
+            // Scrollable Notification List
+            Expanded(
+              child: _controller.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.ecoGreen,
+                      ),
+                    )
+                  : _controller.notifications.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () => _controller.loadNotifications(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Today section
+                            if (_controller
+                                .groupedNotifications['Hari Ini']!
+                                .isNotEmpty) ...[
+                              _buildSectionLabel('Hari Ini'),
+                              const SizedBox(height: 10),
+                              ..._controller
+                                  .groupedNotifications['Hari Ini']!
+                                  .map((n) => _buildNotificationCard(n, false)),
+                            ],
 
-                        // Earlier section
-                        if (_controller
-                            .groupedNotifications['Sebelumnya']!
-                            .isNotEmpty) ...[
-                          if (_controller
-                              .groupedNotifications['Hari Ini']!
-                              .isNotEmpty)
-                            const SizedBox(height: 24),
-                          _buildSectionLabel('Sebelumnya'),
-                          const SizedBox(height: 10),
-                          ..._controller.groupedNotifications['Sebelumnya']!
-                              .map((n) => _buildNotificationCard(n, true)),
-                        ],
+                            // Earlier section
+                            if (_controller
+                                .groupedNotifications['Sebelumnya']!
+                                .isNotEmpty) ...[
+                              if (_controller
+                                  .groupedNotifications['Hari Ini']!
+                                  .isNotEmpty)
+                                const SizedBox(height: 24),
+                              _buildSectionLabel('Sebelumnya'),
+                              const SizedBox(height: 10),
+                              ..._controller
+                                  .groupedNotifications['Sebelumnya']!
+                                  .map((n) => _buildNotificationCard(n, true)),
+                            ],
 
-                        const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                        // Info tip
-                        _buildInfoTip(),
+                            // Info tip
+                            _buildInfoTip(),
 
-                        const SizedBox(height: 120),
-                      ],
+                            const SizedBox(height: 80),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

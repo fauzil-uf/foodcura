@@ -234,7 +234,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredCatalog.isEmpty
-                ? Center(
+                ? const Center(
                     child: Text(
                       'Makanan tidak ditemukan',
                       style: AppTextStyles.subtitle,
@@ -310,7 +310,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
                                     fontSize: 16,
                                   ),
                                 ),
-                                Text(
+                                const Text(
                                   'kcal',
                                   style: AppTextStyles.subtitleSmall,
                                 ),

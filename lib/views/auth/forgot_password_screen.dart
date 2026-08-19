@@ -1,3 +1,8 @@
+// NOTE: Layar Forgot Password di-comment sementara karena saat ini aplikasi
+// masih beroperasi dengan database lokal (SQLite/Offline) dan belum menggunakan Firebase Auth.
+// Layar ini utuh dan siap diaktifkan kembali saat integrasi Firebase Auth diterapkan.
+
+/*
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -266,3 +271,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
+*/

@@ -5,6 +5,7 @@ import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
+import '../../widgets/app_food_image.dart';
 
 class FoodMealTab extends StatelessWidget {
   const FoodMealTab({
@@ -61,7 +62,7 @@ class FoodMealTab extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('Total', style: AppTextStyles.subtitleSmall),
+                const Text('Total', style: AppTextStyles.subtitleSmall),
                 Text(
                   '$totalCalories kcal',
                   style: AppTextStyles.heading2.copyWith(
@@ -206,23 +207,11 @@ class FoodMealTab extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.asset(
-                      food.imagePath,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 56,
-                        height: 56,
-                        color: Colors.grey.shade200,
-                        child: const Icon(
-                          Icons.fastfood,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
+                  AppFoodImage(
+                    imagePath: food.imagePath,
+                    width: 56,
+                    height: 56,
+                    borderRadius: 14,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -305,20 +294,11 @@ class FoodMealTab extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                log.imagePath,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 60,
-                  height: 60,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.fastfood, color: AppColors.primary),
-                ),
-              ),
+            AppFoodImage(
+              imagePath: log.imagePath,
+              width: 60,
+              height: 60,
+              borderRadius: 16,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -355,7 +335,7 @@ class FoodMealTab extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                Text('kcal', style: AppTextStyles.subtitleSmall),
+                const Text('kcal', style: AppTextStyles.subtitleSmall),
               ],
             ),
             const SizedBox(width: 6),

@@ -39,7 +39,6 @@ class AppColors {
   static const surfaceContainer = Color(0xFFEFEEE8);
   static const surfaceContainerLow = Color(0xFFF5F4EE);
   static const surfaceContainerHigh = Color(0xFFE9E8E2);
-  static const surfaceContainerLowest = Color(0xFFFFFFFF);
   static const warningBg = Color(0xFFFDE9E5);
   static const warningBorder = Color(0xFFFFD8C2);
   static const warningBgLight = Color(0xFFFFF4ED);

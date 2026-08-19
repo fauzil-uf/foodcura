@@ -149,14 +149,14 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
+                const Text(
                   'Pengaturan Notifikasi',
                   style: AppTextStyles.headlineMd,
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(
+            const Text(
               'Atur preferensi pengingat kedaluwarsa, nutrisi, dan jam makan.',
               style: AppTextStyles.subtitleSmall,
             ),
@@ -340,7 +340,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                     );
                   }
                 },
-                child: Text(
+                child: const Text(
                   'Simpan Pengaturan',
                   style: AppTextStyles.buttonSmall,
                 ),

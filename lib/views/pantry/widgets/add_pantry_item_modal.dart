@@ -7,6 +7,7 @@ import '../../../database/db_helper.dart';
 import '../../../database/pantry_grocery_catalog.dart';
 import '../../../models/pantry_ingredient_model.dart';
 import '../../../models/pantry_item_model.dart';
+import '../../widgets/app_food_image.dart';
 
 /// Modal untuk menambah dan mengedit bahan makanan mentah di dalam inventaris dapur (Pantry).
 class AddPantryItemModal extends StatefulWidget {
@@ -276,30 +277,18 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
 
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.itemToEdit != null
-                          ? 'Edit Bahan Dapur'
-                          : 'Tambah Stok Dapur',
-                      style: AppTextStyles.headlineMd.copyWith(
-                        color: AppColors.deepForest,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.itemToEdit != null
-                          ? 'Perbarui stok & masa simpan bahan dapur'
-                          : 'Catat bahan mentah & pantau tanggal basi',
-                      style: AppTextStyles.bodySmall,
-                    ),
-                  ],
+                Text(
+                  widget.itemToEdit != null
+                      ? 'Edit Bahan Dapur'
+                      : 'Tambah Stok Dapur',
+                  style: AppTextStyles.headlineMd.copyWith(
+                    color: AppColors.deepForest,
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
@@ -376,24 +365,12 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
                     children: [
                       if (_selectedImageUrl != null &&
                           _selectedImageUrl!.isNotEmpty) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            _selectedImageUrl!,
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              width: 48,
-                              height: 48,
-                              color: AppColors.mintTint,
-                              child: const Icon(
-                                Icons.eco_rounded,
-                                color: AppColors.primary,
-                                size: 22,
-                              ),
-                            ),
-                          ),
+                        AppFoodImage(
+                          imagePath: _selectedImageUrl,
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          fallbackIcon: Icons.eco_rounded,
                         ),
                         const SizedBox(width: 10),
                       ],
@@ -790,35 +767,12 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
           final ing = _suggestions[index];
           return ListTile(
             dense: true,
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: ing.imageUrl != null
-                  ? Image.network(
-                      ing.imageUrl!,
-                      width: 38,
-                      height: 38,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        width: 38,
-                        height: 38,
-                        color: AppColors.mintTint,
-                        child: const Icon(
-                          Icons.inventory_2_outlined,
-                          color: AppColors.primary,
-                          size: 18,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      width: 38,
-                      height: 38,
-                      color: AppColors.mintTint,
-                      child: const Icon(
-                        Icons.inventory_2_outlined,
-                        color: AppColors.primary,
-                        size: 18,
-                      ),
-                    ),
+            leading: AppFoodImage(
+              imagePath: ing.imageUrl,
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              fallbackIcon: Icons.inventory_2_outlined,
             ),
             title: Text(
               ing.name,

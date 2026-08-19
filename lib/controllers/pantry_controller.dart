@@ -25,6 +25,7 @@ class PantryController extends ChangeNotifier {
     'total': 0,
   };
   int _unreadNotifications = 0;
+  int _rescuedCount = 0;
   bool _isLoading = true;
 
   // Getters
@@ -33,22 +34,20 @@ class PantryController extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   Map<String, int> get statusCounts => _statusCounts;
   int get unreadNotifications => _unreadNotifications;
+  int get rescuedCount => _rescuedCount;
+  double get totalKgCO2Prevented => double.parse((_rescuedCount * 1.2).toStringAsFixed(1));
+  int get totalMoneySaved => _rescuedCount * 15000;
   bool get isLoading => _isLoading;
 
-  /// Mengelompokkan item berdasarkan lokasi penyimpanan (Kulkas, Freezer, Lemari Kering)
+  /// Mengelompokkan item berdasarkan lokasi penyimpanan
   Map<String, List<PantryItemModel>> get groupedItems {
     final Map<String, List<PantryItemModel>> grouped = {
       'Kulkas': [],
       'Freezer': [],
       'Lemari Kering': [],
     };
-
     for (final item in _items) {
-      if (grouped.containsKey(item.storage)) {
-        grouped[item.storage]!.add(item);
-      } else {
-        grouped.putIfAbsent(item.storage, () => []).add(item);
-      }
+      (grouped[item.storage] ??= []).add(item);
     }
     return grouped;
   }
@@ -59,30 +58,23 @@ class PantryController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<PantryItemModel> list;
+      // 1. Ambil data bahan (sesuai pencarian atau filter)
       if (_searchQuery.isNotEmpty) {
-        list = await _db.searchPantryItems(_searchQuery);
-        if (_selectedFilter != null) {
-          list = list.where((i) {
-            if (_selectedFilter == 'urgent') {
-              return i.expiryStatus == 'urgent' || i.expiryStatus == 'expired';
-            }
-            return i.expiryStatus == _selectedFilter;
-          }).toList();
+        var list = await _db.searchPantryItems(_searchQuery);
+        if (_selectedFilter == 'urgent') {
+          list = list.where((i) => i.expiryStatus == 'urgent' || i.expiryStatus == 'expired').toList();
+        } else if (_selectedFilter != null) {
+          list = list.where((i) => i.expiryStatus == _selectedFilter).toList();
         }
+        _items = list;
       } else {
-        list = await _db.getPantryItems(filter: _selectedFilter);
+        _items = await _db.getPantryItems(filter: _selectedFilter);
       }
 
-      final counts = await _db.getPantryStatusCounts();
-      final unread = await _db.getUnreadNotificationCount();
-
-      // Cek otomatis dan buat notifikasi kadaluwarsa
-      await _db.checkExpiryAndCreateNotifications();
-
-      _items = list;
-      _statusCounts = counts;
-      _unreadNotifications = unread;
+      // 2. Ambil data ringkasan status & notifikasi
+      _statusCounts = await _db.getPantryStatusCounts();
+      _unreadNotifications = await _db.getUnreadNotificationCount();
+      _rescuedCount = await _db.getUsedPantryItemsCount();
     } catch (e) {
       debugPrint('Error loading pantry data: $e');
     } finally {
@@ -121,7 +113,7 @@ class PantryController extends ChangeNotifier {
   }
 
   /// Menghitung dampak lingkungan & apresiasi AI saat menyelamatkan bahan
-  Future<String> getEcoRescueImpact(
+  Future<EcoImpactResult> getEcoRescueImpact(
     PantryItemModel item, {
     int? rescuedCount,
   }) async {
@@ -140,6 +132,19 @@ class PantryController extends ChangeNotifier {
       rescuedCount: totalUsed > 0 ? totalUsed : 1,
       ecoPoints: currentPoints,
       lastRescuedItem: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      category: item.storage,
+    );
+  }
+
+  /// Menghitung estimasi preview dampak penghematan untuk 1 item (Mode Offline Cepat)
+  EcoImpactResult getEstimatedImpactForItem(PantryItemModel item) {
+    return GeminiService.calculateCategoryEcoImpact(
+      itemName: item.name,
+      category: item.storage,
+      quantity: item.quantity,
+      unit: item.unit,
     );
   }
 

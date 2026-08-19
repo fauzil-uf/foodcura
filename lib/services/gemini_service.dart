@@ -385,7 +385,6 @@ Tuliskan evaluasi dalam Bahasa Indonesia yang santai, edukatif, dan langsung mem
     if (issues.isNotEmpty) {
       return 'Perhatian: ${issues.join(" dan ")}. Untuk menu berikutnya, prioritaskan lauk tinggi protein tanpa minyak seperti dada ayam rebus, tahu, tempe kukus, atau sayuran segar.';
     }
-
     if (calories > 2100) {
       return 'Total kalorimu hari ini sudah mencapai target harian ($calories kkal). Seimbangkan dengan konsumsi air putih yang cukup dan pilih camilan buah segar.';
     }
@@ -393,22 +392,385 @@ Tuliskan evaluasi dalam Bahasa Indonesia yang santai, edukatif, dan langsung mem
     return 'Pola makanmu hari ini cukup seimbang! Pertahankan kombinasi karbohidrat kompleks, protein, dan sayuran agar tubuh tetap bugar sepanjang hari.';
   }
 
-  /// Menghasilkan insight dampak lingkungan saat menyelamatkan bahan makanan
-  Future<String> generateEcoImpactInsight({
+  /// Menghitung dampak lingkungan cerdas berdasarkan taksonomi bahan makanan (Mode Offline)
+  static EcoImpactResult calculateCategoryEcoImpact({
+    required String itemName,
+    String? category,
+    double quantity = 1.0,
+    String unit = 'pcs',
+  }) {
+    final lowerName = itemName.toLowerCase().trim();
+    final lowerCat = (category ?? '').toLowerCase().trim();
+    final lowerUnit = unit.toLowerCase().trim();
+
+    double pricePerKg;
+    double co2PerKg;
+    double pricePerPcs;
+    double co2PerPcs;
+
+    bool matches(List<String> keywords) {
+      for (final kw in keywords) {
+        if (lowerCat.contains(kw)) return true;
+        if (kw == 'ayam') {
+          if (lowerName.contains('ayam') && !lowerName.contains('bayam')) {
+            return true;
+          }
+        } else if (lowerName.contains(kw)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // 1. Daging Sapi / Daging Merah
+    if (matches([
+      'sapi',
+      'kambing',
+      'domba',
+      'kerbau',
+      'babat',
+      'rawon',
+      'rendang',
+      'dendeng',
+      'kornet',
+      'gulai',
+      'sop buntut',
+      'empal',
+      'iga',
+    ])) {
+      pricePerKg = 130000;
+      co2PerKg = 15.0;
+      pricePerPcs = 30000;
+      co2PerPcs = 3.5;
+    }
+    // 2. Unggas, Ikan, Seafood, Daging Olahan
+    else if (matches([
+      'daging',
+      'meat',
+      'ikan',
+      'fish',
+      'seafood',
+      'unggas',
+      'ayam',
+      'bebek',
+      'angsa',
+      'burung',
+      'salmon',
+      'tuna',
+      'tongkol',
+      'cakalang',
+      'lele',
+      'patin',
+      'gurame',
+      'nila',
+      'bandeng',
+      'bawal',
+      'kakap',
+      'teri',
+      'udang',
+      'cumi',
+      'kepiting',
+      'kerang',
+      'belut',
+      'sarden',
+      'sosis',
+      'bakso',
+      'nugget',
+      'siomay',
+      'otak-otak',
+      'pempek',
+      'abon',
+      'kaleng & olahan',
+      'daging & ikan',
+    ])) {
+      if (lowerName.contains('sarden') || lowerName.contains('kaleng')) {
+        pricePerKg = 45000;
+        co2PerKg = 4.0;
+        pricePerPcs = 12000;
+        co2PerPcs = 1.0;
+      } else {
+        pricePerKg = 45000;
+        co2PerKg = 5.0;
+        pricePerPcs = 10000;
+        co2PerPcs = 1.1;
+      }
+    }
+    // 3. Susu, Keju & Produk Olahan Dairy
+    else if (matches([
+      'susu',
+      'dairy',
+      'keju',
+      'cheddar',
+      'mozzarella',
+      'yogurt',
+      'yoghurt',
+      'mentega',
+      'butter',
+      'margarin',
+      'krim',
+      'cream',
+      'skm',
+      'susu & olahan',
+    ])) {
+      pricePerKg = 22000;
+      co2PerKg = 2.8;
+      pricePerPcs = lowerName.contains('keju') ? 14000 : 19000;
+      co2PerPcs = 1.5;
+    }
+    // 4. Telur
+    else if (matches(['telur'])) {
+      pricePerKg = 30000;
+      co2PerKg = 2.0;
+      pricePerPcs = 2500;
+      co2PerPcs = 0.15;
+    }
+    // 5. Tahu, Tempe & Protein Nabati
+    else if (matches([
+      'tahu',
+      'tempe',
+      'oncom',
+      'kedelai',
+      'edamame',
+      'tofu',
+      'kacang hijau',
+      'kacang tanah',
+      'kacang merah',
+      'almon',
+      'ampas tahu',
+    ])) {
+      pricePerKg = 15000;
+      co2PerKg = 1.2;
+      pricePerPcs = 4500;
+      co2PerPcs = 0.35;
+    }
+    // 6. Sayuran Segar & Tomat
+    else if (matches([
+      'sayur',
+      'kangkung',
+      'bayam',
+      'sawi',
+      'pakcoy',
+      'brokoli',
+      'kubis',
+      'kol',
+      'wortel',
+      'timun',
+      'mentimun',
+      'terong',
+      'labu',
+      'waluh',
+      'pare',
+      'buncis',
+      'kacang panjang',
+      'tauge',
+      'kecambah',
+      'jamur',
+      'selada',
+      'seledri',
+      'kemangi',
+    ])) {
+      if (lowerName.contains('tomat')) {
+        pricePerKg = 14000;
+        co2PerKg = 0.8;
+        pricePerPcs = 2000; // 1 pcs tomat = ~Rp 2.000 wajar eceran
+        co2PerPcs = 0.12;
+      } else {
+        pricePerKg = 12000;
+        co2PerKg = 0.7;
+        pricePerPcs = 3500; // 1 ikat/buah sayur = ~Rp 3.500
+        co2PerPcs = 0.2;
+      }
+    }
+    // 7. Buah-buahan Segar
+    else if (matches([
+      'buah',
+      'apel',
+      'pisang',
+      'jeruk',
+      'alpukat',
+      'mangga',
+      'pepaya',
+      'semangka',
+      'melon',
+      'nanas',
+      'anggur',
+      'lemon',
+      'jambu',
+      'salak',
+      'rambutan',
+      'durian',
+      'kelengkeng',
+      'nangka',
+      'sirsak',
+      'strawberry',
+      'stroberi',
+      'kurma',
+      'sawo',
+      'markisa',
+      'manggis',
+      'kelapa',
+      'blewah',
+    ])) {
+      pricePerKg = 25000;
+      co2PerKg = 1.0;
+      pricePerPcs = 4000;
+      co2PerPcs = 0.25;
+    }
+    // 8. Bumbu Dapur (Bawang, Cabai, dll)
+    else if (matches([
+      'bawang',
+      'cabai',
+      'cabe',
+      'jahe',
+      'kunyit',
+      'lengkuas',
+      'serai',
+      'petai',
+      'pete',
+      'jengkol',
+      'andaliman',
+      'bumbu',
+      'saus',
+      'minyak',
+      'kecap',
+      'sambal',
+      'garam',
+      'gula',
+      'madu',
+      'merica',
+      'lada',
+      'ketumbar',
+      'kemiri',
+      'terasi',
+      'cuka',
+      'sirup',
+      'santan',
+      'kaldu',
+      'kopi',
+      'teh',
+      'cokelat',
+      'coklat',
+      'selai',
+      'jam',
+    ])) {
+      pricePerKg = 35000;
+      co2PerKg = 1.0;
+      pricePerPcs = 1000;
+      co2PerPcs = 0.05;
+    }
+    // 9. Makanan Pokok & Karbohidrat
+    else if (matches([
+      'bahan pokok',
+      'pokok',
+      'karbo',
+      'nasi',
+      'beras',
+      'ketan',
+      'roti',
+      'mie',
+      'mi',
+      'bihun',
+      'kwetiau',
+      'pasta',
+      'spaghetti',
+      'macaroni',
+      'makaroni',
+      'oat',
+      'oatmeal',
+      'havermut',
+      'sereal',
+      'gandum',
+      'terigu',
+      'tepung',
+      'tapioka',
+      'maizena',
+      'singkong',
+      'ubi',
+      'talas',
+      'kentang',
+      'jagung',
+      'lontong',
+      'ketupat',
+    ])) {
+      pricePerKg = 16000;
+      co2PerKg = 1.4;
+      pricePerPcs = 8000;
+      co2PerPcs = 0.5;
+    }
+    // Default fallback
+    else {
+      pricePerKg = 20000;
+      co2PerKg = 1.2;
+      pricePerPcs = 5000;
+      co2PerPcs = 0.3;
+    }
+
+    double calcKgCO2;
+    int calcRupiah;
+
+    if (lowerUnit == 'g' || lowerUnit == 'gram') {
+      calcRupiah = (pricePerKg * (quantity / 1000.0)).round();
+      calcKgCO2 = co2PerKg * (quantity / 1000.0);
+    } else if (lowerUnit == 'kg' || lowerUnit == 'l' || lowerUnit == 'liter') {
+      calcRupiah = (pricePerKg * quantity).round();
+      calcKgCO2 = co2PerKg * quantity;
+    } else if (lowerUnit == 'ml') {
+      calcRupiah = (pricePerKg * (quantity / 1000.0)).round();
+      calcKgCO2 = co2PerKg * (quantity / 1000.0);
+    } else {
+      calcRupiah = (pricePerPcs * quantity).round();
+      calcKgCO2 = co2PerPcs * quantity;
+    }
+
+    if (calcRupiah < 1000) calcRupiah = 1000;
+    if (calcKgCO2 < 0.1) calcKgCO2 = 0.1;
+
+    final totalKg = double.parse(calcKgCO2.toStringAsFixed(1));
+    final totalRp = calcRupiah;
+    final formattedRp = totalRp.toString().replaceAllMapped(
+      RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"),
+      (m) => "${m[1]}.",
+    );
+
+    final qtyStr = quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toString();
+    final narrative =
+        'Luar biasa! Dengan menyelamatkan $qtyStr $unit $itemName, kamu telah mencegah sekitar $totalKg kg emisi karbon dan menghemat estimasi Rp $formattedRp biaya belanja dapur.';
+
+    return EcoImpactResult(
+      kgCO2: totalKg,
+      savedRupiah: totalRp,
+      narrative: narrative,
+      isAiGenerated: false,
+    );
+  }
+
+  /// Menghasilkan insight dampak lingkungan saat menyelamatkan bahan makanan (Hybrid AI + Smart Category)
+  Future<EcoImpactResult> generateEcoImpactInsight({
     required int rescuedCount,
     required int ecoPoints,
     required String lastRescuedItem,
+    double quantity = 1.0,
+    String unit = 'pcs',
+    String? category,
   }) async {
     final apiKey = ApiConstants.geminiApiKey.trim();
+    final qtyStr = quantity % 1 == 0 ? quantity.toInt().toString() : quantity.toString();
 
     if (apiKey.isNotEmpty) {
-      final prompt =
-          '''
-Pengguna aplikasi FoodCura baru saja berhasil mengolah dan menyelamatkan "$lastRescuedItem" dari kulkas sebelum tanggal kedaluwarsa.
+      final prompt = '''
+Pengguna aplikasi FoodCura baru saja berhasil mengolah dan menyelamatkan "$lastRescuedItem" sebanyak $qtyStr $unit dari dapur sebelum tanggal kedaluwarsa.
 Total bahan makanan yang terselamatkan sejauh ini: $rescuedCount bahan.
 Total Eco Points: $ecoPoints poin.
 
-Buatkan 1-2 kalimat apresiasi singkat, seru, dan memotivasi dalam Bahasa Indonesia yang menyoroti dampak nyata tindakannya bagi bumi (mencegah emisi gas metana/CO2e di TPA dan menghemat pengeluaran dapur). Langsung kembalikan teks tanpa format tanda kutip atau markdown.
+Hitung estimasi realistis nilai rupiah bahan tersebut berdasarkan harga pasar eceran wajar di Indonesia (contoh referensi: 1 pcs tomat ~Rp 2.000, 300g tomat ~Rp 4.000, 1 butir telur ~Rp 2.500, 1 ikat bayam ~Rp 3.500, 1 liter susu ~Rp 20.000, 500g dada ayam ~Rp 22.500) dan emisi jejak karbon (kg CO2) yang berhasil dicegah dari pembusukan sampah pangan.
+
+Berikan jawaban dalam format JSON murni:
+{
+  "kg_co2": 0.2,
+  "saved_rupiah": 2000,
+  "narrative": "Apresiasi singkat, seru, dan memotivasi (1-2 kalimat) dalam Bahasa Indonesia tentang dampak penyelamatan $qtyStr $unit $lastRescuedItem bagi bumi dan penghematan kantong belanja."
+}
+Pastikan kembalikan HANYA JSON tanpa teks lain atau markdown code block.
 ''';
 
       final models = [
@@ -445,8 +807,22 @@ Buatkan 1-2 kalimat apresiasi singkat, seru, dan memotivasi dalam Bahasa Indones
             final data = jsonDecode(response.body);
             final String rawText =
                 data['candidates']?[0]?['content']?['parts']?[0]?['text'] ?? '';
-            final cleanText = rawText.trim();
-            if (cleanText.isNotEmpty) return cleanText;
+            final cleanText = rawText
+                .replaceAll(RegExp(r'```json|```'), '')
+                .trim();
+            final parsed = jsonDecode(cleanText);
+            final kg = (parsed['kg_co2'] as num?)?.toDouble() ?? 0.2;
+            final rp = (parsed['saved_rupiah'] as num?)?.toInt() ?? 2000;
+            final nar = parsed['narrative']?.toString() ?? '';
+
+            if (nar.isNotEmpty) {
+              return EcoImpactResult(
+                kgCO2: double.parse(kg.toStringAsFixed(1)),
+                savedRupiah: rp,
+                narrative: nar,
+                isAiGenerated: true,
+              );
+            }
           }
         } catch (_) {
           continue;
@@ -454,18 +830,26 @@ Buatkan 1-2 kalimat apresiasi singkat, seru, dan memotivasi dalam Bahasa Indones
       }
     }
 
-    return _buildOfflineEcoImpactInsight(
-      lastRescuedItem: lastRescuedItem,
-      rescuedCount: rescuedCount,
+    return calculateCategoryEcoImpact(
+      itemName: lastRescuedItem,
+      category: category,
+      quantity: quantity,
+      unit: unit,
     );
   }
+}
 
-  String _buildOfflineEcoImpactInsight({
-    required String lastRescuedItem,
-    required int rescuedCount,
-  }) {
-    final estKgCO2 = (rescuedCount * 1.2).toStringAsFixed(1);
-    final estRupiah = rescuedCount * 15000;
-    return 'Luar biasa! Dengan menyelamatkan $lastRescuedItem, kamu telah mencegah sekitar $estKgCO2 kg emisi jejak karbon dan menghemat estimasi Rp ${estRupiah.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]}.")} biaya belanja dapur.';
-  }
+/// Model hasil perhitungan dampak lingkungan & finansial secara hybrid (AI Online + Smart Category Offline)
+class EcoImpactResult {
+  final double kgCO2;
+  final int savedRupiah;
+  final String narrative;
+  final bool isAiGenerated;
+
+  const EcoImpactResult({
+    required this.kgCO2,
+    required this.savedRupiah,
+    required this.narrative,
+    this.isAiGenerated = false,
+  });
 }

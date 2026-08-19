@@ -48,3 +48,8 @@ app.*.map.json
 env.json
 secrets.json
 *.env
+
+# Presentation & Generated Slides
+*.pptx
+foodcura_presentation_deck.html
+

@@ -111,7 +111,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 4,
       defaultUnit: 'pcs',
       imageUrl:
-          'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1588165171080-c89acfa5a259?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Tempe Kedelai Segar',
@@ -140,7 +140,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 365,
       defaultUnit: 'kaleng',
       imageUrl:
-          'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1535400255456-984241443b29?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Kornet Daging Sapi',
@@ -149,7 +149,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 365,
       defaultUnit: 'kaleng',
       imageUrl:
-          'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Nugget Ayam Frozen',
@@ -398,7 +398,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 30,
       defaultUnit: 'g',
       imageUrl:
-          'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500&auto=format&fit=crop&q=80',
     ),
 
     // ─── 6. BAHAN POKOK, PASTA & SEREAL ──────────────────────────────────────
@@ -463,7 +463,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 90,
       defaultUnit: 'g',
       imageUrl:
-          'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&auto=format&fit=crop&q=80',
     ),
 
     // ─── 7. BUMBU, SAUS & MINYAK ─────────────────────────────────────────────
@@ -528,7 +528,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 365,
       defaultUnit: 'ml',
       imageUrl:
-          'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1541256942802-7b299b483057?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Kecap Manis Botol',
@@ -546,7 +546,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 90,
       defaultUnit: 'botol',
       imageUrl:
-          'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1514733670139-4d87a1941d55?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Saus Sambal Botol',
@@ -555,7 +555,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 180,
       defaultUnit: 'botol',
       imageUrl:
-          'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=500&auto=format&fit=crop&q=80',
     ),
 
     // ─── 8. SELAI, MADU & MINUMAN PANTRY ─────────────────────────────────────
@@ -566,7 +566,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 730,
       defaultUnit: 'botol',
       imageUrl:
-          'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Selai Cokelat Hazelnut',
@@ -575,7 +575,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 180,
       defaultUnit: 'jar',
       imageUrl:
-          'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Selai Kacang / Peanut Butter',
@@ -584,7 +584,7 @@ class PantryGroceryCatalog {
       defaultShelfLifeDays: 180,
       defaultUnit: 'jar',
       imageUrl:
-          'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=500&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=500&auto=format&fit=crop&q=80',
     ),
     PantryIngredientModel(
       name: 'Biji / Bubuk Kopi Robusta',
@@ -616,13 +616,6 @@ class PantryGroceryCatalog {
               item.name.toLowerCase().contains(cleanQuery) ||
               item.category.toLowerCase().contains(cleanQuery),
         )
-        .toList();
-  }
-
-  /// Dapatkan rekomendasi bahan berdasarkan kategori
-  static List<PantryIngredientModel> getByCategory(String category) {
-    return ingredients
-        .where((item) => item.category.toLowerCase() == category.toLowerCase())
         .toList();
   }
 

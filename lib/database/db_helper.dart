@@ -146,9 +146,7 @@ class DBHelper {
       // Fallback
     }
 
-    // Seed pantry items (bahan makanan segar di kulkas)
     await _seedPantryItems(db);
-    // Seed initial notifications (tips & panduan awal)
     await _seedNotifications(db);
   }
 
@@ -291,7 +289,6 @@ class DBHelper {
     return null;
   }
 
-  /// Ambil data user yang sedang login berdasarkan userId di SharedPreferences
   Future<UserModelSQL?> getLoggedInUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt(AppConstants.keyLoggedInUserId);
@@ -308,7 +305,6 @@ class DBHelper {
       }
     }
 
-    // Fallback: Jika ID belum tersimpan atau tidak cocok, ambil user terbaru yang ada di database
     final fallbackUsers = await db.query(
       AppConstants.tableUsers,
       orderBy: 'id DESC',
@@ -325,7 +321,6 @@ class DBHelper {
     return null;
   }
 
-  /// Update data pengguna (nama, email, password)
   Future<bool> updateUser(UserModelSQL user) async {
     if (user.id == null) return false;
     final db = await database;
@@ -342,9 +337,6 @@ class DBHelper {
     }
   }
 
-  /// Algoritma Streak: hitung berapa hari berturut-turut user aktif / login / membuat food log.
-  /// Disimpan di SharedPreferences [AppConstants.keyStreakCount] dan
-  /// [AppConstants.keyStreakLastDate].
   Future<int> computeAndSaveStreak() async {
     final db = await database;
     final prefs = await SharedPreferences.getInstance();
@@ -369,7 +361,6 @@ class DBHelper {
         ? DateTime(parsedLastDate.year, parsedLastDate.month, parsedLastDate.day)
         : null;
 
-    // Ambil semua tanggal unik yang ada food log
     final result = await db.rawQuery(
       'SELECT DISTINCT date FROM $tableFoodLogs',
     );
@@ -383,27 +374,20 @@ class DBHelper {
       }
     }
 
-    // Hari ini aktif karena user sedang login/membuka aplikasi
     dateSet.add(today);
 
     int currentStreak;
-
     if (lastActiveDay == today) {
-      // User sudah membuka app/login hari ini, pertahankan streak saat ini (minimal 1)
       currentStreak = savedStreak > 0 ? savedStreak : 1;
     } else if (lastActiveDay == yesterday) {
-      // Kemarin aktif dan hari ini login/aktif kembali -> streak bertambah 1!
       currentStreak = savedStreak > 0 ? savedStreak + 1 : 2;
     } else {
-      // Jika baru pertama kali login, atau sudah jeda lebih dari 1 hari:
-      // Hitung apakah ada food log beruntun ke belakang dimulai dari hari ini
       int logStreak = 0;
       DateTime checkDate = today;
       while (dateSet.contains(checkDate)) {
         logStreak++;
         checkDate = checkDate.subtract(const Duration(days: 1));
       }
-      // Minimal 1 karena user sudah login dan aktif hari ini
       currentStreak = logStreak > 0 ? logStreak : 1;
     }
 
@@ -495,7 +479,6 @@ class DBHelper {
       log.toMap()..remove('id'),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    // Check nutrition excess after adding and return notification if triggered
     return await checkNutritionExcess();
   }
 
@@ -523,8 +506,9 @@ class DBHelper {
       item.toMap()..remove('id'),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    // Check expiry after adding
     await checkExpiryAndCreateNotifications();
+    PantryUpdateNotifier.instance.notifyPantryChanged();
+    await NotificationNotifier.instance.refresh();
     return id;
   }
 
@@ -538,7 +522,6 @@ class DBHelper {
 
     var items = results.map((map) => PantryItemModel.fromMap(map)).toList();
 
-    // Apply filter
     if (filter != null) {
       switch (filter) {
         case 'urgent':
@@ -574,12 +557,14 @@ class DBHelper {
 
   Future<int> markPantryItemUsed(int id) async {
     final db = await database;
-    return await db.update(
+    final count = await db.update(
       tablePantryItems,
       {'is_used': 1},
       where: 'id = ?',
       whereArgs: [id],
     );
+    PantryUpdateNotifier.instance.notifyPantryChanged();
+    return count;
   }
 
   Future<int> getUsedPantryItemsCount() async {
@@ -592,45 +577,67 @@ class DBHelper {
 
   Future<int> deletePantryItem(int id) async {
     final db = await database;
-    return await db.delete(tablePantryItems, where: 'id = ?', whereArgs: [id]);
+    final count = await db.delete(
+      tablePantryItems,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    PantryUpdateNotifier.instance.notifyPantryChanged();
+    return count;
   }
 
   Future<int> updatePantryItem(PantryItemModel item) async {
     final db = await database;
     if (item.id == null) return 0;
-    return await db.update(
+    final count = await db.update(
       tablePantryItems,
       item.toMap(),
       where: 'id = ?',
       whereArgs: [item.id],
     );
+    await checkExpiryAndCreateNotifications();
+    PantryUpdateNotifier.instance.notifyPantryChanged();
+    await NotificationNotifier.instance.refresh();
+    return count;
   }
 
   /// Count active pantry items by urgency status
   Future<Map<String, int>> getPantryStatusCounts() async {
-    final items = await getPantryItems();
-    int urgentCount = 0;
-    int segeraCount = 0;
-    int amanCount = 0;
-    for (var item in items) {
-      switch (item.expiryStatus) {
-        case 'urgent':
-        case 'expired':
-          urgentCount++;
-          break;
-        case 'segera':
-          segeraCount++;
-          break;
-        case 'aman':
-          amanCount++;
-          break;
+    final db = await database;
+    final results = await db.query(
+      tablePantryItems,
+      columns: ['expiry_date'],
+      where: 'is_used = 0',
+    );
+
+    int urgent = 0;
+    int segera = 0;
+    int aman = 0;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    for (final row in results) {
+      final expiryStr = row['expiry_date'] as String?;
+      final date = AppDateFormatter.parseDate(expiryStr);
+      if (date == null) {
+        aman++;
+        continue;
+      }
+      final diff = date.difference(today).inDays;
+      if (diff <= 2) {
+        urgent++;
+      } else if (diff <= 5) {
+        segera++;
+      } else {
+        aman++;
       }
     }
+
     return {
-      'urgent': urgentCount,
-      'segera': segeraCount,
-      'aman': amanCount,
-      'total': items.length,
+      'urgent': urgent,
+      'segera': segera,
+      'aman': aman,
+      'total': results.length,
     };
   }
 
@@ -642,12 +649,11 @@ class DBHelper {
       notif.toMap()..remove('id'),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    NotificationNotifier.instance.refresh();
+    await NotificationNotifier.instance.refresh();
     return res;
   }
 
   Future<List<NotificationModel>> getNotifications({String? filter}) async {
-    // Auto-check expiry, nutrition excess & meal reminders before returning notifications
     await checkExpiryAndCreateNotifications();
     await checkNutritionExcess();
     await checkMealRemindersAndCreateNotifications();
@@ -683,7 +689,7 @@ class DBHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-    NotificationNotifier.instance.refresh();
+    await NotificationNotifier.instance.refresh();
     return res;
   }
 
@@ -692,7 +698,7 @@ class DBHelper {
     final res = await db.update(tableNotifications, {
       'is_read': 1,
     }, where: 'is_read = 0');
-    NotificationNotifier.instance.refresh();
+    await NotificationNotifier.instance.refresh();
     return res;
   }
 
@@ -715,34 +721,36 @@ class DBHelper {
 
     final db = await database;
     final items = await getPantryItems();
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
 
     for (var item in items) {
       final days = item.daysUntilExpiry;
       if (days <= 5) {
-        // Cek apakah sudah ada notifikasi untuk item ini agar tidak spam
+        String title;
+        String message;
+        if (days <= 0) {
+          title = '${item.name} sudah kadaluwarsa!';
+          message =
+              '${item.name} di ${item.storage.toLowerCase()} sudah melewati tanggal kadaluwarsa.';
+        } else if (days <= 2) {
+          title = '${item.name} hampir kadaluwarsa';
+          message =
+              '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
+        } else {
+          title = '${item.name} perlu segera digunakan';
+          message =
+              '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
+        }
+
+        // Cek apakah notifikasi dengan judul yang sama untuk item ini sudah dibuat hari ini
         final existing = await db.query(
           tableNotifications,
-          where: 'related_pantry_id = ?',
-          whereArgs: [item.id],
+          where: 'related_pantry_id = ? AND title = ? AND created_at >= ?',
+          whereArgs: [item.id, title, todayStart],
         );
 
         if (existing.isEmpty) {
-          String title;
-          String message;
-          if (days <= 0) {
-            title = '${item.name} sudah kadaluwarsa!';
-            message =
-                '${item.name} di ${item.storage.toLowerCase()} sudah melewati tanggal kadaluwarsa.';
-          } else if (days <= 2) {
-            title = '${item.name} hampir kadaluwarsa';
-            message =
-                '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
-          } else {
-            title = '${item.name} perlu segera digunakan';
-            message =
-                '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
-          }
-
           final id = await addNotification(
             NotificationModel(
               title: title,
@@ -768,9 +776,34 @@ class DBHelper {
     }
   }
 
+  static const List<Map<String, String>> _mealConfigs = [
+    {
+      'type': 'Sarapan',
+      'enabledKey': AppConstants.keyNotifBreakfastEnabled,
+      'timeKey': AppConstants.keyNotifBreakfastTime,
+      'defaultTime': '07:30',
+      'title': 'Saatnya sarapan',
+      'message': 'Jangan lupa catat sarapanmu hari ini untuk tracking kalori.',
+    },
+    {
+      'type': 'Makan Siang',
+      'enabledKey': AppConstants.keyNotifLunchEnabled,
+      'timeKey': AppConstants.keyNotifLunchTime,
+      'defaultTime': '12:30',
+      'title': 'Saatnya makan siang',
+      'message': 'Jangan lupa catat makan siangmu hari ini untuk tracking kalori.',
+    },
+    {
+      'type': 'Makan Malam',
+      'enabledKey': AppConstants.keyNotifDinnerEnabled,
+      'timeKey': AppConstants.keyNotifDinnerTime,
+      'defaultTime': '19:00',
+      'title': 'Saatnya makan malam',
+      'message': 'Jangan lupa catat makan malammu hari ini untuk tracking kalori.',
+    },
+  ];
+
   /// Cek waktu makan harian (Sarapan, Makan Siang, Makan Malam).
-  /// Jika sudah masuk jadwalnya dan user belum mencatat makanan untuk waktu makan tersebut,
-  /// buat notifikasi pengingat secara otomatis.
   Future<void> checkMealRemindersAndCreateNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final isDailyMealLogEnabled =
@@ -780,73 +813,29 @@ class DBHelper {
     final db = await database;
     final now = DateTime.now();
     final todayStr = AppDateFormatter.formatToday();
-    final startOfDay =
-        DateTime(now.year, now.month, now.day).toIso8601String();
+    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
 
-    final mealConfigs = [
-      {
-        'type': 'Sarapan',
-        'enabledKey': AppConstants.keyNotifBreakfastEnabled,
-        'timeKey': AppConstants.keyNotifBreakfastTime,
-        'defaultTime': '07:30',
-        'title': 'Saatnya sarapan',
-        'message':
-            'Jangan lupa catat sarapanmu hari ini untuk tracking kalori.',
-      },
-      {
-        'type': 'Makan Siang',
-        'enabledKey': AppConstants.keyNotifLunchEnabled,
-        'timeKey': AppConstants.keyNotifLunchTime,
-        'defaultTime': '12:30',
-        'title': 'Saatnya makan siang',
-        'message':
-            'Jangan lupa catat makan siangmu hari ini untuk tracking kalori.',
-      },
-      {
-        'type': 'Makan Malam',
-        'enabledKey': AppConstants.keyNotifDinnerEnabled,
-        'timeKey': AppConstants.keyNotifDinnerTime,
-        'defaultTime': '19:00',
-        'title': 'Saatnya makan malam',
-        'message':
-            'Jangan lupa catat makan malammu hari ini untuk tracking kalori.',
-      },
-    ];
-
-    for (final meal in mealConfigs) {
-      final isEnabled = prefs.getBool(meal['enabledKey'] as String) ?? true;
+    for (final meal in _mealConfigs) {
+      final isEnabled = prefs.getBool(meal['enabledKey']!) ?? true;
       if (!isEnabled) continue;
 
-      final timeStr = prefs.getString(meal['timeKey'] as String) ??
-          (meal['defaultTime'] as String);
+      final timeStr = prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
       final parts = timeStr.split(':');
       final targetHour = int.tryParse(parts[0]) ?? 12;
-      final targetMinute =
-          parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final targetMinute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
 
-      // Cek apakah waktu sekarang sudah mencapai atau melewati jadwal makan hari ini
-      final scheduledTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        targetHour,
-        targetMinute,
-      );
-      if (now.isBefore(scheduledTime)) {
-        continue;
-      }
+      final scheduledTime = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
+      if (now.isBefore(scheduledTime)) continue;
 
-      // Cek apakah user sudah mencatat makanan untuk mealType ini hari ini
-      final mealType = meal['type'] as String;
+      final mealType = meal['type']!;
       final logs = await db.query(
         tableFoodLogs,
         where: 'date = ? AND meal_type = ?',
         whereArgs: [todayStr, mealType],
       );
 
-      // Jika belum dicatat, cek apakah notifikasi pengingat sudah dibuat hari ini
       if (logs.isEmpty) {
-        final title = meal['title'] as String;
+        final title = meal['title']!;
         final existing = await db.query(
           tableNotifications,
           where: 'type = ? AND title = ? AND created_at >= ?',
@@ -856,7 +845,7 @@ class DBHelper {
         if (existing.isEmpty) {
           final notif = NotificationModel(
             title: title,
-            message: meal['message'] as String,
+            message: meal['message']!,
             type: 'meal_reminder',
             iconType: 'restaurant',
             createdAt: now,
@@ -877,8 +866,7 @@ class DBHelper {
     }
   }
 
-  /// Helper: cek apakah notif dengan [keyword] sudah ada hari ini,
-  /// jika belum, buat notif baru dan simpan hasilnya ke [container].
+  /// Helper: cek apakah notif dengan [keyword] sudah ada hari ini
   Future<void> _checkAndNotify(
     Database db,
     String keyword,
@@ -954,70 +942,53 @@ class DBHelper {
       totalFat += (log['fat'] as num).toDouble();
     }
 
-    double totalCholesterol = logs.isEmpty
-        ? 0.0
-        : (totalFat * 4.5 + totalProtein * 3.5);
-
-    final startOfDay = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    ).toIso8601String();
+    double totalCholesterol = logs.isEmpty ? 0.0 : (totalFat * 4.5 + totalProtein * 3.5);
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
 
     NotificationModel? result;
     void setResult(NotificationModel n) => result ??= n;
 
-    if (totalFat >= 67.0) {
+    final rules = [
+      if (totalFat >= 67.0)
+        (
+          'Lemak',
+          'Peringatan Lemak Tinggi!',
+          'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & makanan berminyak.',
+        ),
+      if (totalCalories > 2000)
+        (
+          'Kalori',
+          'Peringatan Kalori Berlebih!',
+          'Total asupan kalori ($totalCalories kcal / 2000 kcal) telah melebihi target harian Anda.',
+        ),
+      if (totalCholesterol > 300.0)
+        (
+          'Kolesterol',
+          'Peringatan Kolesterol Tinggi!',
+          'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) melebihi batas yang disarankan.',
+        ),
+      if (totalCarbs > 300.0)
+        (
+          'Karbohidrat',
+          'Peringatan Karbohidrat Tinggi!',
+          'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
+        ),
+      if (totalProtein > 65.0)
+        (
+          'Protein',
+          'Peringatan Protein Tinggi!',
+          'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian.',
+        ),
+    ];
+
+    for (final rule in rules) {
       await _checkAndNotify(
         db,
-        'Lemak',
+        rule.$1,
         startOfDay,
-        'Peringatan Lemak Tinggi!',
-        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & makanan berminyak.',
-        () => result,
-        setResult,
-      );
-    }
-    if (totalCalories > 2000) {
-      await _checkAndNotify(
-        db,
-        'Kalori',
-        startOfDay,
-        'Peringatan Kalori Berlebih!',
-        'Total asupan kalori ($totalCalories kcal / 2000 kcal) telah melebihi target harian Anda.',
-        () => result,
-        setResult,
-      );
-    }
-    if (totalCholesterol > 300.0) {
-      await _checkAndNotify(
-        db,
-        'Kolesterol',
-        startOfDay,
-        'Peringatan Kolesterol Tinggi!',
-        'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) melebihi batas yang disarankan.',
-        () => result,
-        setResult,
-      );
-    }
-    if (totalCarbs > 300.0) {
-      await _checkAndNotify(
-        db,
-        'Karbohidrat',
-        startOfDay,
-        'Peringatan Karbohidrat Tinggi!',
-        'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
-        () => result,
-        setResult,
-      );
-    }
-    if (totalProtein > 65.0) {
-      await _checkAndNotify(
-        db,
-        'Protein',
-        startOfDay,
-        'Peringatan Protein Tinggi!',
-        'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian.',
+        rule.$2,
+        rule.$3,
         () => result,
         setResult,
       );
@@ -1042,7 +1013,6 @@ class EcoPointsNotifier extends ValueNotifier<int> {
   EcoPointsNotifier._() : super(0);
 
   static const String _keyEcoPoints = 'user_eco_points';
-  // Expose key so other classes can read the pref directly if needed
   static const String keyEcoPoints = _keyEcoPoints;
 
   Future<void> init() async {
@@ -1062,5 +1032,15 @@ class EcoPointsNotifier extends ValueNotifier<int> {
   Future<void> refresh() async {
     final prefs = await SharedPreferences.getInstance();
     value = prefs.getInt(_keyEcoPoints) ?? 0;
+  }
+}
+
+/// Notifier global untuk sinkronisasi instan state inventaris dapur (Pantry & Expiry)
+class PantryUpdateNotifier extends ValueNotifier<int> {
+  static final PantryUpdateNotifier instance = PantryUpdateNotifier._();
+  PantryUpdateNotifier._() : super(0);
+
+  void notifyPantryChanged() {
+    value++;
   }
 }

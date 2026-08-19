@@ -146,13 +146,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Text(
+                                const Text(
                                   'Daftar Akun Baru',
                                   textAlign: TextAlign.center,
                                   style: AppTextStyles.heading2,
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
+                                const Text(
                                   'Mulai langkah sehatmu dan kurangi\nfood waste hari ini.',
                                   textAlign: TextAlign.center,
                                   style: AppTextStyles.subtitleSmall,
@@ -233,7 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                               strokeWidth: 2.5,
                                             ),
                                           )
-                                        : Text(
+                                        : const Text(
                                             'Daftar  →',
                                             style: AppTextStyles.buttonSmall,
                                           ),
@@ -299,7 +299,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Sudah punya akun? ',
                                       style: AppTextStyles.subtitleSmall,
                                     ),

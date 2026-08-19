@@ -294,7 +294,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
                                       color: AppColors.primary,
                                     ),
                                   ),
-                                  TextSpan(
+                                  const TextSpan(
                                     text: 'kcal',
                                     style: AppTextStyles.subtitleSmall,
                                   ),

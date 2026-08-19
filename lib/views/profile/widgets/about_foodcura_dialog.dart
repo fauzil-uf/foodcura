@@ -25,7 +25,7 @@ class AboutFoodCuraDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text('Tentang FoodCura', style: AppTextStyles.headlineSm),
+          const Text('Tentang FoodCura', style: AppTextStyles.headlineSm),
         ],
       ),
       content: Column(
@@ -37,7 +37,7 @@ class AboutFoodCuraDialog extends StatelessWidget {
             style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-          Text(
+          const Text(
             'Aplikasi cerdas pelacak nutrisi harian dan pencegah food waste dengan dukungan Google Gemini AI.',
             style: AppTextStyles.subtitleSmall,
           ),

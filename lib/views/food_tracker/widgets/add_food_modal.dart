@@ -340,20 +340,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
                                       ),
                                     ],
                                   ),
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      food.imagePath,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                color: Colors.grey.shade200,
-                                                child: const Icon(
-                                                  Icons.fastfood,
-                                                  color: AppColors.primary,
-                                                ),
-                                              ),
-                                    ),
+                                  child: AppFoodImage(
+                                    imagePath: food.imagePath,
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 30,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -392,7 +383,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
+              const Text(
                 'Pilih waktu saat kamu mengonsumsi makanan ini.',
                 style: AppTextStyles.subtitleSmall,
               ),

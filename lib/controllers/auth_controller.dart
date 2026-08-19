@@ -5,7 +5,7 @@ import '../constants/app_constants.dart';
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
 
-/// Controller untuk mengelola state dan business logic autentikasi serta sesi pengguna.
+/// Controller untuk mengelola state autentikasi dan sesi pengguna.
 class AuthController extends ChangeNotifier {
   final DBHelper _db;
 
@@ -20,52 +20,43 @@ class AuthController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
-  /// Memuat profil pengguna yang sedang login dari session lokal
-  Future<void> loadCurrentUser() async {
-    _isLoading = true;
-    _errorMessage = null;
+  void _setLoading(bool value, [String? error]) {
+    _isLoading = value;
+    _errorMessage = error;
     notifyListeners();
+  }
 
+  /// Memuat profil pengguna dari session lokal
+  Future<void> loadCurrentUser() async {
+    _setLoading(true);
     try {
       _currentUser = await _db.getLoggedInUser();
+      _setLoading(false);
     } catch (e) {
-      _errorMessage = 'Gagal memuat profil pengguna: $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false, 'Gagal memuat profil pengguna: $e');
     }
   }
 
-  /// Melakukan login dengan email dan password
+  /// Melakukan login pengguna
   Future<bool> login(String email, String password) async {
     final cleanEmail = email.trim();
     if (cleanEmail.isEmpty || password.isEmpty) {
-      _errorMessage = 'Isi semua field!';
-      notifyListeners();
+      _setLoading(false, 'Isi semua field!');
       return false;
     }
 
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
+    _setLoading(true);
     try {
       final user = await _db.loginUser(cleanEmail, password);
       if (user != null) {
         _currentUser = user;
-        _isLoading = false;
-        notifyListeners();
+        _setLoading(false);
         return true;
-      } else {
-        _errorMessage = 'Login gagal! Email atau password salah.';
-        _isLoading = false;
-        notifyListeners();
-        return false;
       }
+      _setLoading(false, 'Login gagal! Email atau password salah.');
+      return false;
     } catch (e) {
-      _errorMessage = 'Terjadi kesalahan saat login: $e';
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false, 'Terjadi kesalahan saat login: $e');
       return false;
     }
   }
@@ -80,112 +71,76 @@ class AuthController extends ChangeNotifier {
     final cleanName = name.trim();
     final cleanEmail = email.trim();
 
-    if (cleanName.isEmpty ||
-        cleanEmail.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
-      _errorMessage = 'Isi semua field!';
-      notifyListeners();
+    if (cleanName.isEmpty || cleanEmail.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      _setLoading(false, 'Isi semua field!');
       return false;
     }
-
     if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(cleanEmail)) {
-      _errorMessage = 'Format email tidak valid!';
-      notifyListeners();
+      _setLoading(false, 'Format email tidak valid!');
       return false;
     }
-
     if (password.length < 8) {
-      _errorMessage = 'Password minimal 8 karakter!';
-      notifyListeners();
+      _setLoading(false, 'Password minimal 8 karakter!');
       return false;
     }
-
     if (password != confirmPassword) {
-      _errorMessage = 'Konfirmasi password tidak cocok!';
-      notifyListeners();
+      _setLoading(false, 'Konfirmasi password tidak cocok!');
       return false;
     }
 
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
+    _setLoading(true);
     try {
-      final newUser = UserModelSQL(
-        name: cleanName,
-        email: cleanEmail,
-        password: password,
+      final success = await _db.registerUser(
+        UserModelSQL(name: cleanName, email: cleanEmail, password: password),
       );
-      final success = await _db.registerUser(newUser);
-
-      _isLoading = false;
       if (success) {
-        notifyListeners();
+        _setLoading(false);
         return true;
-      } else {
-        _errorMessage = 'Email sudah terdaftar!';
-        notifyListeners();
-        return false;
       }
+      _setLoading(false, 'Email sudah terdaftar!');
+      return false;
     } catch (e) {
-      _errorMessage = 'Gagal mendaftar: $e';
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false, 'Gagal mendaftar: $e');
       return false;
     }
   }
 
-  /// Memperbarui informasi nama dan email pengguna
-  Future<bool> updateProfile({
-    required String name,
-    required String email,
-  }) async {
+  /// Memperbarui nama dan email profil pengguna
+  Future<bool> updateProfile({required String name, required String email}) async {
     if (_currentUser == null) return false;
     final cleanName = name.trim();
     final cleanEmail = email.trim();
 
     if (cleanName.isEmpty || cleanEmail.isEmpty) {
-      _errorMessage = 'Nama dan email tidak boleh kosong!';
-      notifyListeners();
+      _setLoading(false, 'Nama dan email tidak boleh kosong!');
       return false;
     }
 
-    _isLoading = true;
-    notifyListeners();
-
+    _setLoading(true);
     try {
-      final updated = _currentUser!.copyWith(
-        name: cleanName,
-        email: cleanEmail,
-      );
+      final updated = _currentUser!.copyWith(name: cleanName, email: cleanEmail);
       final success = await _db.updateUser(updated);
-      if (success) {
-        _currentUser = updated;
-      }
-      _isLoading = false;
-      notifyListeners();
+      if (success) _currentUser = updated;
+      _setLoading(false);
       return success;
     } catch (e) {
-      _errorMessage = 'Gagal memperbarui profil: $e';
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false, 'Gagal memperbarui profil: $e');
       return false;
     }
   }
 
-  /// Mengeluarkan pengguna dan menghapus sesi tersimpan
+  /// Mengeluarkan pengguna dan membersihkan sesi lokal
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(AppConstants.keyLoggedInUserId);
-    await prefs.remove(AppConstants.keyStreakCount);
-    await prefs.remove(AppConstants.keyStreakLastDate);
+    await Future.wait([
+      prefs.remove(AppConstants.keyLoggedInUserId),
+      prefs.remove(AppConstants.keyStreakCount),
+      prefs.remove(AppConstants.keyStreakLastDate),
+    ]);
     _currentUser = null;
     notifyListeners();
   }
 
-  /// Mengecek apakah email sudah terdaftar
-  Future<bool> isEmailRegistered(String email) async {
-    return await _db.isEmailRegistered(email.trim());
-  }
+  /// Mengecek apakah email terdaftar
+  Future<bool> isEmailRegistered(String email) => _db.isEmailRegistered(email.trim());
 }

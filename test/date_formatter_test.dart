@@ -44,6 +44,21 @@ void main() {
         contains('agustus 2026'),
       );
     });
+
+    test('AppDateTimeExt and AppStringDateExt extensions work seamlessly', () {
+      final d = DateTime(2026, 8, 15);
+      expect(d.toShortDate(), equals(AppDateFormatter.formatShortDate(d)));
+      expect(d.toFullDate(), equals(AppDateFormatter.formatToday(d)));
+      expect(d.toMonthYear(), equals(AppDateFormatter.formatMonthYear(d)));
+      expect(d.toShortDay(), equals(AppDateFormatter.formatShortDayName(d)));
+
+      DateTime? nullDate;
+      expect(nullDate.toShortDate(), equals('-'));
+      expect(nullDate.toShortDate('Kosong'), equals('Kosong'));
+
+      const strDate = '15 Agustus 2026';
+      expect(strDate.toDateTime(), equals(DateTime(2026, 8, 15)));
+    });
   });
 
   group('AppTextStyles and AppColors constants tests', () {
@@ -60,7 +75,7 @@ void main() {
 
     test('AppColors constants are defined', () {
       expect(AppColors.surfaceContainerLow, isNotNull);
-      expect(AppColors.surfaceContainerLowest, isNotNull);
+      expect(AppColors.surfaceContainerHigh, isNotNull);
       expect(AppColors.ecoGreen, isNotNull);
       expect(AppColors.deepForest, isNotNull);
     });

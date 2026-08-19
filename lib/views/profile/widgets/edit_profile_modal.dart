@@ -77,14 +77,14 @@ class _EditProfileModalState extends State<EditProfileModal> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
+                const Text(
                   'Edit Informasi Profil',
                   style: AppTextStyles.headlineMd,
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Perbarui nama lengkap dan alamat email akunmu.',
               style: AppTextStyles.subtitleSmall,
             ),

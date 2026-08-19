@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: Scaffold(
+        home: const Scaffold(
           body: Center(child: Text('Profil', style: AppTextStyles.headlineLg)),
         ),
       ),

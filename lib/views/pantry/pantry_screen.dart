@@ -6,7 +6,9 @@ import '../../constants/app_typography.dart';
 import '../../controllers/pantry_controller.dart';
 import '../../database/db_helper.dart';
 import '../../models/pantry_item_model.dart';
+import '../dashboard/widgets/eco_impact_modal.dart';
 import '../notification/notification_screen.dart';
+import '../widgets/app_food_image.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/add_pantry_item_modal.dart';
 import 'widgets/pantry_item_detail_modal.dart';
@@ -23,6 +25,7 @@ class _PantryScreenState extends State<PantryScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0; // 0=Semua, 1=Urgent, 2=Segera, 3=Aman
   int _unreadNotifCount = 0;
+  int _urgentAndSegeraCount = 0;
 
   final List<String> _filters = [
     'Semua',
@@ -38,6 +41,7 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.loadPantryData();
     NotificationNotifier.instance.addListener(_onNotifChanged);
     NotificationNotifier.instance.refresh();
+    PantryUpdateNotifier.instance.addListener(_onPantryChanged);
   }
 
   @override
@@ -45,12 +49,17 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
+    PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     _searchController.dispose();
     super.dispose();
   }
 
   void _onControllerChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onPantryChanged() {
+    if (mounted) _controller.loadPantryData();
   }
 
   void _onNotifChanged() {
@@ -85,10 +94,14 @@ class _PantryScreenState extends State<PantryScreen> {
   Future<void> _markAsUsed(PantryItemModel item) async {
     if (item.id == null) return;
     await _controller.markItemUsed(item.id!);
+    final impactResult = await _controller.getEcoRescueImpact(item);
+
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('${item.name} ditandai habis')));
+      EcoImpactModal.show(
+        context: context,
+        item: item,
+        impactResult: impactResult,
+      );
     }
   }
 
@@ -123,8 +136,7 @@ class _PantryScreenState extends State<PantryScreen> {
     ).then((_) => _controller.loadPantryData());
   }
 
-  // Group items by status
-  Map<String, List<PantryItemModel>> get _groupedItems {
+  Map<String, List<PantryItemModel>> _groupByExpiry() {
     final urgentItems = <PantryItemModel>[];
     final segeraItems = <PantryItemModel>[];
     final amanItems = <PantryItemModel>[];
@@ -147,165 +159,159 @@ class _PantryScreenState extends State<PantryScreen> {
     return {'urgent': urgentItems, 'segera': segeraItems, 'aman': amanItems};
   }
 
-  int get _urgentAndSegeraCount {
-    return _groupedItems['urgent']!.length + _groupedItems['segera']!.length;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final grouped = _groupedItems;
+    final counts = _controller.statusCounts;
+    _urgentAndSegeraCount = (counts['urgent'] ?? 0) + (counts['segera'] ?? 0);
+    _unreadNotifCount = _controller.unreadNotifications;
+
+    final grouped = _groupByExpiry();
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundWarm,
-      body: Stack(
-        children: [
-          // Main content
-          CustomScrollView(
-            slivers: [
-              // Clean Modern Top App Bar
-              // Clean Modern Top App Bar
-              SliverAppBar(
-                pinned: true,
-                floating: false,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                backgroundColor: const Color(0xFFF7F5EE),
-                toolbarHeight: 70,
-                automaticallyImplyLeading: false,
-                flexibleSpace: AppTopBar(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // Top App Bar - Fixed & Standard across all screens
+                AppTopBar(
                   title: 'Pantry & Expiry',
                   unreadNotifications: _unreadNotifCount,
                   onNotificationTap: _openNotifications,
                 ),
-              ),
 
-              // Content
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Main Scrollable Content
+                Expanded(
+                  child: _controller.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.ecoGreen,
+                          ),
+                        )
+                      : RefreshIndicator(
+                          color: AppColors.primary,
+                          onRefresh: () => _controller.loadPantryData(),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(
+                              left: 20,
+                              right: 20,
+                              top: 18,
+                              bottom: 220,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Search bar
+                                _buildSearchBar(),
+                                const SizedBox(height: 16),
+
+                                // Filter tabs
+                                _buildFilterTabs(),
+                                const SizedBox(height: 16),
+
+                                // Summary alert
+                                if (_urgentAndSegeraCount > 0 &&
+                                    _selectedFilter == 0) ...[
+                                  _buildSummaryAlert(),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Items
+                                if (_controller.items.isEmpty)
+                                  _buildEmptyState()
+                                else ...[
+                                  // Urgent section
+                                  if (grouped['urgent']!.isNotEmpty) ...[
+                                    _buildSectionHeader(
+                                      'HARUS SEGERA (< 2 HARI)',
+                                      AppColors.urgent,
+                                    ),
+                                    ...grouped['urgent']!.map(
+                                      (item) => _buildItemCard(item),
+                                    ),
+                                  ],
+
+                                  // Segera section
+                                  if (grouped['segera']!.isNotEmpty) ...[
+                                    _buildSectionHeader(
+                                      'SEGERA (3–5 HARI)',
+                                      AppColors.segera,
+                                    ),
+                                    ...grouped['segera']!.map(
+                                      (item) => _buildItemCard(item),
+                                    ),
+                                  ],
+
+                                  // Aman section
+                                  if (grouped['aman']!.isNotEmpty) ...[
+                                    _buildSectionHeader(
+                                      'AMAN (> 5 HARI)',
+                                      AppColors.ecoGreen,
+                                    ),
+                                    ...grouped['aman']!.map(
+                                      (item) => _buildItemCard(item),
+                                    ),
+                                  ],
+
+                                  const SizedBox(height: 16),
+
+                                  // Tips Food Rescue
+                                  _buildTipsCard(),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+
+            // Prominent Action Button - Tambah Bahan (Pas di atas bottom navbar)
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 84,
+              child: GestureDetector(
+                onTap: _openAddModal,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Search bar
-                      _buildSearchBar(),
-                      const SizedBox(height: 16),
-
-                      // Filter tabs
-                      _buildFilterTabs(),
-                      const SizedBox(height: 16),
+                      const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tambah Bahan',
+                        style: AppTextStyles.buttonSmall.copyWith(
+                          fontSize: 15,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-
-              if (_controller.isLoading)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.ecoGreen),
-                  ),
-                )
-              else ...[
-                // Summary alert
-                if (_urgentAndSegeraCount > 0 && _selectedFilter == 0)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildSummaryAlert(),
-                    ),
-                  ),
-
-                // Items
-                if (_controller.items.isEmpty)
-                  SliverFillRemaining(child: _buildEmptyState())
-                else
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Urgent section
-                          if (grouped['urgent']!.isNotEmpty) ...[
-                            _buildSectionHeader(
-                              'HARUS SEGERA (< 2 HARI)',
-                              AppColors.urgent,
-                            ),
-                            ...grouped['urgent']!.map(
-                              (item) => _buildItemCard(item),
-                            ),
-                          ],
-
-                          // Segera section
-                          if (grouped['segera']!.isNotEmpty) ...[
-                            _buildSectionHeader(
-                              'SEGERA (3–5 HARI)',
-                              AppColors.segera,
-                            ),
-                            ...grouped['segera']!.map(
-                              (item) => _buildItemCard(item),
-                            ),
-                          ],
-
-                          // Aman section
-                          if (grouped['aman']!.isNotEmpty) ...[
-                            _buildSectionHeader(
-                              'AMAN (> 5 HARI)',
-                              AppColors.ecoGreen,
-                            ),
-                            ...grouped['aman']!.map(
-                              (item) => _buildItemCard(item),
-                            ),
-                          ],
-
-                          const SizedBox(height: 16),
-
-                          // Tips Food Rescue
-                          _buildTipsCard(),
-
-                          const SizedBox(height: 180),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ],
-          ),
-
-          // FAB - Tambah Bahan
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: MediaQuery.of(context).padding.bottom + 90,
-            child: GestureDetector(
-              onTap: _openAddModal,
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add, color: Colors.white, size: 22),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Tambah Bahan',
-                      style: AppTextStyles.buttonSmall.copyWith(fontSize: 15),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -497,18 +503,12 @@ class _PantryScreenState extends State<PantryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      item.imageUrl!,
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          _buildImagePlaceholder(item.name),
-                    )
-                  : _buildImagePlaceholder(item.name),
+            AppFoodImage(
+              imagePath: item.imageUrl,
+              width: 72,
+              height: 72,
+              borderRadius: 16,
+              fallbackIcon: Icons.kitchen_rounded,
             ),
             const SizedBox(width: 14),
 
@@ -598,29 +598,41 @@ class _PantryScreenState extends State<PantryScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Tandai Habis button
+                  // Tandai Habis button with Eco Reward feedback
                   GestureDetector(
                     onTap: () => _markAsUsed(item),
                     child: Container(
                       height: 38,
                       decoration: BoxDecoration(
-                        color: AppColors.ecoGreen,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
                         borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(
-                            Icons.check_circle,
+                            Icons.check_circle_outline_rounded,
                             color: Colors.white,
-                            size: 18,
+                            size: 17,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             'Tandai Habis',
                             style: AppTextStyles.buttonSmall.copyWith(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -631,27 +643,6 @@ class _PantryScreenState extends State<PantryScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePlaceholder(String name) {
-    return Container(
-      width: 72,
-      height: 72,
-      decoration: BoxDecoration(
-        color: AppColors.mintTint,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Center(
-        child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: AppTextStyles.avatarInitial.copyWith(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AppColors.ecoGreen,
-          ),
         ),
       ),
     );
