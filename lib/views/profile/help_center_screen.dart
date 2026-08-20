@@ -25,6 +25,7 @@ class HelpFaqCategory {
   });
 }
 
+/// Layar pusat bantuan pengguna yang menyajikan pencarian FAQ interaktif, kategori panduan, dan kanal kontak dukungan pelanggan.
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
 
@@ -159,6 +160,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     super.dispose();
   }
 
+  /// Mengubah status buka/tutup akordeon FAQ untuk pertanyaan tertentu.
   void _toggleQuestion(String question) {
     setState(() {
       if (_expandedQuestions.contains(question)) {
@@ -169,6 +171,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     });
   }
 
+  /// Membuka modal kontak dukungan pelanggan FoodCura.
   void _openContactSupport() {
     showModalBottomSheet(
       context: context,
@@ -178,6 +181,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
+  /// Membangun modal kontak dengan opsi email, WhatsApp resmi, dan form pesan bantuan.
   Widget _buildContactModal(BuildContext ctx) {
     return Container(
       decoration: const BoxDecoration(
@@ -194,7 +198,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
           Center(
             child: Container(
               width: 40,
@@ -207,7 +210,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Modal Title
           Row(
             children: [
               Container(
@@ -250,7 +252,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Contact Options List
           _buildContactCard(
             icon: Icons.email_outlined,
             title: 'Email Dukungan',
@@ -301,7 +302,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Close Button
           SizedBox(
             width: double.infinity,
             height: 48,
@@ -326,6 +326,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
+  /// Membangun kartu opsi saluran kontak dengan aksi salin atau navigasi interaktif.
   Widget _buildContactCard({
     required IconData icon,
     required String title,
@@ -508,6 +509,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     return result;
   }
 
+  /// Membangun antarmuka Pusat Bantuan dengan bilah pencarian FAQ, daftar kategori tanya-jawab, dan kartu kontak bantuan.
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredCategories;
@@ -517,14 +519,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Standard Centralized AppTopBar
             AppTopBar(
               title: 'Pusat Bantuan',
               showBackButton: true,
               onBack: () => Navigator.pop(context),
             ),
 
-            // Main Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -534,7 +534,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   children: [
                     const SizedBox(height: 24),
 
-                    // Greeting Header
                     Text(
                       'Halo, ada yang bisa\nkami bantu?',
                       style: AppTextStyles.headlineLg.copyWith(

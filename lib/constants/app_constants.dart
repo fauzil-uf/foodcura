@@ -6,7 +6,12 @@ class AppConstants {
 
   // Database (SQFLite)
   static const dbName = 'foodcura.db';
+  static const dbVersion = 1;
   static const tableUsers = 'users';
+
+  // API & Network
+  static const connectTimeout = 15000; // ms
+  static const receiveTimeout = 15000; // ms
 
   // SharedPreferences keys
   static const keyLoggedInUserId = 'logged_in_user_id';

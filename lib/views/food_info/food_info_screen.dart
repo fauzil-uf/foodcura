@@ -259,6 +259,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     super.dispose();
   }
 
+  /// Callback untuk menyinkronkan counter lencana notifikasi belum terbaca.
   void _onNotifChanged() {
     if (mounted) {
       setState(() {
@@ -267,6 +268,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     }
   }
 
+  /// Membuka layar notifikasi saat ikon lonceng ditekan.
   void _openNotifications() {
     Navigator.push(
       context,
@@ -274,6 +276,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membuka modal bacaan artikel edukasi lengkap beserta tips praktis pencegahan food waste.
   void _openArticleDetail(ArticleModel article) {
     showModalBottomSheet(
       context: context,
@@ -283,6 +286,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membuka modal kuis interaktif gizi dan food waste harian.
   void _startQuiz() {
     showModalBottomSheet(
       context: context,
@@ -295,13 +299,13 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
   List<ArticleModel> get _filteredArticles {
     List<ArticleModel> list = _allArticles;
 
-    // Filter by Category Chip
+    // Filter daftar artikel berdasarkan kategori chip yang dipilih.
     if (_selectedCategory > 0 && _selectedCategory < _categories.length) {
       final selectedCat = _categories[_selectedCategory];
       list = list.where((a) => a.category == selectedCat).toList();
     }
 
-    // Filter by Search Query
+    // Filter artikel berdasarkan kecocokan judul, kategori, atau ringkasan.
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       list = list.where((a) {
@@ -314,14 +318,20 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     return list;
   }
 
+  /// Membangun tampilan utama FoodInfo yang mencakup bilah pencarian, filter kategori, artikel unggulan, daftar artikel, dan kuis edukasi.
   @override
   Widget build(BuildContext context) {
+    // Pisahkan artikel pertama sebagai banner unggulan utama (Hero Featured Card).
     final featured = _filteredArticles.isNotEmpty
         ? _filteredArticles.first
         : null;
+
+    // Sisa artikel selain banner utama dialokasikan ke daftar 'Artikel Terbaru'.
     final latestArticles = _filteredArticles.length > 1
         ? _filteredArticles.sublist(1)
         : <ArticleModel>[];
+
+    // Batasi 2 artikel awal agar layar tetap ringkas dan kartu kuis AI di bawahnya langsung terlihat tanpa perlu scrolling panjang.
     final displayedLatestArticles = _showAllArticles
         ? latestArticles
         : latestArticles.take(2).toList();
@@ -331,14 +341,12 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Fixed Top App Bar across all screens
             AppTopBar(
               title: 'FoodInfo',
               unreadNotifications: _unreadNotifCount,
               onNotificationTap: _openNotifications,
             ),
 
-            // Scrollable Content
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -351,17 +359,14 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                     children: [
                       const SizedBox(height: 18),
 
-                      // Search bar
                       _buildSearchBar(),
 
                       const SizedBox(height: 14),
 
-                      // Category Chips
                       _buildCategoryChips(),
 
                       const SizedBox(height: 24),
 
-                      // Empty State if no articles match
                       if (_filteredArticles.isEmpty) ...[
                         Container(
                           width: double.infinity,
@@ -402,7 +407,6 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                         const SizedBox(height: 28),
                       ],
 
-                      // Featured Article Section ("Pilihan Untukmu")
                       if (featured != null) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -438,7 +442,6 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                         const SizedBox(height: 28),
                       ],
 
-                      // Latest Articles Section ("Artikel Terbaru" / "Artikel Kategori")
                       if (latestArticles.isNotEmpty) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -453,6 +456,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                             ),
                             if (latestArticles.length > 2)
                               GestureDetector(
+                                // Toggle ekspansi artikel tanpa perlu navigasi halaman baru (Progressive Disclosure).
                                 onTap: () {
                                   setState(() {
                                     _showAllArticles = !_showAllArticles;
@@ -507,12 +511,10 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
                         const SizedBox(height: 28),
                       ],
 
-                      // Mini Quiz Section
                       _buildMiniQuizCard(),
 
                       const SizedBox(height: 28),
 
-                      // Daily Tip Section ("FoodCura Tip")
                       _buildDailyTipCard(),
 
                       const SizedBox(height: 140),
@@ -527,6 +529,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membangun bilah pencarian artikel dengan ikon cari dan text field dinamis.
   Widget _buildSearchBar() {
     return Container(
       height: 52,
@@ -552,6 +555,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
               controller: _searchController,
               onChanged: (val) => setState(() {
                 _searchQuery = val;
+                // Reset ekspansi ke mode ringkas saat kata kunci pencarian berubah.
                 _showAllArticles = false;
               }),
               style: AppTextStyles.bodySmall.copyWith(
@@ -574,6 +578,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membangun baris chip kategori horizontal untuk memfilter topik artikel.
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 38,
@@ -586,6 +591,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
           return GestureDetector(
             onTap: () => setState(() {
               _selectedCategory = index;
+              // Reset ekspansi daftar ke 2 item saat beralih ke kategori lain.
               _showAllArticles = false;
             }),
             child: AnimatedContainer(
@@ -614,6 +620,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membangun kartu artikel unggulan utama dengan gambar besar dan badge kategori.
   Widget _buildFeaturedCard(ArticleModel article) {
     return Container(
       decoration: BoxDecoration(
@@ -631,7 +638,6 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Hero Image with category & gradient
           Stack(
             children: [
               ClipRRect(
@@ -723,7 +729,6 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
             ],
           ),
 
-          // Content body
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -766,6 +771,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membangun item baris artikel edukasi horizontal pada daftar artikel terbaru.
   Widget _buildArticleListItem(ArticleModel article) {
     return GestureDetector(
       onTap: () => _openArticleDetail(article),
@@ -843,6 +849,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membangun kartu promosi kuis mini gizi dan food waste berlatar hijau emerald.
   Widget _buildMiniQuizCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -859,7 +866,6 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
       ),
       child: Stack(
         children: [
-          // Background decorative circle
           Positioned(
             right: -30,
             top: -30,
@@ -873,7 +879,6 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
             ),
           ),
 
-          // Content
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -956,6 +961,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
+  /// Membangun kartu tips praktis harian seputar penyimpanan bahan makanan.
   Widget _buildDailyTipCard() {
     return Container(
       padding: const EdgeInsets.all(16),

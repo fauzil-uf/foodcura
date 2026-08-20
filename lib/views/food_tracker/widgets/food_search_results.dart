@@ -5,6 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/food_item_model.dart';
 import '../../widgets/app_food_image.dart';
 
+/// Widget panel hasil pencarian makanan interaktif dari katalog lokal TKPI dengan tombol tambah instan (Quick Add).
 class FoodSearchResults extends StatelessWidget {
   const FoodSearchResults({
     super.key,
@@ -25,6 +26,7 @@ class FoodSearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tampilkan placeholder informatif jika tidak ada item katalog yang cocok dengan kata kunci pencarian.
     if (searchResults.isEmpty) {
       return Container(
         margin: const EdgeInsets.only(bottom: 20),
@@ -122,6 +124,7 @@ class FoodSearchResults extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Kunci tombol dan ubah visual menjadi 'Tercatat' secara real-time untuk mencegah duplikasi penambahan gizi.
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       child: ElevatedButton(

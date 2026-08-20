@@ -85,7 +85,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.dispose();
   }
 
+  /// Menyimpan flag telah melihat onboarding ke SharedPreferences dan mengarahkan ke layar utama atau login.
   Future<void> _navigateToNext() async {
+    // Simpan status bahwa onboarding sudah diselesaikan agar tidak muncul lagi pada sesi berikutnya.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hasSeenOnboarding', true);
     final loggedInUser = await DBHelper().getLoggedInUser();
@@ -106,6 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
+  /// Berpindah ke slide onboarding berikutnya atau menyelesaikan alur orientasi pada slide terakhir.
   void _onNextPressed() {
     if (_currentPage < _items.length - 1) {
       _pageController.nextPage(

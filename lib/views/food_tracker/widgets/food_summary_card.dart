@@ -34,6 +34,7 @@ class FoodSummaryCard extends StatelessWidget {
     final makanMalamLogs = controller.makanMalamLogs;
     final camilanLogs = controller.camilanLogs;
 
+    // Hitung subtotal kalori per kategori makan menggunakan in-memory fold untuk performa render cepat.
     int sumCals(List<FoodLogModel> list) =>
         list.fold(0, (sum, item) => sum + item.calories);
 

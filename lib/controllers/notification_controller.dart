@@ -57,6 +57,7 @@ class NotificationController extends ChangeNotifier {
     }
   }
 
+  /// Mengatur indeks filter (Semua, Belum Dibaca, Kadaluwarsa, Info) dan memuat ulang notifikasi.
   void setFilter(int index) {
     _selectedFilterIndex = index;
     loadNotifications();

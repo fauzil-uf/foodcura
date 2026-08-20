@@ -32,6 +32,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     _currentItem = widget.item;
   }
 
+  /// Menandai bahan makanan telah digunakan/dimasak dan memperbarui data inventaris.
   Future<void> _markAsUsed() async {
     if (_currentItem.id != null) {
       final savedItem = _currentItem;
@@ -39,7 +40,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
 
       if (mounted) {
         widget.onItemUpdated();
-        Navigator.pop(context); // Close detail modal
+        Navigator.pop(context);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -58,6 +59,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     }
   }
 
+  /// Menampilkan dialog konfirmasi sebelum menghapus bahan makanan dari database SQLite.
   Future<void> _confirmDelete() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -71,7 +73,6 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon Header Container
             Container(
               width: 56,
               height: 56,
@@ -93,7 +94,6 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
             ),
             const SizedBox(height: 16),
 
-            // Title
             Text(
               'Hapus Bahan Makanan',
               style: AppTextStyles.heading2.copyWith(
@@ -105,7 +105,6 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
             ),
             const SizedBox(height: 10),
 
-            // RichText with bold item name
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
@@ -131,7 +130,6 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
             ),
             const SizedBox(height: 20),
 
-            // Actions Buttons Row
             Row(
               children: [
                 Expanded(
@@ -197,6 +195,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     }
   }
 
+  /// Membuka modal edit form untuk memperbarui data stok atau tanggal kedaluwarsa bahan.
   void _openEditModal() {
     Navigator.pop(context); // Close detail modal first
     showModalBottomSheet(

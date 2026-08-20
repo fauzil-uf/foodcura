@@ -63,22 +63,27 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
+  /// Callback saat state DashboardController berubah untuk me-render ulang UI.
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
+  /// Callback untuk memperbarui counter lencana notifikasi saat ada peringatan baru.
   void _onNotifChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
+  /// Callback saat stok dapur berubah untuk memperbarui daftar bahan yang butuh diselamatkan.
   void _onPantryChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
+  /// Memuat ulang seluruh data ringkasan nutrisi, streak belajar, dan status bahan dari SQLite.
   Future<void> _fetchSummaryFromDB() async {
     await _controller.loadDashboardData();
   }
 
+  /// Membuka layar notifikasi dan menyinkronkan data ringkasan setelah kembali.
   void _openNotifications() {
     Navigator.push(
       context,
@@ -86,6 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     ).then((_) => _fetchSummaryFromDB());
   }
 
+  /// Membuka modal kuis interaktif gizi harian dan memperbarui streak belajar.
   void _startQuiz() {
     showModalBottomSheet(
       context: context,
@@ -95,6 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     ).then((_) => _fetchSummaryFromDB());
   }
 
+  /// Membuka modal pencatatan konsumsi makanan langsung dari kartu ringkasan Dashboard.
   void _openAddFoodModal({String mealType = 'Makan Siang'}) {
     showModalBottomSheet(
       context: context,
@@ -107,6 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  /// Menandai bahan dapur telah dimasak, menambahkan eco-points, dan memicu sinyal pembaruan global.
   Future<void> _markPantryItemCooked(PantryItemModel item) async {
     if (item.id != null) {
       await DBHelper().markPantryItemUsed(item.id!);
@@ -130,6 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
+  /// Menghasilkan sapaan ramah dinamis (Pagi, Siang, Sore, Malam) sesuai jam perangkat pengguna.
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
     if (hour >= 4 && hour < 11) return 'Selamat Pagi';
@@ -138,6 +147,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return 'Selamat Malam';
   }
 
+  /// Membangun antarmuka beranda dashboard dengan banner sapaan, radar kedaluwarsa, progres kalori harian, dan rekomendasi kuis.
   @override
   Widget build(BuildContext context) {
     final user = _controller.user;
@@ -153,14 +163,12 @@ class _DashboardScreenState extends State<DashboardScreen>
           opacity: _fadeAnim,
           child: Column(
             children: [
-              // 1. PINNED TOP APP BAR
               AppTopBar(
                 showBrandLogo: true,
                 unreadNotifications: _controller.unreadNotifications,
                 onNotificationTap: _openNotifications,
               ),
 
-              // 2. SCROLLABLE BODY CONTENT
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),

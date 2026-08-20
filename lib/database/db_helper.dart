@@ -319,6 +319,19 @@ class DBHelper {
     return count > 0;
   }
 
+  /// Mengambil semua user terdaftar (sesuai kurikulum Local Storage II Slide Hal 12)
+  Future<List<UserModelSQL>> getAllUsers() async {
+    final db = await database;
+    final results = await db.query(AppConstants.tableUsers);
+    return results.map((map) => UserModelSQL.fromMap(map)).toList();
+  }
+
+  /// Menghapus user berdasarkan id (sesuai kurikulum Local Storage II Slide Hal 12)
+  Future<void> deleteUser(int id) async {
+    final db = await database;
+    await db.delete(AppConstants.tableUsers, where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<int> computeAndSaveStreak({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 1;
@@ -392,10 +405,11 @@ class DBHelper {
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
   }
 
-  Future<List<FoodItemModel>> searchFoodCatalog(String query) async {
+  Future<List<FoodItemModel>> searchFoodCatalog(String query, {int? limit}) async {
     final db = await database;
     final results = await db.rawQuery(
-      'SELECT * FROM $tableFoods WHERE (name LIKE ? OR category LIKE ?) GROUP BY LOWER(TRIM(name))',
+      'SELECT * FROM $tableFoods WHERE (name LIKE ? OR category LIKE ?) GROUP BY LOWER(TRIM(name))'
+      '${limit != null ? " LIMIT $limit" : ""}',
       ['%$query%', '%$query%'],
     );
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
@@ -451,6 +465,7 @@ class DBHelper {
     final targetUserId = log.userId ?? await getActiveUserId();
     if (targetUserId == null) return null;
 
+    // Hapus 'id' dari map agar mesin AUTOINCREMENT SQLite menghasilkan ID unik otomatis.
     final logMap = log.copyWith(userId: targetUserId).toMap()..remove('id');
     await db.insert(tableFoodLogs, logMap, conflictAlgorithm: ConflictAlgorithm.replace);
     return await checkNutritionExcess(userId: targetUserId);
@@ -830,6 +845,7 @@ class PantryUpdateNotifier extends ValueNotifier<int> {
   PantryUpdateNotifier._() : super(0);
 
   void notifyPantryChanged() {
+    // Naikkan counter value untuk memicu sinyal pembaruan serentak di Dashboard, Pantry, dan Navbar.
     value++;
   }
 }

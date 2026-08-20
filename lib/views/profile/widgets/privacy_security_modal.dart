@@ -8,6 +8,7 @@ import '../../../constants/app_typography.dart';
 class PrivacySecurityModal extends StatelessWidget {
   const PrivacySecurityModal({super.key});
 
+  /// Membangun modal lembar bawah yang menjelaskan kepatuhan privasi data dan keamanan SQLite offline.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -20,7 +21,6 @@ class PrivacySecurityModal extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
           Center(
             child: Container(
               width: 40,
@@ -33,7 +33,6 @@ class PrivacySecurityModal extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // Header
           Row(
             children: [
               Container(
@@ -59,7 +58,6 @@ class PrivacySecurityModal extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Introduction
           Text(
             'FoodCura menggunakan penyimpanan lokal dan layanan online sesuai kebutuhan fitur.',
             style: AppTextStyles.bodyMd.copyWith(
@@ -69,7 +67,6 @@ class PrivacySecurityModal extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // 3 Compact Information Items
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
@@ -110,7 +107,6 @@ class PrivacySecurityModal extends StatelessWidget {
           ),
           const SizedBox(height: 22),
 
-          // Button Tutup
           SizedBox(
             width: double.infinity,
             height: 48,
@@ -132,6 +128,7 @@ class PrivacySecurityModal extends StatelessWidget {
     );
   }
 
+  /// Membangun baris informasi privasi dengan ikon, latar warna, judul, dan penjelasan ringkas.
   Widget _buildInfoItem({
     required IconData icon,
     required Color iconBg,

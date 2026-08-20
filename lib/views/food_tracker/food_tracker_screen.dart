@@ -29,6 +29,7 @@ class FoodTrackerScreen extends StatefulWidget {
 class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   final _controller = FoodTrackerController();
   final TextEditingController _searchController = TextEditingController();
+  // Set penahan untuk mencegah input ganda akibat ketukan cepat (anti-spam).
   final Set<String> _recentlyAddedFoodNames = {};
   int _unreadNotifsCount = 0;
 
@@ -39,12 +40,14 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   void initState() {
     super.initState();
     _controller.setSelectedTab(widget.initialTabIndex);
+    // Pasang listener reaktif agar UI otomatis render ulang saat state controller berubah.
     _controller.addListener(_onControllerChanged);
     _refreshData();
   }
 
   @override
   void dispose() {
+    // Lepas listener dan matikan controller saat keluar layar guna mencegah kebocoran memori.
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _searchController.dispose();
@@ -56,6 +59,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   Future<void> _refreshData() async {
+    // Muat ulang data log harian dan perbarui counter notifikasi belum terbaca.
     await _controller.loadData();
     final unread = await DBHelper().getUnreadNotificationCount();
     if (mounted) {
@@ -66,6 +70,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   void _openNotifications() {
+    // Buka layar notifikasi dan refresh data setelah kembali.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NotificationScreen()),
@@ -73,10 +78,12 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   void _onSearchChanged(String query) {
+    // Teruskan kata kunci pencarian ke controller dengan debouncing.
     _controller.searchCatalog(query);
   }
 
   void _openAddFoodModal(String mealType) {
+    // Tampilkan modal pencatatan makanan untuk jenis waktu makan tertentu.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -90,6 +97,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   void _openAllCatalogModal(String mealType) {
+    // Tampilkan modal katalog lengkap seluruh makanan TKPI.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -103,6 +111,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   void _openDetailModal(FoodLogModel log) {
+    // Tampilkan modal rincian nutrisi dan opsi hapus log makanan.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -112,6 +121,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   void _openFoodScanner() {
+    // Handler sementara untuk fitur pemindai barcode & foto makanan.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Fitur Scan Barcode & Foto Makanan belum tersedia'),
@@ -121,6 +131,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   }
 
   Future<void> _quickAddFood(FoodItemModel food, String mealType) async {
+    // Abaikan jika item ini sedang dalam proses penyimpanan.
     if (_recentlyAddedFoodNames.contains(food.name)) return;
 
     setState(() {
@@ -145,6 +156,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       date: AppDateFormatter.formatToday(targetDate),
     );
 
+    // Simpan data ke SQLite dan periksa ambang batas nutrisi harian.
     final notif = await DBHelper().addFoodLog(newLog);
     await _refreshData();
 
@@ -244,6 +256,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       }
     }
 
+    // Buka kembali kunci tombol setelah 1,6 detik untuk input berikutnya.
     await Future.delayed(const Duration(milliseconds: 1600));
     if (mounted) {
       setState(() {
@@ -252,6 +265,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     }
   }
 
+  /// Membangun antarmuka pelacak makanan dengan navigator tanggal, pencarian instan, ringkasan makronutrisi, dan tab waktu makan.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -259,7 +273,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar
             AppTopBar(
               title: 'Food Tracker',
               showBackButton: _selectedTabIndex > 0,
@@ -268,7 +281,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
               onNotificationTap: _openNotifications,
             ),
 
-            // Scrollable Content
             Expanded(
               child: _controller.isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -370,147 +382,4 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       ),
     );
   }
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
-  // legacy helper removed after extracting widgets
-
 }

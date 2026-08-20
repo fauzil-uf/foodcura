@@ -5,6 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../models/user_model.dart';
 
+/// Modal lembar bawah untuk mengedit nama lengkap dan alamat email akun profil pengguna.
 class EditProfileModal extends StatefulWidget {
   final UserModelSQL? user;
   final AuthController authController;

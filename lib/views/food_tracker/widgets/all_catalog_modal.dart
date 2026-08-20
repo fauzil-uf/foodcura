@@ -8,6 +8,7 @@ import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 
+/// Modal katalog lengkap seluruh bahan dan hidangan siap santap berdasarkan data standar TKPI Kemenkes.
 class AllCatalogModal extends StatefulWidget {
   final String currentMealType;
   final DateTime? targetDate;
@@ -37,6 +38,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     _loadCatalog();
   }
 
+  /// Memuat seluruh entri katalog makanan dari database SQLite saat inisialisasi modal.
   Future<void> _loadCatalog() async {
     final list = await DBHelper().getFoodCatalog();
     if (mounted) {
@@ -48,6 +50,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     }
   }
 
+  /// Memfilter daftar makanan berdasarkan kecocokan nama makanan atau kategori secara in-memory.
   void _onSearchChanged(String query) {
     setState(() {
       if (query.trim().isEmpty) {
@@ -64,6 +67,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     });
   }
 
+  /// Menambahkan item makanan ke log waktu makan aktif dan mencatat data makronutrisinya ke SQLite.
   Future<void> _addFoodToLog(FoodItemModel food) async {
     if (_recentlyAddedFoods.contains(food.name)) return;
 

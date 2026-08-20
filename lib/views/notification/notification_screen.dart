@@ -33,14 +33,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     super.dispose();
   }
 
+  /// Callback saat data notifikasi di controller berubah untuk me-render ulang tampilan UI.
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
+  /// Mengubah filter kategori notifikasi (Semua, Belum Dibaca, Kadaluwarsa, Info) berdasarkan indeks filter.
   void _onFilterChanged(int index) {
     _controller.setFilter(index);
   }
 
+  /// Menandai seluruh notifikasi telah dibaca di database SQLite dan memunculkan snackbar konfirmasi.
   Future<void> _markAllRead() async {
     await _controller.markAllRead();
     if (mounted) {
@@ -50,10 +53,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  /// Menandai satu item notifikasi spesifik telah dibaca di database SQLite.
   Future<void> _markRead(NotificationModel notif) async {
     await _controller.markRead(notif);
   }
 
+  /// Membangun antarmuka notifikasi dengan filter kategori dan pengelompokan waktu (Hari Ini & Sebelumnya).
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +66,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Standard Centralized AppTopBar
             AppTopBar(
               title: 'Notifikasi',
               showBackButton: true,
@@ -90,7 +94,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ],
             ),
 
-            // Filter chips
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: SizedBox(
@@ -137,7 +140,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             ),
 
-            // Scrollable Notification List
             Expanded(
               child: _controller.isLoading
                   ? const Center(
@@ -156,7 +158,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Today section
+                            // Kelompokkan notifikasi ke dalam bucket 'Hari Ini' dan 'Sebelumnya' untuk kemudahan navigasi kronologis pengguna.
                             if (_controller
                                 .groupedNotifications['Hari Ini']!
                                 .isNotEmpty) ...[
@@ -167,7 +169,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   .map((n) => _buildNotificationCard(n, false)),
                             ],
 
-                            // Earlier section
                             if (_controller
                                 .groupedNotifications['Sebelumnya']!
                                 .isNotEmpty) ...[
@@ -184,7 +185,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
                             const SizedBox(height: 16),
 
-                            // Info tip
                             _buildInfoTip(),
 
                             const SizedBox(height: 80),
@@ -199,6 +199,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  /// Membangun label pemisah kelompok waktu (cth: 'HARI INI', 'SEBELUMNYA').
   Widget _buildSectionLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
@@ -212,12 +213,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  /// Membangun kartu notifikasi interaktif dengan warna aksen, ikon, tag kategori, dan status unread.
   Widget _buildNotificationCard(NotificationModel notif, bool isEarlier) {
     IconData iconData;
     Color accentColor;
     Color iconBgColor;
     String categoryTag;
 
+    // Petakan tipe notifikasi ke warna aksen dan ikon khusus agar pengguna dapat mengidentifikasi tingkat urgensi secara visual.
     switch (notif.type) {
       case 'meal_reminder':
         categoryTag = 'Pengingat Waktu Makan';
@@ -400,6 +403,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  /// Membangun banner hijau informasi tentang kebijakan pengiriman notifikasi FoodCura.
   Widget _buildInfoTip() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -430,6 +434,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  /// Membangun tampilan kosong ketika tidak ada notifikasi yang sesuai filter.
   Widget _buildEmptyState() {
     return Center(
       child: Padding(

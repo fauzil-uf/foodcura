@@ -5,6 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../controllers/quiz_controller.dart';
 import '../../../models/quiz_model.dart';
 
+/// Modal interaktif mini kuis nutrisi dan pencegahan food waste didukung oleh Google Gemini AI dengan fallback offline.
 class QuizModal extends StatefulWidget {
   const QuizModal({super.key});
 
@@ -37,18 +38,22 @@ class _QuizModalState extends State<QuizModal> {
     super.dispose();
   }
 
+  /// Callback listener saat status controller kuis diperbarui untuk me-render perubahan UI.
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
+  /// Memuat paket soal kuis baru baik via REST API Gemini maupun dari bank soal lokal offline.
   Future<void> _fetchQuiz() async {
     await _controller.fetchQuiz();
   }
 
+  /// Memproses pilihan jawaban pengguna dan menghitung skor Eco Poin secara instan.
   void _selectAnswer(int index) {
     _controller.selectAnswer(index);
   }
 
+  /// Berpindah ke butir pertanyaan kuis berikutnya atau menampilkan rangkuman skor akhir.
   void _nextQuestion() {
     _controller.nextQuestion();
   }
@@ -66,7 +71,6 @@ class _QuizModalState extends State<QuizModal> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 4),
             child: Container(

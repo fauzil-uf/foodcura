@@ -43,6 +43,7 @@ class FoodItemModel {
     };
   }
 
+  /// Mengonstruksi objek [FoodItemModel] dari rekaman baris [Map] database SQLite.
   factory FoodItemModel.fromMap(Map<String, dynamic> map) {
     return FoodItemModel(
       id: map['id'] as int?,
@@ -57,6 +58,7 @@ class FoodItemModel {
     );
   }
 
+  /// Menginferensi kategori waktu makan secara otomatis berdasarkan pola kata kunci nama hidangan.
   static String _inferCategory(String name) {
     final lower = name.toLowerCase();
     if (lower.contains('rujak cingur')) {

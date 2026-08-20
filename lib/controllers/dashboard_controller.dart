@@ -92,6 +92,7 @@ class DashboardController extends ChangeNotifier {
     try {
       final todayStr = AppDateFormatter.formatToday();
 
+      // Eksekusi seluruh query SQLite metrik dashboard secara paralel untuk memangkas waktu inisialisasi UI.
       final results = await Future.wait([
         _db.getLoggedInUser(),
         _db.computeAndSaveStreak(),
@@ -113,7 +114,7 @@ class DashboardController extends ChangeNotifier {
           .where((item) => item.expiryStatus == 'segera')
           .toList();
 
-      // Akumulasi nutrisi ringkas
+      // Hitung total akumulasi makronutrisi harian secara in-memory untuk efisiensi render UI tinggi.
       _totalCalories = _todayLogs.fold(0, (s, l) => s + l.calories);
       _proteinGrams = _todayLogs.fold(0.0, (s, l) => s + l.protein);
       _carbsGrams = _todayLogs.fold(0.0, (s, l) => s + l.carbs);

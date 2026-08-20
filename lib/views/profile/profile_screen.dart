@@ -76,6 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
+  /// Callback saat total eco-points bertambah dari kegiatan memasak bahan kulkas.
   void _onEcoPointsChanged() {
     if (mounted) {
       setState(() {
@@ -84,6 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  /// Memuat data profil pengguna aktif, streak harian, eco-points, dan notifikasi dari SQLite.
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
 
@@ -104,6 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  /// Membuka layar notifikasi dan me-refresh data profil setelah pengguna kembali.
   void _openNotifications() {
     Navigator.push(
       context,
@@ -111,13 +114,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     ).then((_) => _loadProfileData());
   }
 
+  /// Menghasilkan warna latar avatar yang konsisten berdasarkan inisial nama pengguna.
   Color _getAvatarColor(String name) {
     if (name.isEmpty) return _avatarColors[0];
     final code = name.trim().toUpperCase().codeUnitAt(0);
     return _avatarColors[code % _avatarColors.length];
   }
 
-  // ─── Edit Profil Modal ───────────────────────────────────────────────────
+  /// Membuka modal form untuk mengubah nama lengkap dan alamat email pengguna.
   Future<void> _showEditProfileModal() async {
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -145,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // ─── Notification Settings Modal ─────────────────────────────────────────
+  /// Membuka modal konfigurasi waktu pengingat makan dan peringatan kedaluwarsa.
   void _showNotificationSettings() {
     showModalBottomSheet(
       context: context,
@@ -155,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── Privacy & Security Modal ────────────────────────────────────────────
+  /// Membuka modal informasi kebijakan privasi dan keamanan penyimpanan offline.
   void _showPrivacyModal() {
     showModalBottomSheet(
       context: context,
@@ -165,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── About FoodCura Dialog ───────────────────────────────────────────────
+  /// Membuka dialog tentang versi aplikasi dan visi FoodCura.
   void _showAboutAppDialog() {
     showDialog(
       context: context,
@@ -173,7 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── Logout Flow ─────────────────────────────────────────────────────────
+  /// Menampilkan dialog konfirmasi dan membersihkan sesi akun pengguna saat keluar.
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -225,6 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  /// Membangun antarmuka profil pengguna dengan kartu hero, bento grid statistik poin/streak, dan menu pengaturan akun.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -240,14 +245,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                   position: _slideAnim,
                   child: Column(
                     children: [
-                      // Top App Bar
                       AppTopBar(
                         title: 'Profil',
                         unreadNotifications: _unreadNotifCount,
                         onNotificationTap: _openNotifications,
                       ),
 
-                      // Main Scrollable Content
                       Expanded(
                         child: RefreshIndicator(
                           color: AppColors.primary,
@@ -281,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── Hero Profile Card (Gradient Mesh + Dynamic Avatar) ───────────────────
+  /// Membangun kartu profil utama dengan avatar dinamis, nama, email, dan tanggal bergabung.
   Widget _buildHeroProfileCard() {
     final name = _user?.name.trim().isNotEmpty == true
         ? _user!.name.trim()
@@ -320,7 +323,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       child: Stack(
         children: [
-          // Background ambient circles for depth & premium aesthetics
           Positioned(
             top: -40,
             right: -30,
@@ -346,12 +348,10 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
 
-          // Main Card Content
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                // Avatar with glowing ring
                 Container(
                   width: 72,
                   height: 72,
@@ -384,7 +384,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(width: 16),
 
-                // User Info & Badges
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +412,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 10),
-                      // Join Date Chip
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 9,
@@ -458,11 +456,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── Bento Stats Grid (Eco Poin & Hari Streak) ───────────────────────────
+  /// Membangun grid bento 2 kartu untuk menampilkan total Eco Poin dan streak harian.
   Widget _buildStatsBentoGrid() {
     return Row(
       children: [
-        // Stat 1: Eco Poin
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -524,7 +521,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         const SizedBox(width: 12),
 
-        // Stat 2: Streak Harian
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -588,12 +584,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── Grouped Settings Menu ───────────────────────────────────────────────
+  /// Membangun daftar menu navigasi pengaturan yang dikelompokkan ke dalam kartu terpisah.
   Widget _buildGroupedSettingsMenu() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section: Akun & Preferensi
         const Text('PENGATURAN & AKUN', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
@@ -617,7 +612,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ]),
         const SizedBox(height: 18),
 
-        // Section: Keamanan & Privasi
         const Text('KEAMANAN & PRIVASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
@@ -632,7 +626,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ]),
         const SizedBox(height: 18),
 
-        // Section: Bantuan & Komunitas
         const Text('BANTUAN & INFORMASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([

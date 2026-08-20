@@ -25,6 +25,7 @@ class AppFoodImage extends StatelessWidget {
     this.fallbackIcon = Icons.fastfood_rounded,
   });
 
+  /// Merender gambar makanan baik dari URL network maupun asset lokal dengan pemotongan sudut melengkung (ClipRRect).
   @override
   Widget build(BuildContext context) {
     final effectiveBorderRadius =
@@ -81,6 +82,7 @@ class AppFoodImage extends StatelessWidget {
     );
   }
 
+  /// Membangun placeholder visual elegan jika tautan gambar tidak ditemukan atau gagal dimuat.
   Widget _buildFallback() {
     return Container(
       width: width,

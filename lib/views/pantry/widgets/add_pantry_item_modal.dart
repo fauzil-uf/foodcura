@@ -102,6 +102,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     super.dispose();
   }
 
+  /// Mencari saran bahan makanan mentah dari katalog lokal berdasarkan input teks.
   void _searchIngredients(String query) {
     if (query.trim().length < 2) {
       setState(() {
@@ -118,6 +119,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     });
   }
 
+  /// Mengisi form otomatis (unit, lokasi simpan, umur simpan) saat bahan dipilih dari katalog.
   void _selectIngredient(PantryIngredientModel ing) {
     setState(() {
       _nameController.text = ing.name;
@@ -138,6 +140,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     });
   }
 
+  /// Membuka pemilih tanggal (date picker) untuk menentukan batas tanggal kedaluwarsa bahan.
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -164,6 +167,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     }
   }
 
+  /// Memvalidasi input form dan menyimpan bahan baru atau perubahan ke database SQLite.
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final quantityText = _quantityController.text.trim();
@@ -189,7 +193,6 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
 
     setState(() => _saving = true);
 
-    // Auto resolve image from catalog if not already attached
     final resolvedImage =
         _selectedImageUrl ??
         widget.itemToEdit?.imageUrl ??
@@ -234,12 +237,14 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     }
   }
 
+  /// Menampilkan snackbar merah untuk pesan kesalahan validasi input form.
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.urgent),
     );
   }
 
+  /// Membangun lembar modal bawah dengan input nama bahan, auto-suggest cerdas, kuantitas, satuan, lokasi penyimpanan, dan pemilih tanggal kedaluwarsa.
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;

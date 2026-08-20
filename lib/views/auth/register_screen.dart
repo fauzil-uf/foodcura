@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
+import '../../services/preference_handler.dart';
 import 'login_screen.dart';
 import '../widgets/app_text_field.dart';
 
@@ -51,6 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Mendaftarkan akun pengguna baru via AuthController dan mereset status onboarding.
   Future<void> _register() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
@@ -65,8 +66,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('hasSeenOnboarding', false); // First-time login will trigger onboarding
+      // Set status onboarding ke false agar pengguna baru mendapatkan tur panduan aplikasi saat pertama kali login.
+      await PreferenceHandler.setHasSeenOnboarding(false);
       if (!mounted) return;
 
       _showSnackBar('Registrasi berhasil! Silakan masuk dengan akun Anda.');
@@ -218,11 +219,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primaryDark,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
-                                      elevation: 3,
+                                      elevation: 0,
                                     ),
                                     onPressed: _authController.isLoading
                                         ? null

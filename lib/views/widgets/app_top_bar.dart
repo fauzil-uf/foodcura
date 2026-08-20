@@ -26,6 +26,7 @@ class AppTopBar extends StatelessWidget {
     this.actions,
   });
 
+  /// Membangun bilah header atas dengan judul/logo di sisi kiri dan tombol aksi atau lonceng notifikasi di sisi kanan.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -49,7 +50,6 @@ class AppTopBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Sisi Kiri: Brand Logo / Tombol Kembali / Spacer Seimbang
           if (showBrandLogo)
             Row(
               children: [
@@ -110,7 +110,6 @@ class AppTopBar extends StatelessWidget {
           else
             const SizedBox(width: 42, height: 42),
 
-          // Tengah: Judul Halaman (Jika bukan brand logo)
           if (!showBrandLogo && title != null)
             Text(
               title!,
@@ -121,7 +120,6 @@ class AppTopBar extends StatelessWidget {
               ),
             ),
 
-          // Sisi Kanan: Action Buttons / Notification Bell dengan Badge
           if (actions != null)
             Row(mainAxisSize: MainAxisSize.min, children: actions!)
           else if (onNotificationTap != null)

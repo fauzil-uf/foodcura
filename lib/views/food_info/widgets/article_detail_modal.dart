@@ -4,6 +4,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/article_model.dart';
 
+/// Modal rincian artikel edukasi lengkap dengan gambar ilustrasi, badge kategori, dan konten bacaan gizi.
 class ArticleDetailModal extends StatelessWidget {
   final ArticleModel article;
 

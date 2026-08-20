@@ -9,6 +9,7 @@ import '../food_tracker/food_tracker_screen.dart';
 import '../pantry/pantry_screen.dart';
 import '../profile/profile_screen.dart';
 
+/// Kerangka utama navigasi aplikasi (Root Scaffold) yang membungkus 5 layar utama dengan IndexedStack dan Floating Glassmorphic Bottom Navigation Bar.
 class MainNavigationScreen extends StatefulWidget {
   final int initialTab;
 
@@ -27,17 +28,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _currentIndex = widget.initialTab;
   }
 
+  /// Menangani perpindahan tab aktif dan menyiarkan sinyal sinkronisasi state instan antar-layar.
   void _onTabTapped(int index) {
     if (_currentIndex != index) {
       setState(() {
         _currentIndex = index;
       });
-      // Synchronize state across active tab screens
+      // Sinkronisasi state instan antar layar saat pengguna berpindah tab navigasi.
       PantryUpdateNotifier.instance.notifyPantryChanged();
       NotificationNotifier.instance.refresh();
     }
   }
 
+  /// Membangun antarmuka navigasi utama dengan IndexedStack (5 layar utama) dan floating glassmorphic bar.
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -51,17 +54,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const ProfileScreen(),
     ];
 
-    // Posisi mengambang seimbang (tidak terlalu tinggi dan tidak terlalu mepet bawah)
     const double bottomPosition = 14.0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Current Selected Screen
           IndexedStack(index: _currentIndex, children: screens),
 
-          // Floating Glassmorphic Bottom Navigation Bar (5 tabs utama)
           Positioned(
             left: 20,
             right: 20,
@@ -125,6 +125,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
+  /// Membangun tombol navigasi individual dengan indikator aktif berupa lingkaran mengambang berlatar warna primer.
   Widget _buildNavItem(
     int index,
     IconData iconInactive,

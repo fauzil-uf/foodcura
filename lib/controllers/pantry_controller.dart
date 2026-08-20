@@ -75,11 +75,13 @@ class PantryController extends ChangeNotifier {
     }
   }
 
+  /// Mengatur filter status kedaluwarsa ('urgent', 'segera', 'aman', atau null untuk semua).
   void setFilter(String? filter) {
     _selectedFilter = filter;
     loadPantryData();
   }
 
+  /// Mengatur kata kunci pencarian bahan dan memuat ulang data yang cocok.
   void setSearchQuery(String query) {
     _searchQuery = query;
     loadPantryData();

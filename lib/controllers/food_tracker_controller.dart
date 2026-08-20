@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
@@ -11,6 +13,7 @@ import '../models/notification_model.dart';
 /// kalkulasi nutrisi harian, dan peringatan batas nutrisi.
 class FoodTrackerController extends ChangeNotifier {
   final DBHelper _db;
+  Timer? _searchDebounce;
 
   FoodTrackerController({DBHelper? db}) : _db = db ?? DBHelper();
 
@@ -103,31 +106,37 @@ class FoodTrackerController extends ChangeNotifier {
     }
   }
 
+  /// Mengubah indeks tab waktu makan yang sedang aktif (0: Semua, 1: Sarapan, dst).
   void setSelectedTab(int index) {
     _selectedTabIndex = index;
     notifyListeners();
   }
 
+  /// Memilih tanggal log spesifik dan memuat data makanan pada tanggal tersebut.
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
     loadData();
   }
 
+  /// Mundur 1 hari ke belakang dari tanggal yang sedang dipilih.
   void previousDay() {
     _selectedDate = _selectedDate.subtract(const Duration(days: 1));
     loadData();
   }
 
+  /// Maju 1 hari ke depan dari tanggal yang sedang dipilih.
   void nextDay() {
     _selectedDate = _selectedDate.add(const Duration(days: 1));
     loadData();
   }
 
+  /// Mengatur tanggal pilihan kembali ke hari ini secara instan.
   void setToday() {
     _selectedDate = DateTime.now();
     loadData();
   }
 
+  /// Mengatur tanggal pilihan ke hari kemarin secara instan.
   void setYesterday() {
     _selectedDate = DateTime.now().subtract(const Duration(days: 1));
     loadData();
@@ -207,8 +216,9 @@ class FoodTrackerController extends ChangeNotifier {
     await loadData();
   }
 
-  /// Mencari katalog makanan
-  Future<void> searchCatalog(String query) async {
+  /// Mencari katalog makanan dengan debouncing untuk efisiensi CPU & responsivitas.
+  void searchCatalog(String query) {
+    _searchDebounce?.cancel();
     final q = query.trim();
     if (q.isEmpty) {
       clearSearch();
@@ -216,20 +226,28 @@ class FoodTrackerController extends ChangeNotifier {
     }
 
     _isSearching = true;
-    notifyListeners();
-
-    try {
-      _searchResults = await _db.searchFoodCatalog(q);
-    } catch (e) {
-      debugPrint('Error searching catalog: $e');
-    } finally {
-      notifyListeners();
-    }
+    // Debounce 250ms: Menahan query SQLite selama pengguna masih aktif mengetik.
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        _searchResults = await _db.searchFoodCatalog(q, limit: 30);
+      } catch (e) {
+        debugPrint('Error searching catalog: $e');
+      } finally {
+        notifyListeners();
+      }
+    });
   }
 
   void clearSearch() {
+    _searchDebounce?.cancel();
     _isSearching = false;
     _searchResults = [];
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 }

@@ -7,6 +7,7 @@ import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 
+/// Widget tampilan tab waktu makan spesifik (Sarapan, Makan Siang, Makan Malam, Camilan) dengan daftar log tercatat, tips gizi, dan saran cepat.
 class FoodMealTab extends StatelessWidget {
   const FoodMealTab({
     super.key,
@@ -350,6 +351,7 @@ class FoodMealTab extends StatelessWidget {
     );
   }
 
+  /// Menghasilkan saran tips nutrisi singkat berdasarkan tipe waktu makan.
   String _getTipForMeal(String mealType) {
     switch (mealType) {
       case 'Sarapan':

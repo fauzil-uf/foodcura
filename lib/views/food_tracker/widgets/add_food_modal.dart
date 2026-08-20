@@ -69,6 +69,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     _loadData();
   }
 
+  /// Memuat katalog makanan lengkap dan 6 makanan terakhir yang pernah dicatat dari SQLite.
   Future<void> _loadData() async {
     final catalog = await DBHelper().getFoodCatalog();
     final recent = await DBHelper().getRecentAddedFoods(limit: 6);
@@ -85,9 +86,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
     }
   }
 
+  /// Memfilter daftar makanan secara instan berdasarkan nama atau kategori makanan.
   void _filterFoods(String query) {
     setState(() {
-      if (query.trim().isEmpty) {
+      final q = query.trim().toLowerCase();
+      if (q.isEmpty) {
         _isSearching = false;
         _displayedFoods = _recentFoods;
       } else {
@@ -95,9 +98,10 @@ class _AddFoodModalState extends State<AddFoodModal> {
         _displayedFoods = _catalogFoods
             .where(
               (f) =>
-                  f.name.toLowerCase().contains(query.toLowerCase()) ||
-                  f.category.toLowerCase().contains(query.toLowerCase()),
+                  f.name.toLowerCase().contains(q) ||
+                  f.category.toLowerCase().contains(q),
             )
+            .take(25)
             .toList();
       }
       if (_displayedFoods.isNotEmpty &&
@@ -107,6 +111,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     });
   }
 
+  /// Menyimpan catatan makanan terpilih ke database SQLite dan mengecek ambang batas nutrisi harian.
   Future<void> _saveFoodLog() async {
     if (_selectedFood == null) return;
 
@@ -174,6 +179,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     }
   }
 
+  /// Melepaskan controller teks catatan dan pencarian dari memori.
   @override
   void dispose() {
     _noteController.dispose();
@@ -181,6 +187,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     super.dispose();
   }
 
+  /// Membangun antarmuka modal pemilihan kategori waktu makan, bilah pencarian instan, dan daftar pilihan makanan.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -198,7 +205,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag handle bar
               Center(
                 child: Container(
                   width: 48,
@@ -211,7 +217,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
                 ),
               ),
 
-              // Modal Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -231,7 +236,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
               ),
               const SizedBox(height: 12),
 
-              // Search Input Bar
               Container(
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -284,7 +288,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
               ),
               const SizedBox(height: 16),
 
-              // Quick Pick Horizontally Scrollable Section
               Text(
                 _isSearching
                     ? 'Hasil Pencarian (${_displayedFoods.length})'
@@ -375,7 +378,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
               ),
               const SizedBox(height: 16),
 
-              // Select Meal Category Grid
               Text(
                 'Pilih Waktu Makan',
                 style: AppTextStyles.label.copyWith(
@@ -482,7 +484,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
               ),
               const SizedBox(height: 16),
 
-              // Selected Food Summary Card
               if (_selectedFood != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -530,7 +531,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
                 ),
               const SizedBox(height: 16),
 
-              // Optional Notes Input
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -566,7 +566,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
               ),
               const SizedBox(height: 20),
 
-              // Save Action Button
               SizedBox(
                 width: double.infinity,
                 height: 52,

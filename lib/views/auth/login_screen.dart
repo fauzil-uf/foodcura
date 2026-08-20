@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
+import '../../services/preference_handler.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../widgets/app_text_field.dart';
@@ -50,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Melakukan otentikasi login pengguna via AuthController dan mengarahkan ke layar tujuan.
   Future<void> _login() async {
     final success = await _authController.login(
       emailController.text,
@@ -59,8 +60,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      final prefs = await SharedPreferences.getInstance();
-      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+      // Periksa status SharedPreferences: arahkan ke onboarding untuk pengguna baru, atau langsung ke Dashboard jika sudah pernah melihat panduan.
+      final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
 
       if (!mounted) return;
 

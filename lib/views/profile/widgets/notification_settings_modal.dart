@@ -6,6 +6,7 @@ import '../../../constants/app_constants.dart';
 import '../../../constants/app_typography.dart';
 import '../../../database/db_helper.dart';
 
+/// Modal konfigurasi preferensi peringatan kedaluwarsa pantry, batas nutrisi, dan jadwal waktu makan harian.
 class NotificationSettingsModal extends StatefulWidget {
   const NotificationSettingsModal({super.key});
 
@@ -50,7 +51,8 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
           prefs.getString(AppConstants.keyNotifBreakfastTime) ?? '07:30';
       _lunchEnabled = prefs.getBool(AppConstants.keyNotifLunchEnabled) ?? true;
       _lunchTime = prefs.getString(AppConstants.keyNotifLunchTime) ?? '12:30';
-      _dinnerEnabled = prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true;
+      _dinnerEnabled =
+          prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true;
       _dinnerTime = prefs.getString(AppConstants.keyNotifDinnerTime) ?? '19:00';
       _isLoading = false;
     });
@@ -58,22 +60,20 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
 
   Future<void> _pickTime({
     required String currentTime,
-    required ValueChanged<String> onSelected,
+    required Function(String) onSelected,
   }) async {
     final parts = currentTime.split(':');
-    final initial = TimeOfDay(
-      hour: int.tryParse(parts[0]) ?? 12,
-      minute: parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0,
+    final initialTime = TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? 7,
+      minute: int.tryParse(parts[1]) ?? 30,
     );
+
     final picked = await showTimePicker(
       context: context,
-      initialTime: initial,
-      helpText: 'Pilih Jam Pengingat Makan',
-      cancelText: 'Batal',
-      confirmText: 'Pilih',
-      builder: (pickerCtx, child) {
+      initialTime: initialTime,
+      builder: (context, child) {
         return Theme(
-          data: Theme.of(pickerCtx).copyWith(
+          data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
@@ -94,6 +94,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     }
   }
 
+  /// Membangun modal lembar bawah berisi switch toggle preferensi notifikasi dan konfigurasi jam makan.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -184,7 +185,6 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
               onChanged: (v) => setState(() => _dailyMealLog = v),
             ),
 
-            // Detail Jadwal Waktu Makan
             if (_dailyMealLog) ...[
               Container(
                 margin: const EdgeInsets.only(top: 6, bottom: 12),

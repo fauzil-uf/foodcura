@@ -36,6 +36,7 @@ class _PantryScreenState extends State<PantryScreen> {
   @override
   void initState() {
     super.initState();
+    // Daftarkan listener controller lokal dan notifier global database.
     _controller.addListener(_onControllerChanged);
     _controller.loadPantryData();
     NotificationNotifier.instance.addListener(_onNotifChanged);
@@ -45,6 +46,7 @@ class _PantryScreenState extends State<PantryScreen> {
 
   @override
   void dispose() {
+    // Bersihkan seluruh listener saat keluar layar untuk menghemat memori.
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
@@ -53,14 +55,17 @@ class _PantryScreenState extends State<PantryScreen> {
     super.dispose();
   }
 
+  /// Callback saat state PantryController berubah untuk me-render ulang UI.
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
+  /// Callback saat ada perubahan inventaris dari layar lain untuk memuat ulang stok dapur.
   void _onPantryChanged() {
     if (mounted) _controller.loadPantryData();
   }
 
+  /// Callback untuk menyinkronkan counter lencana notifikasi yang belum dibaca.
   void _onNotifChanged() {
     if (mounted) {
       setState(() {
@@ -69,6 +74,7 @@ class _PantryScreenState extends State<PantryScreen> {
     }
   }
 
+  /// Mengubah filter status kedaluwarsa (Semua, Urgent, Segera, Aman) berdasarkan indeks filter.
   void _onFilterChanged(int index) {
     _selectedFilter = index;
     String? filter;
@@ -86,10 +92,12 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.setFilter(filter);
   }
 
+  /// Meneruskan teks pencarian bahan makanan ke controller untuk difilter secara real-time.
   void _onSearch(String query) {
     _controller.setSearchQuery(query);
   }
 
+  /// Menandai bahan dapur telah dimasak, menambahkan eco-points, dan menghapus dari inventaris kulkas.
   Future<void> _markAsUsed(PantryItemModel item) async {
     if (item.id == null) return;
     await _controller.markItemUsed(item.id!);
@@ -111,6 +119,7 @@ class _PantryScreenState extends State<PantryScreen> {
     }
   }
 
+  /// Membuka modal form untuk mencatat bahan mentah baru ke dalam kulkas.
   void _openAddModal() {
     showModalBottomSheet(
       context: context,
@@ -121,6 +130,7 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
+  /// Membuka modal rincian bahan makanan, tips penyimpanan, dan opsi ubah/hapus.
   void _openItemDetailModal(PantryItemModel item) {
     showModalBottomSheet(
       context: context,
@@ -133,8 +143,10 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
+  /// Memuat ulang seluruh daftar stok bahan dan status kedaluwarsa dari database SQLite.
   void refreshData() => _controller.loadPantryData();
 
+  /// Membuka halaman notifikasi dan me-refresh data stok saat kembali ke layar ini.
   void _openNotifications() {
     Navigator.push(
       context,
@@ -142,6 +154,7 @@ class _PantryScreenState extends State<PantryScreen> {
     ).then((_) => _controller.loadPantryData());
   }
 
+  /// Mengelompokkan bahan makanan ke dalam 3 kategori kedaluwarsa: urgent (H-1), segera (H-3 s/d H-5), dan aman.
   Map<String, List<PantryItemModel>> _groupByExpiry() {
     final urgentItems = <PantryItemModel>[];
     final segeraItems = <PantryItemModel>[];
@@ -165,9 +178,11 @@ class _PantryScreenState extends State<PantryScreen> {
     return {'urgent': urgentItems, 'segera': segeraItems, 'aman': amanItems};
   }
 
+  /// Membangun antarmuka Pantry dengan radar kedaluwarsa bahan, filter lokasi simpan, dan daftar inventaris dapur.
   @override
   Widget build(BuildContext context) {
     final counts = _controller.statusCounts;
+    // Akumulasi status urgent dan segera untuk kalkulasi badge peringatan resiko kedaluwarsa kulkas.
     _urgentAndSegeraCount = (counts['urgent'] ?? 0) + (counts['segera'] ?? 0);
     _unreadNotifCount = _controller.unreadNotifications;
 
@@ -180,14 +195,12 @@ class _PantryScreenState extends State<PantryScreen> {
           children: [
             Column(
               children: [
-                // Top App Bar - Fixed & Standard across all screens
                 AppTopBar(
                   title: 'Pantry & Expiry',
                   unreadNotifications: _unreadNotifCount,
                   onNotificationTap: _openNotifications,
                 ),
 
-                // Main Scrollable Content
                 Expanded(
                   child: _controller.isLoading
                       ? const Center(

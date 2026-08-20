@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
+/// Widget bilah navigasi tanggal kalender, kolom pencarian makanan & barcode scanner, serta tab bar jenis waktu makan.
 class FoodTrackerHeader extends StatelessWidget {
   const FoodTrackerHeader({
     super.key,

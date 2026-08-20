@@ -16,6 +16,7 @@ class AppCircularProgressPainter extends CustomPainter {
     this.strokeWidth = 9.0,
   });
 
+  /// Menggambar lintasan lingkaran latar belakang dan busur progres aktif searah jarum jam (-90 derajat awal).
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -44,6 +45,7 @@ class AppCircularProgressPainter extends CustomPainter {
     );
   }
 
+  /// Menentukan apakah canvas perlu digambar ulang saat nilai progres atau warna berubah.
   @override
   bool shouldRepaint(covariant AppCircularProgressPainter oldDelegate) {
     return oldDelegate.progress != progress ||

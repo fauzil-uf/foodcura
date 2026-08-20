@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
+/// Dialog informasi versi aplikasi, arsitektur MVC, dan teknologi cerdas Google Gemini AI.
 class AboutFoodCuraDialog extends StatelessWidget {
   const AboutFoodCuraDialog({super.key});
 

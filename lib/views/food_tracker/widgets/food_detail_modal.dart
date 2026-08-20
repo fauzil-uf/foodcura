@@ -6,6 +6,7 @@ import '../../../database/db_helper.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 
+/// Modal rincian lengkap makronutrisi makanan tercatat dengan fitur edit catatan dan hapus riwayat log.
 class FoodDetailModal extends StatefulWidget {
   final FoodLogModel log;
   final VoidCallback onLogDeleted;
@@ -36,6 +37,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     super.dispose();
   }
 
+  /// Menampilkan dialog konfirmasi sebelum menghapus log makanan dari database SQLite.
   Future<void> _deleteFood() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -50,7 +52,6 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon Header Container
               Container(
                 width: 56,
                 height: 56,
@@ -72,7 +73,6 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
               ),
               const SizedBox(height: 16),
 
-              // Title
               Text(
                 'Hapus Catatan Makanan',
                 style: AppTextStyles.heading2.copyWith(
@@ -84,7 +84,6 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
               ),
               const SizedBox(height: 10),
 
-              // RichText with bold food name
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
@@ -103,14 +102,14 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
                       ),
                     ),
                     const TextSpan(
-                      text: ' dari riwayat catatan harian ini?',
+                      text:
+                          ' dari catatan makanan? Data yang dihapus tidak dapat dikembalikan.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Actions Buttons Row
               Row(
                 children: [
                   Expanded(
@@ -177,6 +176,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     }
   }
 
+  /// Menyimpan atau memperbarui catatan kustom pengguna terkait menu makanan yang disantap.
   Future<void> _saveNote() async {
     if (widget.log.id != null) {
       final updatedLog = FoodLogModel(

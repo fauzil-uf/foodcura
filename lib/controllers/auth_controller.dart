@@ -59,7 +59,7 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Mendaftarkan akun baru
+  /// Mendaftarkan akun baru dengan validasi format email dan kata sandi
   Future<bool> register({
     required String name,
     required String email,
@@ -69,18 +69,22 @@ class AuthController extends ChangeNotifier {
     final cleanName = name.trim();
     final cleanEmail = email.trim();
 
+    // Validasi kelengkapan form pendaftaran.
     if (cleanName.isEmpty || cleanEmail.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       _setLoading(false, 'Isi semua field!');
       return false;
     }
+    // Validasi sintaks alamat email dengan pola regular expression standar.
     if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(cleanEmail)) {
       _setLoading(false, 'Format email tidak valid!');
       return false;
     }
+    // Validasi panjang minimum kata sandi untuk keamanan akun.
     if (password.length < 8) {
       _setLoading(false, 'Password minimal 8 karakter!');
       return false;
     }
+    // Validasi kecocokan kata sandi dengan kolom konfirmasi.
     if (password != confirmPassword) {
       _setLoading(false, 'Konfirmasi password tidak cocok!');
       return false;
@@ -88,6 +92,7 @@ class AuthController extends ChangeNotifier {
 
     _setLoading(true);
     try {
+      // Simpan kredensial pengguna baru ke tabel users di SQLite.
       final success = await _db.registerUser(
         UserModelSQL(name: cleanName, email: cleanEmail, password: password),
       );

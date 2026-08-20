@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
-import '../../database/db_helper.dart';
+import '../../services/preference_handler.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
+/// Layar pembuka (Splash Screen) dengan animasi logo elastis, efek shimmer teks, dan pengecekan sesi login pengguna.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -25,11 +26,12 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<Offset> _textSlide;
   late final Animation<double> _shimmerAnimation;
 
+  /// Menginisialisasi controller animasi elastis logo, pergeseran teks, dan pengulangan kilau shimmer.
   @override
   void initState() {
     super.initState();
 
-    // Logo animation
+    // 1. Animasi Logo Pop-in: Menggunakan kurva elastis agar logo membal (bouncy entrance) dan memudar masuk secara mulus.
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -44,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Text animation with a soft left-to-right slide
+    // 2. Animasi Teks Meluncur: Menggeser teks 'FoodCura' dari sisi kiri (Offset -0.45) ke posisi tengah (Offset.zero) dengan kurva easeOutCubic.
     _textController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -58,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
           CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
         );
 
-    // Shimmer effect stays on the text itself
+    // 3. Efek Kilau Shimmer: Menggerakkan gradasi warna cahaya putih-mint melintasi teks secara berulang (repeat) dari kiri ke kanan (-1.0 ke 2.0).
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -70,6 +72,8 @@ class _SplashScreenState extends State<SplashScreen>
     _startAnimations();
   }
 
+  /// Menjalankan koreografi animasi bertingkat (Staggered Animation):
+  /// Logo muncul terlebih dahulu -> Teks meluncur masuk -> Tahan sejenak agar pengguna dapat menikmati visual -> Pindah rute.
   Future<void> _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 300));
     _logoController.forward();
@@ -79,12 +83,14 @@ class _SplashScreenState extends State<SplashScreen>
     if (mounted) _navigateNext();
   }
 
+  /// Mengecek sesi login pengguna di SharedPreferences untuk menentukan rute navigasi selanjutnya.
   Future<void> _navigateNext() async {
-    final loggedInUser = await DBHelper().getLoggedInUser();
+    // Periksa apakah token sesi login masih aktif untuk menghindari login ulang yang tidak perlu.
+    final bool isLoggedIn = PreferenceHandler.isLogin;
 
     if (!mounted) return;
 
-    final Widget destination = loggedInUser != null
+    final Widget destination = isLoggedIn
         ? const MainNavigationScreen()
         : const LoginScreen();
 
@@ -100,6 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  /// Melepas seluruh AnimationController dari memori untuk mencegah kebocoran memori (memory leak).
   @override
   void dispose() {
     _logoController.dispose();
@@ -108,6 +115,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  /// Membangun kanvas latar belakang layar penuh dengan gradasi hijau hutan dan lingkaran ambient.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,7 +137,7 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         child: Stack(
           children: [
-            // Decorative circles
+            // Lingkaran ambient semi-transparan yang ditempatkan secara diagonal untuk memberi efek pencahayaan atmosferik.
             Positioned(
               top: -80,
               right: -60,
@@ -151,12 +159,11 @@ class _SplashScreenState extends State<SplashScreen>
               child: _buildDecorativeCircle(100, 0.04),
             ),
 
-            // Main content
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo with animation
+                  // Logo aplikasi dengan animasi pembesaran (Scale) dan pemudaran (Opacity) simultan.
                   AnimatedBuilder(
                     animation: _logoController,
                     builder: (context, child) {
@@ -168,6 +175,8 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       );
                     },
+                    // Container bertindak sebagai wadah bingkai untuk bayangan melengkung 32px.
+                    // ClipRRect bertindak sebagai gunting presisi untuk memotong 4 sudut tajam gambar logo agar sejajar 32px dengan bayangannya.
                     child: Container(
                       width: 140,
                       height: 140,
@@ -189,7 +198,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // App name with a subtle left-to-right slide and shimmer
+                  // Teks nama aplikasi dengan transisi meluncur dari kiri dan efek masker kilau (ShaderMask).
                   SlideTransition(
                     position: _textSlide,
                     child: FadeTransition(
@@ -197,6 +206,8 @@ class _SplashScreenState extends State<SplashScreen>
                       child: AnimatedBuilder(
                         animation: _shimmerAnimation,
                         builder: (context, child) {
+                          // ShaderMask memotong LinearGradient dinamis di atas teks:
+                          // Nilai stops dikalkulasikan dengan offset ±0.3 lalu di-clamp (0.0 - 1.0) untuk menciptakan efek kilau cahaya mengalir.
                           return ShaderMask(
                             shaderCallback: (bounds) {
                               return LinearGradient(
@@ -258,6 +269,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
+  /// Membangun elemen lingkaran dekoratif latar belakang dengan opasitas rendah untuk efek atmosferik.
   Widget _buildDecorativeCircle(double size, double opacity) {
     return Container(
       width: size,

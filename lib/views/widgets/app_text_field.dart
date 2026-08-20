@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-/// TextField terpusat dengan icon kiri, opsional toggle password,
-/// dipakai di Login / Register / Forgot Password agar tampilan konsisten.
+/// TextField & TextFormField terpusat dengan icon kiri, opsional toggle password,
+/// dan dukungan validator FormState sesuai standar kurikulum Validasi Form.
 class AppTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
@@ -16,6 +16,7 @@ class AppTextField extends StatefulWidget {
   final double height;
   final TextStyle? textStyle;
   final bool bordered;
+  final String? Function(String?)? validator;
 
   const AppTextField({
     super.key,
@@ -30,6 +31,7 @@ class AppTextField extends StatefulWidget {
     this.height = 56,
     this.textStyle,
     this.bordered = false,
+    this.validator,
   });
 
   @override
@@ -39,6 +41,7 @@ class AppTextField extends StatefulWidget {
 class _AppTextFieldState extends State<AppTextField> {
   bool _obscure = true;
 
+  /// Membangun bidang input teks dengan ikon di kiri, border membulat, dan tombol toggle visibilitas sandi opsional.
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -49,7 +52,6 @@ class _AppTextFieldState extends State<AppTextField> {
           const SizedBox(height: 8),
         ],
         Container(
-          height: widget.height,
           decoration: BoxDecoration(
             color: widget.fillColor,
             borderRadius: BorderRadius.circular(widget.radius),
@@ -66,11 +68,12 @@ class _AppTextFieldState extends State<AppTextField> {
                     ),
                   ],
           ),
-          child: TextField(
+          child: TextFormField(
             controller: widget.controller,
             obscureText: widget.isPassword ? _obscure : false,
             keyboardType: widget.keyboardType,
             style: widget.textStyle ?? AppTextStyles.inputText,
+            validator: widget.validator,
             decoration: InputDecoration(
               border: InputBorder.none,
               hintText: widget.hint,
