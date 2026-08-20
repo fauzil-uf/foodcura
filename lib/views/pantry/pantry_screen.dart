@@ -6,7 +6,6 @@ import '../../constants/app_typography.dart';
 import '../../controllers/pantry_controller.dart';
 import '../../database/db_helper.dart';
 import '../../models/pantry_item_model.dart';
-import '../dashboard/widgets/eco_impact_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_food_image.dart';
 import '../widgets/app_top_bar.dart';
@@ -94,13 +93,20 @@ class _PantryScreenState extends State<PantryScreen> {
   Future<void> _markAsUsed(PantryItemModel item) async {
     if (item.id == null) return;
     await _controller.markItemUsed(item.id!);
-    final impactResult = await _controller.getEcoRescueImpact(item);
 
     if (mounted) {
-      EcoImpactModal.show(
-        context: context,
-        item: item,
-        impactResult: impactResult,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${item.name} berhasil ditandai telah dimasak/digunakan.',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     }
   }

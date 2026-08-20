@@ -51,5 +51,11 @@ secrets.json
 
 # Presentation & Generated Slides
 *.pptx
+*.ppt
+*.key
+*.odp
+*presentation*
+*Presentation*
+*deck*
+*Deck*
 foodcura_presentation_deck.html
-

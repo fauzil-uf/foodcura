@@ -78,6 +78,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
+      cholesterol: food.cholesterol,
       imagePath: food.imagePath,
       time: AppDateFormatter.formatTime(),
       date: AppDateFormatter.formatToday(widget.targetDate ?? DateTime.now()),
@@ -275,7 +276,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Protein ${food.protein}g · Karbo ${food.carbs}g · Lemak ${food.fat}g',
+                                    'Protein ${food.protein}g · Karbo ${food.carbs}g · Lemak ${food.fat}g · Kol ${food.cholesterol.toInt()}mg',
                                     style: AppTextStyles.subtitleSmall.copyWith(
                                       fontSize: 11,
                                     ),

@@ -1,19 +1,14 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/db_helper.dart';
 import '../models/pantry_item_model.dart';
-import '../services/gemini_service.dart';
 
 /// Controller untuk mengelola inventaris dapur (Pantry), status kedaluwarsa,
 /// pencarian stok, serta filter urgensi.
 class PantryController extends ChangeNotifier {
   final DBHelper _db;
-  final GeminiService _gemini;
 
-  PantryController({DBHelper? db, GeminiService? gemini})
-    : _db = db ?? DBHelper(),
-      _gemini = gemini ?? GeminiService.instance;
+  PantryController({DBHelper? db}) : _db = db ?? DBHelper();
 
   List<PantryItemModel> _items = [];
   String? _selectedFilter;
@@ -25,7 +20,6 @@ class PantryController extends ChangeNotifier {
     'total': 0,
   };
   int _unreadNotifications = 0;
-  int _rescuedCount = 0;
   bool _isLoading = true;
 
   // Getters
@@ -34,9 +28,6 @@ class PantryController extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   Map<String, int> get statusCounts => _statusCounts;
   int get unreadNotifications => _unreadNotifications;
-  int get rescuedCount => _rescuedCount;
-  double get totalKgCO2Prevented => double.parse((_rescuedCount * 1.2).toStringAsFixed(1));
-  int get totalMoneySaved => _rescuedCount * 15000;
   bool get isLoading => _isLoading;
 
   /// Mengelompokkan item berdasarkan lokasi penyimpanan
@@ -62,9 +53,11 @@ class PantryController extends ChangeNotifier {
       if (_searchQuery.isNotEmpty) {
         var list = await _db.searchPantryItems(_searchQuery);
         if (_selectedFilter == 'urgent') {
-          list = list.where((i) => i.expiryStatus == 'urgent' || i.expiryStatus == 'expired').toList();
-        } else if (_selectedFilter != null) {
-          list = list.where((i) => i.expiryStatus == _selectedFilter).toList();
+          list = list.where((i) => i.expiryStatus == 'urgent' || i.expiryStatus == 'expired' || i.daysUntilExpiry <= 2).toList();
+        } else if (_selectedFilter == 'segera') {
+          list = list.where((i) => i.expiryStatus == 'segera' || (i.daysUntilExpiry > 2 && i.daysUntilExpiry <= 5)).toList();
+        } else if (_selectedFilter == 'aman') {
+          list = list.where((i) => i.expiryStatus == 'aman' || i.daysUntilExpiry > 5).toList();
         }
         _items = list;
       } else {
@@ -74,7 +67,6 @@ class PantryController extends ChangeNotifier {
       // 2. Ambil data ringkasan status & notifikasi
       _statusCounts = await _db.getPantryStatusCounts();
       _unreadNotifications = await _db.getUnreadNotificationCount();
-      _rescuedCount = await _db.getUsedPantryItemsCount();
     } catch (e) {
       debugPrint('Error loading pantry data: $e');
     } finally {
@@ -106,46 +98,10 @@ class PantryController extends ChangeNotifier {
     await loadPantryData();
   }
 
-  /// Menandai bahan makanan sudah digunakan (terselamatkan)
+  /// Menandai bahan makanan sudah digunakan
   Future<void> markItemUsed(int id) async {
     await _db.markPantryItemUsed(id);
     await loadPantryData();
-  }
-
-  /// Menghitung dampak lingkungan & apresiasi AI saat menyelamatkan bahan
-  Future<EcoImpactResult> getEcoRescueImpact(
-    PantryItemModel item, {
-    int? rescuedCount,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentPoints = prefs.getInt(EcoPointsNotifier.keyEcoPoints) ?? 0;
-    int totalUsed = rescuedCount ?? 0;
-    if (rescuedCount == null) {
-      try {
-        totalUsed = await _db.getUsedPantryItemsCount();
-      } catch (_) {
-        totalUsed = 1;
-      }
-    }
-
-    return await _gemini.generateEcoImpactInsight(
-      rescuedCount: totalUsed > 0 ? totalUsed : 1,
-      ecoPoints: currentPoints,
-      lastRescuedItem: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      category: item.storage,
-    );
-  }
-
-  /// Menghitung estimasi preview dampak penghematan untuk 1 item (Mode Offline Cepat)
-  EcoImpactResult getEstimatedImpactForItem(PantryItemModel item) {
-    return GeminiService.calculateCategoryEcoImpact(
-      itemName: item.name,
-      category: item.storage,
-      quantity: item.quantity,
-      unit: item.unit,
-    );
   }
 
   /// Menghapus bahan makanan

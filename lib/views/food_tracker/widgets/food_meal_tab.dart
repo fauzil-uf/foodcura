@@ -316,7 +316,7 @@ class FoodMealTab extends StatelessWidget {
                   Text(log.time, style: AppTextStyles.subtitleSmall),
                   const SizedBox(height: 2),
                   Text(
-                    'Protein ${log.protein} g · Karbo ${log.carbs} g · Lemak ${log.fat} g',
+                    'Protein ${log.protein}g · Karbo ${log.carbs}g · Lemak ${log.fat}g · Kol ${log.cholesterol.toInt()}mg',
                     style: AppTextStyles.subtitleSmall.copyWith(
                       fontSize: 10.5,
                       color: AppColors.textGraySoft,

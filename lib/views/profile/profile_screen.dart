@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_date_formatter.dart';
@@ -28,9 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   final _authController = AuthController();
   UserModelSQL? _user;
-  int _ecoPoints = 0;
   int _streak = 0;
-  int _rescuedCount = 0;
+  int _ecoPoints = 0;
   int _unreadNotifCount = 0;
   bool _isLoading = true;
 
@@ -66,22 +64,23 @@ class _ProfileScreenState extends State<ProfileScreen>
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
         );
 
+    EcoPointsNotifier.instance.addListener(_onEcoPointsChanged);
     _loadProfileData();
-    EcoPointsNotifier.instance.addListener(_onEcoChanged);
-    EcoPointsNotifier.instance.init();
   }
 
   @override
   void dispose() {
+    EcoPointsNotifier.instance.removeListener(_onEcoPointsChanged);
     _animController.dispose();
     _authController.dispose();
-    EcoPointsNotifier.instance.removeListener(_onEcoChanged);
     super.dispose();
   }
 
-  void _onEcoChanged() {
+  void _onEcoPointsChanged() {
     if (mounted) {
-      setState(() => _ecoPoints = EcoPointsNotifier.instance.value);
+      setState(() {
+        _ecoPoints = EcoPointsNotifier.instance.value;
+      });
     }
   }
 
@@ -90,18 +89,14 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     await _authController.loadCurrentUser();
     final streakCount = await DBHelper().computeAndSaveStreak();
-    final usedCount = await DBHelper().getUsedPantryItemsCount();
+    await EcoPointsNotifier.instance.refresh();
     final unread = await DBHelper().getUnreadNotificationCount();
-
-    final prefs = await SharedPreferences.getInstance();
-    final eco = prefs.getInt(EcoPointsNotifier.keyEcoPoints) ?? 0;
 
     if (mounted) {
       setState(() {
         _user = _authController.currentUser;
         _streak = streakCount;
-        _ecoPoints = eco;
-        _rescuedCount = usedCount;
+        _ecoPoints = EcoPointsNotifier.instance.value;
         _unreadNotifCount = unread;
         _isLoading = false;
       });
@@ -463,204 +458,130 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ─── Bento Stats Grid (Eco Points, Streak, Makanan Terselamatkan, Hemat) ───
+  // ─── Bento Stats Grid (Eco Poin & Hari Streak) ───────────────────────────
   Widget _buildStatsBentoGrid() {
-    final estKgCO2 = (_rescuedCount * 1.2).toStringAsFixed(1);
-    final estHemat = _rescuedCount * 15000;
-
-    return Column(
+    return Row(
       children: [
-        // Baris 1: Eco Points & Streak
-        Row(
-          children: [
-            // Stat 1: Poin Eco
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.borderSoft),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.025),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8E1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.stars_rounded,
-                        color: Color(0xFFF57F17),
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '$_ecoPoints',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.deepForest,
-                        fontFamily: AppTextStyles.fontFamily,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Total Poin Eco',
-                      style: AppTextStyles.subtitleSmall.copyWith(
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
+        // Stat 1: Eco Poin
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFF81C784).withValues(alpha: 0.4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-
-            // Stat 2: Streak Harian
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: AppColors.ecoGreen,
+                    shape: BoxShape.circle,
                   ),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: const Color(0xFFFFB74D).withValues(alpha: 0.4),
+                  child: const Icon(
+                    Icons.eco_rounded,
+                    color: Colors.white,
+                    size: 16,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFF9800),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.local_fire_department_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE65100),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'AKTIF',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '$_streak Hari',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFFE65100),
-                        fontFamily: AppTextStyles.fontFamily,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Streak Berturut',
-                      style: AppTextStyles.subtitleSmall.copyWith(
-                        fontSize: 11.5,
-                        color: const Color(0xFFBF360C),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 10),
+                Text(
+                  '$_ecoPoints',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1B5E20),
+                    fontFamily: AppTextStyles.fontFamily,
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-
-        // Baris 2: Makanan Terselamatkan & Penghematan
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: const Color(0xFF81C784).withValues(alpha: 0.5),
+                const SizedBox(height: 2),
+                Text(
+                  'Eco Poin',
+                  style: AppTextStyles.subtitleSmall.copyWith(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF2E7D32),
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF2E7D32),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.recycling_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
+        ),
+        const SizedBox(width: 12),
+
+        // Stat 2: Streak Harian
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$_rescuedCount Bahan Makanan Terselamatkan',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1B5E20),
-                        fontFamily: AppTextStyles.fontFamily,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Mencegah ~$estKgCO2 kg emisi CO2 & menghemat ~Rp ${estHemat.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]}.")}',
-                      style: AppTextStyles.subtitleSmall.copyWith(
-                        fontSize: 11.5,
-                        color: const Color(0xFF2E7D32),
-                      ),
-                    ),
-                  ],
-                ),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFFFFB74D).withValues(alpha: 0.4),
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF9800),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.local_fire_department_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '$_streak',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFE65100),
+                    fontFamily: AppTextStyles.fontFamily,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Hari Streak',
+                  style: AppTextStyles.subtitleSmall.copyWith(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFBF360C),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

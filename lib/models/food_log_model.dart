@@ -1,7 +1,7 @@
 /// Model representasi catatan konsumsi makanan harian pengguna.
 ///
 /// Menyimpan data makanan yang dicatat (nama, waktu, tanggal, tipe makan,
-/// kalori, makronutrisi, serta catatan tambahan opsional).
+/// kalori, makronutrisi, kolesterol riil, serta catatan tambahan opsional).
 class FoodLogModel {
   final int? id;
   final int? userId;
@@ -11,6 +11,7 @@ class FoodLogModel {
   final double protein;
   final double carbs;
   final double fat;
+  final double cholesterol;
   final String imagePath;
   final String time;
   final String date;
@@ -25,26 +26,25 @@ class FoodLogModel {
     required this.protein,
     required this.carbs,
     required this.fat,
+    this.cholesterol = 0.0,
     required this.imagePath,
     required this.time,
     required this.date,
     this.note,
   });
 
-  /// Estimasi kolesterol (mg) berdasarkan profil makronutrisi lemak & protein
-  double get cholesterol => fat * 4.5 + protein * 3.5;
-
   /// Mengonversi objek [FoodLogModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
-      'user_id': userId ?? 1,
+      if (userId != null) 'user_id': userId,
       'food_name': foodName,
       'meal_type': mealType,
       'calories': calories,
       'protein': protein,
       'carbs': carbs,
       'fat': fat,
+      'cholesterol': cholesterol,
       'image_path': imagePath,
       'time': time,
       'date': date,
@@ -63,6 +63,7 @@ class FoodLogModel {
       protein: (map['protein'] as num).toDouble(),
       carbs: (map['carbs'] as num).toDouble(),
       fat: (map['fat'] as num).toDouble(),
+      cholesterol: (map['cholesterol'] as num?)?.toDouble() ?? 0.0,
       imagePath: map['image_path'] as String,
       time: map['time'] as String,
       date: map['date'] as String,
@@ -80,6 +81,7 @@ class FoodLogModel {
     double? protein,
     double? carbs,
     double? fat,
+    double? cholesterol,
     String? imagePath,
     String? time,
     String? date,
@@ -94,6 +96,7 @@ class FoodLogModel {
       protein: protein ?? this.protein,
       carbs: carbs ?? this.carbs,
       fat: fat ?? this.fat,
+      cholesterol: cholesterol ?? this.cholesterol,
       imagePath: imagePath ?? this.imagePath,
       time: time ?? this.time,
       date: date ?? this.date,

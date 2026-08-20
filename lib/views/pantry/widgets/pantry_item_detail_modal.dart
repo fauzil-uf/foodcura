@@ -5,8 +5,6 @@ import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../database/db_helper.dart';
 import '../../../models/pantry_item_model.dart';
-import '../../../services/gemini_service.dart';
-import '../../dashboard/widgets/eco_impact_modal.dart';
 import '../../widgets/app_food_image.dart';
 import 'add_pantry_item_modal.dart';
 
@@ -39,25 +37,22 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
       final savedItem = _currentItem;
       await _db.markPantryItemUsed(_currentItem.id!);
 
-      final totalRescued = await _db.getUsedPantryItemsCount();
-      final impactResult = await GeminiService.instance.generateEcoImpactInsight(
-        rescuedCount: totalRescued,
-        ecoPoints: EcoPointsNotifier.instance.value,
-        lastRescuedItem: savedItem.name,
-        quantity: savedItem.quantity,
-        unit: savedItem.unit,
-        category: savedItem.storage,
-      );
-
       if (mounted) {
         widget.onItemUpdated();
         Navigator.pop(context); // Close detail modal
 
-        // Show celebration eco impact modal
-        EcoImpactModal.show(
-          context: context,
-          item: savedItem,
-          impactResult: impactResult,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${savedItem.name} berhasil ditandai telah dimasak/digunakan.',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
       }
     }
@@ -494,153 +489,6 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // Potensi Dampak Penyelamatan Box
-                  Builder(
-                    builder: (context) {
-                      final estimatedImpact =
-                          GeminiService.calculateCategoryEcoImpact(
-                            itemName: _currentItem.name,
-                            category: _currentItem.storage,
-                            quantity: _currentItem.quantity,
-                            unit: _currentItem.unit,
-                          );
-                      final formattedRupiah = estimatedImpact.savedRupiah
-                          .toString()
-                          .replaceAllMapped(
-                            RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"),
-                            (m) => "${m[1]}.",
-                          );
-
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.mintTint.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.ecoGreen.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.eco_rounded,
-                                  color: AppColors.ecoGreen,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Potensi Penyelamatan',
-                                  style: AppTextStyles.label.copyWith(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.ecoGreen,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                      horizontal: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: const Color(0xFFFFE0B2),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.payments_rounded,
-                                          color: Color(0xFFE65100),
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            '~Rp $formattedRupiah',
-                                            style: AppTextStyles.bodySmall
-                                                .copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: const Color(
-                                                    0xFFE65100,
-                                                  ),
-                                                  fontSize: 12,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                      horizontal: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: const Color(0xFFC8E6C9),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.forest_rounded,
-                                          color: Color(0xFF2E7D32),
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            '~${estimatedImpact.kgCO2} kg CO₂',
-                                            style: AppTextStyles.bodySmall
-                                                .copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: const Color(
-                                                    0xFF2E7D32,
-                                                  ),
-                                                  fontSize: 12,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Habiskan bahan ini sebelum kedaluwarsa untuk mencegah emisi karbon dan menghemat belanja dapurmu.',
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.textGray,
-                                fontSize: 11,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-
                   const SizedBox(height: 16),
                 ],
               ),

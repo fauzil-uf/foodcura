@@ -6,13 +6,11 @@ import '../../constants/app_typography.dart';
 import '../../controllers/dashboard_controller.dart';
 import '../../database/db_helper.dart';
 import '../../models/pantry_item_model.dart';
-import '../../services/gemini_service.dart';
 import '../food_tracker/widgets/add_food_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_circular_progress.dart';
 import '../widgets/app_food_image.dart';
 import '../widgets/app_top_bar.dart';
-import 'widgets/eco_impact_modal.dart';
 import 'widgets/quiz_modal.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -52,8 +50,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     _controller.loadDashboardData();
     NotificationNotifier.instance.addListener(_onNotifChanged);
     NotificationNotifier.instance.refresh();
-    EcoPointsNotifier.instance.addListener(_onEcoPointsChanged);
-    EcoPointsNotifier.instance.init();
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
   }
 
@@ -63,7 +59,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
-    EcoPointsNotifier.instance.removeListener(_onEcoPointsChanged);
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     super.dispose();
   }
@@ -73,10 +68,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _onNotifChanged() {
-    if (mounted) _controller.loadDashboardData();
-  }
-
-  void _onEcoPointsChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
@@ -116,29 +107,26 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Future<void> _openEcoImpactModal(PantryItemModel item) async {
+  Future<void> _markPantryItemCooked(PantryItemModel item) async {
     if (item.id != null) {
       await DBHelper().markPantryItemUsed(item.id!);
       PantryUpdateNotifier.instance.notifyPantryChanged();
-    }
-
-    final totalRescued = await DBHelper().getUsedPantryItemsCount();
-    final impactResult = await GeminiService.instance.generateEcoImpactInsight(
-      rescuedCount: totalRescued,
-      ecoPoints: EcoPointsNotifier.instance.value,
-      lastRescuedItem: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      category: item.storage,
-    );
-
-    if (mounted) {
-      EcoImpactModal.show(
-        context: context,
-        item: item,
-        impactResult: impactResult,
-        onDismiss: _fetchSummaryFromDB,
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${item.name} berhasil ditandai telah dimasak/digunakan.',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+      _fetchSummaryFromDB();
     }
   }
 
@@ -197,8 +185,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                       _buildAiNutritionCoachCard(),
                       const SizedBox(height: 20),
 
-                      // 5. BENTO GRID: EXPIRY RADAR & ECO IMPACT
-                      _buildBentoSection(),
+                      // 5. RADAR EXPIRY & STOK PANTRY (EXPANDED FULL WIDTH)
+                      _buildPantryRadarSection(),
                       const SizedBox(height: 20),
 
                       // 6. LINIMASA SANTAPAN HARI INI (TODAY'S MEAL FEED)
@@ -237,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
         const SizedBox(height: 2),
         Text(
-          'Siap jaga nutrisi & kurangi food waste hari ini?',
+          'Siap jaga nutrisi & pantau stok dapur hari ini?',
           style: AppTextStyles.subtitleSmall.copyWith(
             fontSize: 12,
             color: AppColors.textGray,
@@ -271,12 +259,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            // Eco Points Badge
+            const Spacer(),
+            // Date Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.mintTint,
+                color: AppColors.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: AppColors.borderSoft),
               ),
@@ -284,30 +272,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
-                    Icons.eco_rounded,
-                    size: 13,
-                    color: AppColors.primary,
+                    Icons.calendar_today_rounded,
+                    size: 11,
+                    color: AppColors.textGray,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 5),
                   Text(
-                    '${_controller.ecoPoints} Eco Poin',
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                    AppDateFormatter.formatToday(),
+                    style: AppTextStyles.subtitleSmall.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textGray,
                     ),
                   ),
                 ],
-              ),
-            ),
-            const Spacer(),
-            // Date Badge
-            Text(
-              AppDateFormatter.formatToday(),
-              style: AppTextStyles.subtitleSmall.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textGray,
               ),
             ),
           ],
@@ -844,313 +822,308 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── 5. BENTO GRID: EXPIRY RADAR & ECO IMPACT ──────────────────────────────
-  Widget _buildBentoSection() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Expiry Radar Card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.borderSoft),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
+  // ─── 5. EXPIRY RADAR & PANTRY MONITOR (FULL WIDTH) ─────────────────────────
+  Widget _buildPantryRadarSection() {
+    final urgentList = _controller.urgentPantryItems;
+    final segeraList = _controller.segeraPantryItems;
+    final totalAtRisk = urgentList.length + segeraList.length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.borderSoft),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: totalAtRisk > 0 ? const Color(0xFFFFF3E0) : AppColors.mintTint,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Icon(
+                  Icons.inventory_2_rounded,
+                  color: totalAtRisk > 0 ? const Color(0xFFE65100) : AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Radar Expiry',
-                          style: AppTextStyles.heading2.copyWith(fontSize: 14),
-                        ),
-                        Text(
-                          'Stok rawan basi',
-                          style: AppTextStyles.subtitleSmall.copyWith(
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
+                    Text(
+                      'Radar Expiry & Pantry',
+                      style: AppTextStyles.heading2.copyWith(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.deepForest,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Pantau bahan rawan basi',
+                      style: AppTextStyles.subtitleSmall.copyWith(
+                        fontSize: 10.5,
+                        color: AppColors.textGray,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Status Badges
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (urgentList.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                       decoration: BoxDecoration(
-                        color: _controller.urgentPantryItems.isNotEmpty
-                            ? const Color(0xFFFFEBEE)
-                            : AppColors.mintTint,
-                        borderRadius: BorderRadius.circular(10),
+                        color: const Color(0xFFFFEBEE),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFFCDD2)),
                       ),
                       child: Text(
-                        _controller.urgentPantryItems.isNotEmpty
-                            ? '${_controller.urgentPantryItems.length} Urgent'
-                            : 'Aman',
-                        style: TextStyle(
+                        '${urgentList.length} Urgent',
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: _controller.urgentPantryItems.isNotEmpty
-                              ? Colors.redAccent
-                              : AppColors.primary,
+                          color: Color(0xFFD32F2F),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  if (segeraList.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8E1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFFECB3)),
+                      ),
+                      child: Text(
+                        '${segeraList.length} Segera',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFF57F17),
                         ),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 12),
-
-                if (_controller.urgentPantryItems.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.check_circle_outline_rounded,
-                            color: AppColors.ecoGreen,
-                            size: 28,
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Semua stok aman!',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.ecoGreen,
-                            ),
-                          ),
-                        ],
+                  if (totalAtRisk == 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: AppColors.mintTint,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                  )
-                else ...[
-                  ..._controller.urgentPantryItems.take(2).map((item) {
-                    final days = item.daysUntilExpiry;
-                    final timeText = days <= 0
-                        ? (days == 0 ? 'Hari ini!' : 'Lewat ${-days}h')
-                        : '$days hari lagi';
-                    final timeColor = days <= 1
-                        ? Colors.redAccent
-                        : Colors.orangeAccent;
-
-                    return GestureDetector(
-                      onTap: () => _openEcoImpactModal(item),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            children: [
-                              AppFoodImage(
-                                imagePath: item.imageUrl ?? '',
-                                width: 34,
-                                height: 34,
-                                borderRadius: 8,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.name,
-                                      style: AppTextStyles.body.copyWith(
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      timeText,
-                                      style: TextStyle(
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: timeColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(
-                                Icons.eco_rounded,
-                                size: 16,
-                                color: AppColors.ecoGreen,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-
-                Center(
-                  child: GestureDetector(
-                    onTap:
-                        widget.onNavigateToPantry ?? widget.onNavigateToTracker,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Buka Pantry ➜',
-                        style: AppTextStyles.linkBold.copyWith(
-                          fontSize: 11.5,
+                      child: const Text(
+                        'Aman',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primary,
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 12),
+          const SizedBox(height: 16),
 
-        // Eco Impact Card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.borderSoft),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
+          if (totalAtRisk == 0)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.ecoGreen,
+                    size: 28,
+                  ),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Dampak Eco',
-                          style: AppTextStyles.heading2.copyWith(fontSize: 14),
-                        ),
-                        Text(
-                          'Penyelamatan pangan',
-                          style: AppTextStyles.subtitleSmall.copyWith(
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE8F5E9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.payments_rounded,
-                        size: 14,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Rescued Stats
-                Text(
-                  '+${_controller.ecoPoints}',
-                  style: AppTextStyles.heading1.copyWith(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                ),
-                Text(
-                  'Total Poin Hijau',
-                  style: AppTextStyles.subtitleSmall.copyWith(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Divider(height: 1),
-                const SizedBox(height: 8),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Bahan Selamat',
+                          'Semua Stok Pantry Aman!',
                           style: TextStyle(
-                            fontSize: 9.5,
-                            color: AppColors.textGray,
-                          ),
-                        ),
-                        Text(
-                          '${_controller.rescuedKg.toStringAsFixed(1)} kg',
-                          style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: AppColors.deepForest,
                           ),
                         ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text(
-                          'Hemat Finansial',
+                        SizedBox(height: 2),
+                        Text(
+                          'Tidak ada bahan yang mendekati masa kadaluwarsa (<5 hari).',
                           style: TextStyle(
-                            fontSize: 9.5,
+                            fontSize: 11,
                             color: AppColors.textGray,
                           ),
                         ),
-                        Text(
-                          _controller.savedMoney > 0
-                              ? 'Rp ${_controller.savedMoney.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]}.")}'
-                              : 'Rp 0',
-                          style: const TextStyle(
-                            fontSize: 12,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Combined at-risk items (urgent first, then segera)
+            ...[...urgentList, ...segeraList].take(4).map((item) {
+              final days = item.daysUntilExpiry;
+              final isUrgent = item.expiryStatus == 'expired' || item.expiryStatus == 'urgent';
+              final timeText = days <= 0
+                  ? (days == 0 ? 'Hari ini!' : 'Lewat ${-days}h')
+                  : '$days hari lagi';
+              final badgeBg = isUrgent ? const Color(0xFFFFEBEE) : const Color(0xFFFFF8E1);
+              final badgeColor = isUrgent ? const Color(0xFFD32F2F) : const Color(0xFFF57F17);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isUrgent
+                          ? const Color(0xFFFFCDD2).withValues(alpha: 0.6)
+                          : AppColors.borderSoft,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      AppFoodImage(
+                        imagePath: item.imageUrl ?? '',
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.deepForest,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${item.storage} • ${item.quantity.toString().replaceAll(RegExp(r'\.0$'), '')} ${item.unit}',
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Expiry chip
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          timeText,
+                          style: TextStyle(
+                            fontSize: 10,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFFE65100),
+                            color: badgeColor,
                           ),
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 8),
+                      // Quick Mark as Cooked button
+                      InkWell(
+                        onTap: () => _markPantryItemCooked(item),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+
+          const SizedBox(height: 6),
+          Center(
+            child: GestureDetector(
+              onTap: widget.onNavigateToPantry ?? widget.onNavigateToTracker,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Kelola Seluruh Stok di Pantry',
+                      style: AppTextStyles.linkBold.copyWith(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: AppColors.primary,
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1291,7 +1264,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${log.mealType} · ${log.time}',
+                            '${log.mealType} · ${log.time} · Kol ${log.cholesterol.toInt()} mg',
                             style: AppTextStyles.caption.copyWith(
                               fontSize: 11,
                               color: AppColors.textGray,

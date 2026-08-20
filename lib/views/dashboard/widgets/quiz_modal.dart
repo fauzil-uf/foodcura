@@ -460,7 +460,7 @@ class _QuizModalState extends State<QuizModal> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Anda mendapatkan skor $_score dari $totalPossible poin.',
+            'Anda berhasil menjawab benar $_score dari $totalPossible poin.',
             textAlign: TextAlign.center,
             style: AppTextStyles.bodySmall.copyWith(
               fontSize: 14,

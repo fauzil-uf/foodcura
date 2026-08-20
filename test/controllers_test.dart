@@ -5,6 +5,9 @@ import 'package:foodcura/controllers/food_tracker_controller.dart';
 import 'package:foodcura/controllers/notification_controller.dart';
 import 'package:foodcura/controllers/pantry_controller.dart';
 import 'package:foodcura/controllers/quiz_controller.dart';
+import 'package:foodcura/models/food_item_model.dart';
+import 'package:foodcura/models/food_log_model.dart';
+import 'package:foodcura/models/notification_model.dart';
 import 'package:foodcura/models/pantry_item_model.dart';
 import 'package:foodcura/models/quiz_model.dart';
 import 'package:foodcura/services/gemini_service.dart';
@@ -17,15 +20,15 @@ class FakeGeminiService implements GeminiService {
     return const [
       QuizQuestion(
         id: 1,
-        question: 'Apa fungsi utama serat bagi pencernaan?',
+        question: 'Apa fungsi utama karbohidrat bagi tubuh?',
         options: [
-          'Melancarkan BAB',
-          'Meningkatkan gula',
-          'Membuat lemas',
-          'Tidak ada',
+          'Sumber energi utama',
+          'Membentuk antibodi',
+          'Melarutkan vitamin',
+          'Mendinginkan suhu',
         ],
         correctAnswerIndex: 0,
-        explanation: 'Serat membantu melancarkan saluran pencernaan.',
+        explanation: 'Karbohidrat adalah sumber energi utama tubuh.',
       ),
       QuizQuestion(
         id: 2,
@@ -47,23 +50,6 @@ class FakeGeminiService implements GeminiService {
     required double cholesterol,
   }) async {
     return 'Mock AI Advice: Pola makanmu hari ini sangat baik dan seimbang.';
-  }
-
-  @override
-  Future<EcoImpactResult> generateEcoImpactInsight({
-    required int rescuedCount,
-    required int ecoPoints,
-    required String lastRescuedItem,
-    double quantity = 1.0,
-    String unit = 'pcs',
-    String? category,
-  }) async {
-    return EcoImpactResult(
-      kgCO2: 1.2,
-      savedRupiah: 15000,
-      narrative: 'Mock AI Eco Insight: Hebat! $lastRescuedItem terselamatkan.',
-      isAiGenerated: true,
-    );
   }
 }
 
@@ -119,6 +105,17 @@ void main() {
       );
       expect(res4, isFalse);
       expect(auth.errorMessage, contains('Konfirmasi password tidak cocok'));
+    });
+
+    test('Logout clears session and user state', () async {
+      SharedPreferences.setMockInitialValues({'logged_in_user_id': 1});
+      final auth = AuthController();
+      await auth.logout();
+      expect(auth.isAuthenticated, isFalse);
+      expect(auth.currentUser, isNull);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('logged_in_user_id'), isNull);
     });
   });
 
@@ -184,43 +181,18 @@ void main() {
     });
   });
 
-  group('PantryController tests and AI Eco Impact', () {
+  group('PantryController tests', () {
     test('Initial storage groups', () {
-      final pantryCtrl = PantryController(gemini: FakeGeminiService());
+      final pantryCtrl = PantryController();
       final grouped = pantryCtrl.groupedItems;
       expect(grouped.containsKey('Kulkas'), isTrue);
       expect(grouped.containsKey('Freezer'), isTrue);
       expect(grouped.containsKey('Lemari Kering'), isTrue);
     });
-
-    test('getEcoRescueImpact generates appreciation narrative and metrics', () async {
-      final pantryCtrl = PantryController(gemini: FakeGeminiService());
-      final testItem = PantryItemModel(
-        id: 1,
-        name: 'Bayam Segar',
-        quantity: 1,
-        unit: 'ikat',
-        storage: 'Kulkas',
-        expiryDate: DateTime(2026, 8, 20),
-        createdAt: DateTime.now(),
-      );
-
-      final impact = await pantryCtrl.getEcoRescueImpact(testItem);
-      expect(impact.narrative, contains('Mock AI Eco Insight'));
-      expect(impact.narrative, contains('Bayam Segar'));
-      expect(impact.kgCO2, greaterThan(0));
-      expect(impact.savedRupiah, greaterThan(0));
-
-      // Test offline category impact calculator
-      final categoryImpact = pantryCtrl.getEstimatedImpactForItem(testItem);
-      expect(categoryImpact.kgCO2, equals(0.2));
-      expect(categoryImpact.savedRupiah, equals(3500));
-      expect(categoryImpact.isAiGenerated, isFalse);
-    });
   });
 
   group('QuizController tests', () {
-    test('Quiz state progression and scoring', () async {
+    test('Quiz state progression, scoring, and eco points award', () async {
       final quizCtrl = QuizController(service: FakeGeminiService());
       await quizCtrl.fetchQuiz();
 
@@ -247,6 +219,95 @@ void main() {
       // Complete quiz
       quizCtrl.nextQuestion();
       expect(quizCtrl.isCompleted, isTrue);
+      expect(quizCtrl.pointsAwarded, isTrue);
+    });
+  });
+
+  group('Multi-User Data Isolation model tests', () {
+    test('PantryItemModel, NotificationModel, and FoodLogModel serialize userId correctly', () {
+      final now = DateTime.now();
+      final pantryItem = PantryItemModel(
+        id: 1,
+        userId: 42,
+        name: 'Apel Fuji',
+        quantity: 2,
+        unit: 'kg',
+        storage: 'Kulkas',
+        expiryDate: now.add(const Duration(days: 4)),
+        createdAt: now,
+      );
+
+      final pantryMap = pantryItem.toMap();
+      expect(pantryMap['user_id'], equals(42));
+      final parsedPantry = PantryItemModel.fromMap(pantryMap);
+      expect(parsedPantry.userId, equals(42));
+      expect(parsedPantry.name, equals('Apel Fuji'));
+
+      final notif = NotificationModel(
+        id: 1,
+        userId: 42,
+        title: 'Pengingat Sarapan',
+        message: 'Jangan lupa sarapan!',
+        type: 'meal_reminder',
+        iconType: 'restaurant',
+        createdAt: now,
+      );
+      final notifMap = notif.toMap();
+      expect(notifMap['user_id'], equals(42));
+      final parsedNotif = NotificationModel.fromMap(notifMap);
+      expect(parsedNotif.userId, equals(42));
+
+      const log = FoodLogModel(
+        id: 1,
+        userId: 42,
+        foodName: 'Nasi Uduk',
+        mealType: 'Sarapan',
+        calories: 350,
+        protein: 10,
+        carbs: 55,
+        fat: 8,
+        cholesterol: 0.0,
+        imagePath: '',
+        time: '07:30',
+        date: '2026-08-20',
+      );
+      final logMap = log.toMap();
+      expect(logMap['user_id'], equals(42));
+      expect(logMap['cholesterol'], equals(0.0));
+      final parsedLog = FoodLogModel.fromMap(logMap);
+      expect(parsedLog.userId, equals(42));
+      expect(parsedLog.cholesterol, equals(0.0));
+    });
+
+    test('FoodItemModel handles TKPI cholesterol parsing correctly', () {
+      const plantItem = FoodItemModel(
+        name: 'Tempe Goreng',
+        calories: 200,
+        protein: 18,
+        carbs: 12,
+        fat: 10,
+        cholesterol: 0.0,
+        category: 'Makan Siang',
+        imagePath: '',
+      );
+      expect(plantItem.cholesterol, equals(0.0));
+      expect(plantItem.toMap()['cholesterol'], equals(0.0));
+
+      const meatItem = FoodItemModel(
+        name: 'Dada Ayam',
+        calories: 165,
+        protein: 31,
+        carbs: 0,
+        fat: 3.6,
+        cholesterol: 85.0,
+        category: 'Makan Siang',
+        imagePath: '',
+      );
+      expect(meatItem.cholesterol, equals(85.0));
+      expect(meatItem.toMap()['cholesterol'], equals(85.0));
+
+      final parsedFromMap = FoodItemModel.fromMap(meatItem.toMap());
+      expect(parsedFromMap.cholesterol, equals(85.0));
     });
   });
 }

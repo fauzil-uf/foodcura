@@ -121,6 +121,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
       protein: _selectedFood!.protein,
       carbs: _selectedFood!.carbs,
       fat: _selectedFood!.fat,
+      cholesterol: _selectedFood!.cholesterol,
       imagePath: _selectedFood!.imagePath,
       time: timeStr,
       date: AppDateFormatter.formatToday(widget.targetDate ?? now),
@@ -509,7 +510,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
                               ),
                             ),
                             Text(
-                              'Protein ${_selectedFood!.protein}g · Karbo ${_selectedFood!.carbs}g · Lemak ${_selectedFood!.fat}g',
+                              'Protein ${_selectedFood!.protein}g · Karbo ${_selectedFood!.carbs}g · Lemak ${_selectedFood!.fat}g · Kol ${_selectedFood!.cholesterol.toInt()}mg',
                               style: AppTextStyles.subtitleSmall.copyWith(
                                 fontSize: 11,
                               ),

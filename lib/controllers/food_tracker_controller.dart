@@ -60,7 +60,7 @@ class FoodTrackerController extends ChangeNotifier {
   double get totalProtein => _allLogs.fold(0.0, (sum, log) => sum + log.protein);
   double get totalCarbs => _allLogs.fold(0.0, (sum, log) => sum + log.carbs);
   double get totalFat => _allLogs.fold(0.0, (sum, log) => sum + log.fat);
-  double get totalCholesterol => _allLogs.isEmpty ? 0.0 : totalFat * 4.5 + totalProtein * 3.5;
+  double get totalCholesterol => _allLogs.fold(0.0, (sum, log) => sum + log.cholesterol);
 
   bool get isToday {
     final now = DateTime.now();

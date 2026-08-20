@@ -114,7 +114,7 @@ class FoodSearchResults extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${food.calories} kcal · ${food.category}',
+                            '${food.calories} kcal · ${food.category} · Kol: ${food.cholesterol.toInt()} mg',
                             style: AppTextStyles.subtitleSmall.copyWith(
                               fontSize: 11,
                             ),

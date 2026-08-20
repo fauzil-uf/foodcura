@@ -9,6 +9,7 @@ import '../constants/app_date_formatter.dart';
 /// - `system`: Informasi pembaruan sistem dan pencapaian.
 class NotificationModel {
   final int? id;
+  final int? userId;
   final String title;
   final String message;
   final String type; // expiry_warning, nutrition_excess, tips, system
@@ -19,6 +20,7 @@ class NotificationModel {
 
   const NotificationModel({
     this.id,
+    this.userId,
     required this.title,
     required this.message,
     required this.type,
@@ -43,6 +45,7 @@ class NotificationModel {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       'title': title,
       'message': message,
       'type': type,
@@ -57,6 +60,7 @@ class NotificationModel {
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
     return NotificationModel(
       id: map['id'] as int?,
+      userId: map['user_id'] as int?,
       title: map['title'] as String,
       message: map['message'] as String,
       type: map['type'] as String,
@@ -70,6 +74,7 @@ class NotificationModel {
   /// Membuat salinan objek dengan opsi pembaruan field tertentu.
   NotificationModel copyWith({
     int? id,
+    int? userId,
     String? title,
     String? message,
     String? type,
@@ -80,6 +85,7 @@ class NotificationModel {
   }) {
     return NotificationModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       title: title ?? this.title,
       message: message ?? this.message,
       type: type ?? this.type,

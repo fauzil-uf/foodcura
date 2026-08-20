@@ -197,6 +197,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
 
     final item = PantryItemModel(
       id: widget.itemToEdit?.id,
+      userId: widget.itemToEdit?.userId,
       name: name,
       quantity: quantity,
       unit: _selectedUnit,

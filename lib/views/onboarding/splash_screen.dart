@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
@@ -7,7 +6,6 @@ import '../../constants/app_typography.dart';
 import '../../database/db_helper.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
-import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -82,20 +80,13 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateNext() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
     final loggedInUser = await DBHelper().getLoggedInUser();
 
     if (!mounted) return;
 
-    Widget destination;
-    if (!hasSeenOnboarding) {
-      destination = const OnboardingScreen();
-    } else if (loggedInUser != null) {
-      destination = const MainNavigationScreen();
-    } else {
-      destination = const LoginScreen();
-    }
+    final Widget destination = loggedInUser != null
+        ? const MainNavigationScreen()
+        : const LoginScreen();
 
     Navigator.pushReplacement(
       context,

@@ -119,9 +119,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               'FoodCura memberikan visibilitas penuh terhadap stok bahan makanan di rumahmu. Dengan pengingat kedaluwarsa visual dan notifikasi cerdas, kamu diingatkan untuk mengolah bahan makanan sebelum rusak atau terbuang sia-sia.',
         ),
         HelpFaqItem(
-          question: 'Apa itu Makanan Terselamatkan?',
+          question: 'Bagaimana cara menandai bahan makanan telah digunakan?',
           answer:
-              'Makanan Terselamatkan adalah bahan makanan di Pantry yang berhasil kamu gunakan sebelum kedaluwarsa (dengan menekan tombol **"Tandai Habis"**). Setiap bahan yang diselamatkan berkontribusi terhadap Poin Eco dan catatan streak harianmu.',
+              'Kamu dapat menekan tombol ceklis **(✓)** pada Radar Expiry di Dashboard atau menekan **"Tandai Habis/Digunakan"** di detail bahan Pantry setelah bahan tersebut selesai dimasak.',
         ),
         HelpFaqItem(
           question: 'Bagaimana cara kerja pengingat kedaluwarsa?',

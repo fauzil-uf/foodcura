@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_date_formatter.dart';
 import '../database/db_helper.dart';
@@ -24,15 +23,14 @@ class DashboardController extends ChangeNotifier {
   static const double defaultKolesterolMax = 300.0;
 
   UserModelSQL? _user;
-  int _ecoPoints = 0;
   int _streak = 0;
   int _totalCalories = 0;
   double _proteinGrams = 0;
   double _carbsGrams = 0;
   double _lemakGrams = 0;
   double _kolesterolMg = 0;
-  int _rescuedCount = 0;
   List<PantryItemModel> _urgentPantryItems = [];
+  List<PantryItemModel> _segeraPantryItems = [];
   List<FoodLogModel> _todayLogs = [];
   int _unreadNotifications = 0;
   bool _isLoading = true;
@@ -42,11 +40,7 @@ class DashboardController extends ChangeNotifier {
 
   // Getters
   UserModelSQL? get user => _user;
-  int get ecoPoints => _ecoPoints;
   int get streak => _streak;
-  int get rescuedCount => _rescuedCount;
-  double get rescuedKg => _rescuedCount * 0.35;
-  int get savedMoney => _rescuedCount * 15000;
   int get totalCalories => _totalCalories;
   int get targetCalories => defaultTargetCalories;
   double get caloriesRatio => (_totalCalories / defaultTargetCalories).clamp(0.0, 1.0);
@@ -61,6 +55,7 @@ class DashboardController extends ChangeNotifier {
   double get kolesterolMax => defaultKolesterolMax;
 
   List<PantryItemModel> get urgentPantryItems => _urgentPantryItems;
+  List<PantryItemModel> get segeraPantryItems => _segeraPantryItems;
   List<FoodLogModel> get todayLogs => _todayLogs;
   int get unreadNotifications => _unreadNotifications;
   bool get isLoading => _isLoading;
@@ -101,28 +96,29 @@ class DashboardController extends ChangeNotifier {
         _db.getLoggedInUser(),
         _db.computeAndSaveStreak(),
         _db.getFoodLogs(date: todayStr),
-        _db.getPantryItems(filter: 'urgent'),
+        _db.getPantryItems(),
         _db.getUnreadNotificationCount(),
-        _db.getUsedPantryItemsCount(),
-        SharedPreferences.getInstance(),
       ]);
 
       _user = results[0] as UserModelSQL?;
       _streak = results[1] as int;
       _todayLogs = results[2] as List<FoodLogModel>;
-      _urgentPantryItems = results[3] as List<PantryItemModel>;
+      final allPantry = results[3] as List<PantryItemModel>;
       _unreadNotifications = results[4] as int;
-      _rescuedCount = results[5] as int;
 
-      final prefs = results[6] as SharedPreferences;
-      _ecoPoints = prefs.getInt(EcoPointsNotifier.keyEcoPoints) ?? 0;
+      _urgentPantryItems = allPantry
+          .where((item) => item.expiryStatus == 'expired' || item.expiryStatus == 'urgent')
+          .toList();
+      _segeraPantryItems = allPantry
+          .where((item) => item.expiryStatus == 'segera')
+          .toList();
 
       // Akumulasi nutrisi ringkas
       _totalCalories = _todayLogs.fold(0, (s, l) => s + l.calories);
       _proteinGrams = _todayLogs.fold(0.0, (s, l) => s + l.protein);
       _carbsGrams = _todayLogs.fold(0.0, (s, l) => s + l.carbs);
       _lemakGrams = _todayLogs.fold(0.0, (s, l) => s + l.fat);
-      _kolesterolMg = (_lemakGrams * 4.5 + _proteinGrams * 3.5).clamp(0.0, 500.0);
+      _kolesterolMg = _todayLogs.fold(0.0, (s, l) => s + l.cholesterol);
     } catch (e) {
       debugPrint('Error loading dashboard data: $e');
     } finally {

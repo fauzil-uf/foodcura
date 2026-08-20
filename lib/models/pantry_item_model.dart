@@ -7,6 +7,7 @@
 /// - [quantityDisplay]: Format display jumlah, unit, dan lokasi penyimpanan.
 class PantryItemModel {
   final int? id;
+  final int? userId;
   final String name;
   final double quantity;
   final String unit;
@@ -18,6 +19,7 @@ class PantryItemModel {
 
   const PantryItemModel({
     this.id,
+    this.userId,
     required this.name,
     required this.quantity,
     required this.unit,
@@ -64,6 +66,7 @@ class PantryItemModel {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       'name': name,
       'quantity': quantity,
       'unit': unit,
@@ -78,6 +81,7 @@ class PantryItemModel {
   factory PantryItemModel.fromMap(Map<String, dynamic> map) {
     return PantryItemModel(
       id: map['id'] as int?,
+      userId: map['user_id'] as int?,
       name: map['name'] as String,
       quantity: (map['quantity'] as num).toDouble(),
       unit: map['unit'] as String,
@@ -93,6 +97,7 @@ class PantryItemModel {
 
   PantryItemModel copyWith({
     int? id,
+    int? userId,
     String? name,
     double? quantity,
     String? unit,
@@ -104,6 +109,7 @@ class PantryItemModel {
   }) {
     return PantryItemModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,

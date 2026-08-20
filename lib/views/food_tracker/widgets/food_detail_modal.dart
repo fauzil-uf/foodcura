@@ -188,6 +188,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
         protein: widget.log.protein,
         carbs: widget.log.carbs,
         fat: widget.log.fat,
+        cholesterol: widget.log.cholesterol,
         imagePath: widget.log.imagePath,
         time: widget.log.time,
         date: widget.log.date,

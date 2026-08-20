@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
+import '../../database/db_helper.dart';
 import '../auth/login_screen.dart';
+import '../navigation/main_navigation_screen.dart';
 
 class OnboardingItem {
   final String image;
@@ -83,14 +85,25 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.dispose();
   }
 
-  Future<void> _navigateToLogin() async {
+  Future<void> _navigateToNext() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hasSeenOnboarding', true);
+    final loggedInUser = await DBHelper().getLoggedInUser();
+
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+
+    if (loggedInUser != null) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
   }
 
   void _onNextPressed() {
@@ -100,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         curve: Curves.easeInOut,
       );
     } else {
-      _navigateToLogin();
+      _navigateToNext();
     }
   }
 
@@ -267,7 +280,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: _navigateToLogin,
+                onTap: _navigateToNext,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(

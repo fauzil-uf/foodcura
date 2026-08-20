@@ -139,6 +139,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
+      cholesterol: food.cholesterol,
       imagePath: food.imagePath,
       time: timeStr,
       date: AppDateFormatter.formatToday(targetDate),

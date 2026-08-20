@@ -3,6 +3,7 @@ import 'dart:convert';
 /// Model representasi data katalog makanan dan kandungan nutrisinya.
 ///
 /// Menyimpan informasi kalori, makronutrisi (protein, karbohidrat, lemak),
+/// kandungan kolesterol (mg) berbasis TKPI Kemenkes RI,
 /// kategori waktu makan, dan path gambar lokal/network.
 class FoodItemModel {
   final int? id;
@@ -11,6 +12,7 @@ class FoodItemModel {
   final double protein;
   final double carbs;
   final double fat;
+  final double cholesterol;
   final String category;
   final String imagePath;
 
@@ -21,12 +23,10 @@ class FoodItemModel {
     required this.protein,
     required this.carbs,
     required this.fat,
+    this.cholesterol = 0.0,
     required this.category,
     required this.imagePath,
   });
-
-  /// Estimasi kolesterol (mg) berdasarkan profil makronutrisi lemak & protein
-  double get cholesterol => fat * 4.5 + protein * 3.5;
 
   /// Mengonversi objek [FoodItemModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
@@ -37,6 +37,7 @@ class FoodItemModel {
       'protein': protein,
       'carbs': carbs,
       'fat': fat,
+      'cholesterol': cholesterol,
       'category': category,
       'image_path': imagePath,
     };
@@ -50,6 +51,7 @@ class FoodItemModel {
       protein: (map['protein'] as num).toDouble(),
       carbs: (map['carbs'] as num).toDouble(),
       fat: (map['fat'] as num).toDouble(),
+      cholesterol: (map['cholesterol'] as num?)?.toDouble() ?? 0.0,
       category: map['category'] as String,
       imagePath: map['image_path'] as String,
     );
@@ -57,7 +59,9 @@ class FoodItemModel {
 
   static String _inferCategory(String name) {
     final lower = name.toLowerCase();
-    if (lower.contains('goreng') ||
+    if (lower.contains('rujak cingur')) {
+      return 'Makan Siang';
+    } else if (lower.contains('goreng') ||
         lower.contains('soto') ||
         lower.contains('nasi') ||
         lower.contains('ayam') ||
@@ -111,6 +115,7 @@ class FoodItemModel {
         lower.contains('dodol') ||
         lower.contains('getuk') ||
         lower.contains('camilan') ||
+        lower.contains('rujak') ||
         lower.contains('buah')) {
       return 'Camilan';
     }
@@ -127,6 +132,7 @@ class FoodItemModel {
       protein: (json['proteins'] as num? ?? 0).toDouble(),
       carbs: (json['carbohydrate'] as num? ?? 0).toDouble(),
       fat: (json['fat'] as num? ?? 0).toDouble(),
+      cholesterol: (json['cholesterol'] as num? ?? 0).toDouble(),
       category: _inferCategory(nm),
       imagePath: (json['image'] as String? ?? '').trim(),
     );

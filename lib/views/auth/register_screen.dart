@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
-import '../navigation/main_navigation_screen.dart';
+import 'login_screen.dart';
 import '../widgets/app_text_field.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -64,12 +65,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      await _authController.login(email, pass);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('hasSeenOnboarding', false); // First-time login will trigger onboarding
       if (!mounted) return;
-      _showSnackBar('Selamat datang, $name!');
+
+      _showSnackBar('Registrasi berhasil! Silakan masuk dengan akun Anda.');
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } else if (_authController.errorMessage != null) {

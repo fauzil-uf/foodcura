@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../constants/app_constants.dart';
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
 
@@ -131,12 +129,7 @@ class AuthController extends ChangeNotifier {
 
   /// Mengeluarkan pengguna dan membersihkan sesi lokal
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await Future.wait([
-      prefs.remove(AppConstants.keyLoggedInUserId),
-      prefs.remove(AppConstants.keyStreakCount),
-      prefs.remove(AppConstants.keyStreakLastDate),
-    ]);
+    await _db.logoutUser();
     _currentUser = null;
     notifyListeners();
   }
