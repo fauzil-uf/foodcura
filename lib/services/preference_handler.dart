@@ -44,8 +44,6 @@ class PreferenceHandler {
   /// Mengecek apakah onboarding sudah pernah dilihat
   static bool get hasSeenOnboarding => _prefs.getBool('hasSeenOnboarding') ?? false;
 
-  // --- STREAK KEYS ---
-
   /// Mengambil jumlah hari beruntun (streak) mencatat makanan milik pengguna.
   static int getStreak(int userId) {
     return _prefs.getInt('user_streak_$userId') ?? 0;
@@ -56,6 +54,5 @@ class PreferenceHandler {
     await _prefs.setInt('user_streak_$userId', streak);
   }
 
-  // --- RAW PREFERENCES ACCESS ---
   static SharedPreferences get prefs => _prefs;
 }
