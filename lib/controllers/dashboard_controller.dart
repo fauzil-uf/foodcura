@@ -6,15 +6,21 @@ import '../models/food_log_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
 import '../services/gemini_service.dart';
+import '../services/streak_service.dart';
 
 /// Controller untuk mengelola data dan kalkulasi ringkasan harian pada layar Dashboard/Home.
 class DashboardController extends ChangeNotifier {
   final DBHelper _db;
   final GeminiService _gemini;
+  final StreakService _streakService;
 
-  DashboardController({DBHelper? db, GeminiService? gemini})
-    : _db = db ?? DBHelper(),
-      _gemini = gemini ?? GeminiService.instance;
+  DashboardController({
+    DBHelper? db,
+    GeminiService? gemini,
+    StreakService? streakService,
+  })  : _db = db ?? DBHelper(),
+        _gemini = gemini ?? GeminiService.instance,
+        _streakService = streakService ?? StreakService(db: db ?? DBHelper());
 
   static const int defaultTargetCalories = 2000;
   static const double defaultProteinMax = 65.0;
@@ -84,6 +90,12 @@ class DashboardController extends ChangeNotifier {
     }
   }
 
+  /// Menandai bahan makanan di pantry sudah digunakan langsung dari Dashboard
+  Future<void> markPantryItemUsed(int id) async {
+    await _db.markPantryItemUsed(id);
+    await loadDashboardData();
+  }
+
   /// Memuat semua data metrik dashboard secara paralel
   Future<void> loadDashboardData() async {
     _isLoading = true;
@@ -95,7 +107,7 @@ class DashboardController extends ChangeNotifier {
       // Eksekusi seluruh query SQLite metrik dashboard secara paralel untuk memangkas waktu inisialisasi UI.
       final results = await Future.wait([
         _db.getLoggedInUser(),
-        _db.computeAndSaveStreak(),
+        _streakService.computeAndSaveStreak(),
         _db.getFoodLogs(date: todayStr),
         _db.getPantryItems(),
         _db.getUnreadNotificationCount(),

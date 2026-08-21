@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
-import '../../../database/db_helper.dart';
+import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
@@ -12,12 +12,14 @@ import '../../widgets/app_food_image.dart';
 class AllCatalogModal extends StatefulWidget {
   final String currentMealType;
   final DateTime? targetDate;
+  final FoodTrackerController? controller;
   final VoidCallback onFoodAdded;
 
   const AllCatalogModal({
     super.key,
     required this.currentMealType,
     this.targetDate,
+    this.controller,
     required this.onFoodAdded,
   });
 
@@ -26,6 +28,7 @@ class AllCatalogModal extends StatefulWidget {
 }
 
 class _AllCatalogModalState extends State<AllCatalogModal> {
+  late final FoodTrackerController _controller;
   final TextEditingController _searchController = TextEditingController();
   List<FoodItemModel> _allCatalog = [];
   List<FoodItemModel> _filteredCatalog = [];
@@ -35,12 +38,13 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? FoodTrackerController();
     _loadCatalog();
   }
 
   /// Memuat seluruh entri katalog makanan dari database SQLite saat inisialisasi modal.
   Future<void> _loadCatalog() async {
-    final list = await DBHelper().getFoodCatalog();
+    final list = await _controller.getFoodCatalog();
     if (mounted) {
       setState(() {
         _allCatalog = list;
@@ -88,7 +92,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
       date: AppDateFormatter.formatToday(widget.targetDate ?? DateTime.now()),
     );
 
-    await DBHelper().addFoodLog(newLog);
+    await _controller.addFoodLog(newLog);
     widget.onFoodAdded();
 
     if (mounted) {

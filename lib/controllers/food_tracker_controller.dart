@@ -8,14 +8,18 @@ import '../database/db_helper.dart';
 import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
+import '../services/nutrition_service.dart';
 
 /// Controller untuk mengelola pencatatan makanan, filter waktu makan,
 /// kalkulasi nutrisi harian, dan peringatan batas nutrisi.
 class FoodTrackerController extends ChangeNotifier {
   final DBHelper _db;
+  final NutritionService _nutritionService;
   Timer? _searchDebounce;
 
-  FoodTrackerController({DBHelper? db}) : _db = db ?? DBHelper();
+  FoodTrackerController({DBHelper? db, NutritionService? nutritionService})
+      : _db = db ?? DBHelper(),
+        _nutritionService = nutritionService ?? NutritionService(db: db ?? DBHelper());
 
   int _selectedTabIndex = 0;
   DateTime _selectedDate = DateTime.now();
@@ -24,6 +28,7 @@ class FoodTrackerController extends ChangeNotifier {
   List<FoodItemModel> _recentCatalog = [];
   List<FoodItemModel> _searchResults = [];
   List<Map<String, dynamic>> _warnings = [];
+  int _unreadNotifications = 0;
 
   bool _isLoading = true;
   bool _isSearching = false;
@@ -46,6 +51,7 @@ class FoodTrackerController extends ChangeNotifier {
   List<FoodItemModel> get recentCatalog => _recentCatalog;
   List<FoodItemModel> get searchResults => _searchResults;
   List<Map<String, dynamic>> get warnings => _warnings;
+  int get unreadNotifications => _unreadNotifications;
 
   bool get isLoading => _isLoading;
   bool get isSearching => _isSearching;
@@ -85,7 +91,7 @@ class FoodTrackerController extends ChangeNotifier {
     return _selectedDate.toDayDate();
   }
 
-  /// Memuat data log makanan dan katalog terkini
+  /// Memuat data log makanan, katalog terkini, dan unread notifikasi
   Future<void> loadData() async {
     _isLoading = true;
     notifyListeners();
@@ -94,9 +100,11 @@ class FoodTrackerController extends ChangeNotifier {
       final dateStr = _selectedDate.toFullDate();
       final logs = await _db.getFoodLogs(date: dateStr);
       final catalog = await _db.getRecentAddedFoods();
+      final unread = await _db.getUnreadNotificationCount();
 
       _allLogs = logs;
       _recentCatalog = catalog;
+      _unreadNotifications = unread;
       _calculateWarnings();
     } catch (e) {
       debugPrint('Error loading food tracker data: $e');
@@ -150,7 +158,7 @@ class FoodTrackerController extends ChangeNotifier {
       _warnings.add({'title': title, 'message': msg, 'color': color, 'icon': icon});
     }
 
-    if (totalFat >= 67.0) {
+    if (totalFat >= NutritionService.maxDailyFat) {
       addWarn(
         'Peringatan Lemak Tinggi!',
         'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & santan.',
@@ -166,7 +174,7 @@ class FoodTrackerController extends ChangeNotifier {
       );
     }
 
-    if (totalCalories > 2000) {
+    if (totalCalories > NutritionService.maxDailyCalories) {
       addWarn(
         'Peringatan Kalori Berlebih!',
         'Total kalori ($totalCalories kcal / 2000 kcal) telah melebihi batas harian rekomendasi.',
@@ -175,7 +183,7 @@ class FoodTrackerController extends ChangeNotifier {
       );
     }
 
-    if (totalCholesterol > 300.0) {
+    if (totalCholesterol > NutritionService.maxDailyCholesterol) {
       addWarn(
         'Peringatan Kolesterol Tinggi!',
         'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) telah melebihi batas yang disarankan.',
@@ -184,7 +192,7 @@ class FoodTrackerController extends ChangeNotifier {
       );
     }
 
-    if (totalCarbs > 300.0) {
+    if (totalCarbs > NutritionService.maxDailyCarbs) {
       addWarn(
         'Peringatan Karbohidrat Tinggi!',
         'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
@@ -193,7 +201,7 @@ class FoodTrackerController extends ChangeNotifier {
       );
     }
 
-    if (totalProtein > 65.0) {
+    if (totalProtein > NutritionService.maxDailyProtein) {
       addWarn(
         'Peringatan Protein Tinggi!',
         'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian Anda.',
@@ -203,9 +211,18 @@ class FoodTrackerController extends ChangeNotifier {
     }
   }
 
-  /// Menambahkan log makanan baru ke database
+  /// Menambahkan log makanan baru ke database dan memicu evaluasi AKG
   Future<NotificationModel?> addFoodLog(FoodLogModel log) async {
-    final notif = await _db.addFoodLog(log);
+    await _db.insertFoodLog(log);
+    final notif = await _nutritionService.checkNutritionExcess(userId: log.userId);
+    await loadData();
+    return notif;
+  }
+
+  /// Memperbarui log makanan yang sudah ada
+  Future<NotificationModel?> updateFoodLog(FoodLogModel log) async {
+    await _db.updateFoodLog(log);
+    final notif = await _nutritionService.checkNutritionExcess(userId: log.userId);
     await loadData();
     return notif;
   }
@@ -214,6 +231,22 @@ class FoodTrackerController extends ChangeNotifier {
   Future<void> deleteFoodLog(int id) async {
     await _db.deleteFoodLog(id);
     await loadData();
+  }
+
+  /// Mengambil katalog seluruh makanan yang tersedia
+  Future<List<FoodItemModel>> getFoodCatalog() async {
+    return await _db.getFoodCatalog();
+  }
+
+  /// Mengambil riwayat makanan yang baru ditambahkan
+  Future<List<FoodItemModel>> getRecentAddedFoods({int limit = 6}) async {
+    return await _db.getRecentAddedFoods(limit: limit);
+  }
+
+  /// Menyegarkan hitungan notifikasi belum dibaca
+  Future<void> refreshUnreadCount() async {
+    _unreadNotifications = await _db.getUnreadNotificationCount();
+    notifyListeners();
   }
 
   /// Mencari katalog makanan dengan debouncing untuk efisiensi CPU & responsivitas.

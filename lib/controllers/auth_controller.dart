@@ -132,6 +132,36 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// Mengubah password akun pengguna
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    if (_currentUser == null || _currentUser!.id == null) return false;
+    if (newPassword.length < 8) {
+      _setLoading(false, 'Password baru minimal 8 karakter!');
+      return false;
+    }
+
+    _setLoading(true);
+    try {
+      final success = await _db.changePassword(
+        userId: _currentUser!.id!,
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+      if (!success) {
+        _setLoading(false, 'Password lama tidak sesuai!');
+        return false;
+      }
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setLoading(false, 'Gagal mengubah password: $e');
+      return false;
+    }
+  }
+
   /// Mengeluarkan pengguna dan membersihkan sesi lokal
   Future<void> logout() async {
     await _db.logoutUser();

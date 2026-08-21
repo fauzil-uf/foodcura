@@ -117,8 +117,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   /// Menandai bahan dapur telah dimasak, menambahkan eco-points, dan memicu sinyal pembaruan global.
   Future<void> _markPantryItemCooked(PantryItemModel item) async {
     if (item.id != null) {
-      await DBHelper().markPantryItemUsed(item.id!);
-      PantryUpdateNotifier.instance.notifyPantryChanged();
+      await _controller.markPantryItemUsed(item.id!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

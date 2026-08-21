@@ -4,7 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_date_formatter.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
-import '../../database/db_helper.dart';
+import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
@@ -25,12 +25,14 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
+  final _profileController = ProfileController();
   final _authController = AuthController();
-  UserModelSQL? _user;
-  int _streak = 0;
-  int _ecoPoints = 0;
-  int _unreadNotifCount = 0;
-  bool _isLoading = true;
+
+  UserModelSQL? get _user => _profileController.user;
+  int get _streak => _profileController.streak;
+  int get _ecoPoints => _profileController.ecoPoints;
+  int get _unreadNotifCount => _profileController.unreadNotifications;
+  bool get _isLoading => _profileController.isLoading;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -64,44 +66,28 @@ class _ProfileScreenState extends State<ProfileScreen>
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
         );
 
-    EcoPointsNotifier.instance.addListener(_onEcoPointsChanged);
+    _profileController.initListeners();
+    _profileController.addListener(_onProfileChanged);
     _loadProfileData();
+  }
+
+  void _onProfileChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    EcoPointsNotifier.instance.removeListener(_onEcoPointsChanged);
+    _profileController.removeListener(_onProfileChanged);
+    _profileController.dispose();
     _animController.dispose();
     _authController.dispose();
     super.dispose();
   }
 
-  /// Callback saat total eco-points bertambah dari kegiatan memasak bahan kulkas.
-  void _onEcoPointsChanged() {
-    if (mounted) {
-      setState(() {
-        _ecoPoints = EcoPointsNotifier.instance.value;
-      });
-    }
-  }
-
-  /// Memuat data profil pengguna aktif, streak harian, eco-points, dan notifikasi dari SQLite.
+  /// Memuat data profil pengguna aktif, streak harian, eco-points, dan notifikasi dari SQLite via ProfileController.
   Future<void> _loadProfileData() async {
-    setState(() => _isLoading = true);
-
-    await _authController.loadCurrentUser();
-    final streakCount = await DBHelper().computeAndSaveStreak();
-    await EcoPointsNotifier.instance.refresh();
-    final unread = await DBHelper().getUnreadNotificationCount();
-
+    await _profileController.loadProfile();
     if (mounted) {
-      setState(() {
-        _user = _authController.currentUser;
-        _streak = streakCount;
-        _ecoPoints = EcoPointsNotifier.instance.value;
-        _unreadNotifCount = unread;
-        _isLoading = false;
-      });
       _animController.forward(from: 0);
     }
   }
@@ -111,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NotificationScreen()),
-    ).then((_) => _loadProfileData());
+    ).then((_) => _profileController.refreshNotifications());
   }
 
   /// Menghasilkan warna latar avatar yang konsisten berdasarkan inisial nama pengguna.

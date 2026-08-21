@@ -4,7 +4,6 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_date_formatter.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/food_tracker_controller.dart';
-import '../../database/db_helper.dart';
 import '../../models/food_item_model.dart';
 import '../../models/food_log_model.dart';
 import '../notification/notification_screen.dart';
@@ -31,7 +30,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   final TextEditingController _searchController = TextEditingController();
   // Set penahan untuk mencegah input ganda akibat ketukan cepat (anti-spam).
   final Set<String> _recentlyAddedFoodNames = {};
-  int _unreadNotifsCount = 0;
 
   List<String> get _tabs => _controller.tabs;
   int get _selectedTabIndex => _controller.selectedTabIndex;
@@ -61,12 +59,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   Future<void> _refreshData() async {
     // Muat ulang data log harian dan perbarui counter notifikasi belum terbaca.
     await _controller.loadData();
-    final unread = await DBHelper().getUnreadNotificationCount();
-    if (mounted) {
-      setState(() {
-        _unreadNotifsCount = unread;
-      });
-    }
   }
 
   void _openNotifications() {
@@ -91,6 +83,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       builder: (_) => AddFoodModal(
         initialMealType: mealType,
         targetDate: _controller.selectedDate,
+        controller: _controller,
         onFoodAdded: _refreshData,
       ),
     );
@@ -105,6 +98,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       builder: (_) => AllCatalogModal(
         currentMealType: mealType,
         targetDate: _controller.selectedDate,
+        controller: _controller,
         onFoodAdded: _refreshData,
       ),
     );
@@ -116,7 +110,11 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FoodDetailModal(log: log, onLogDeleted: _refreshData),
+      builder: (_) => FoodDetailModal(
+        log: log,
+        controller: _controller,
+        onLogDeleted: _refreshData,
+      ),
     );
   }
 
@@ -156,8 +154,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       date: AppDateFormatter.formatToday(targetDate),
     );
 
-    // Simpan data ke SQLite dan periksa ambang batas nutrisi harian.
-    final notif = await DBHelper().addFoodLog(newLog);
+    final notif = await _controller.addFoodLog(newLog);
     await _refreshData();
 
     if (mounted) {
@@ -277,7 +274,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
               title: 'Food Tracker',
               showBackButton: _selectedTabIndex > 0,
               onBack: () => _controller.setSelectedTab(0),
-              unreadNotifications: _unreadNotifsCount,
+              unreadNotifications: _controller.unreadNotifications,
               onNotificationTap: _openNotifications,
             ),
 

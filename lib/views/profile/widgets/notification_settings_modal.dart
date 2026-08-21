@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../constants/app_colors.dart';
-import '../../../constants/app_constants.dart';
 import '../../../constants/app_typography.dart';
-import '../../../database/db_helper.dart';
+import '../../../services/reminder_service.dart';
 
 /// Modal konfigurasi preferensi peringatan kedaluwarsa pantry, batas nutrisi, dan jadwal waktu makan harian.
 class NotificationSettingsModal extends StatefulWidget {
@@ -37,25 +35,22 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _expiryAlert = prefs.getBool(AppConstants.keyNotifExpiryAlert) ?? true;
-      _nutritionExcess =
-          prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true;
-      _dailyMealLog = prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true;
-      _ecoTips = prefs.getBool(AppConstants.keyNotifEcoTips) ?? true;
-
-      _breakfastEnabled =
-          prefs.getBool(AppConstants.keyNotifBreakfastEnabled) ?? true;
-      _breakfastTime =
-          prefs.getString(AppConstants.keyNotifBreakfastTime) ?? '07:30';
-      _lunchEnabled = prefs.getBool(AppConstants.keyNotifLunchEnabled) ?? true;
-      _lunchTime = prefs.getString(AppConstants.keyNotifLunchTime) ?? '12:30';
-      _dinnerEnabled =
-          prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true;
-      _dinnerTime = prefs.getString(AppConstants.keyNotifDinnerTime) ?? '19:00';
-      _isLoading = false;
-    });
+    final settings = await ReminderService().loadNotificationSettings();
+    if (mounted) {
+      setState(() {
+        _expiryAlert = settings['expiryAlert'] as bool;
+        _nutritionExcess = settings['nutritionExcess'] as bool;
+        _dailyMealLog = settings['dailyMealLog'] as bool;
+        _ecoTips = settings['ecoTips'] as bool;
+        _breakfastEnabled = settings['breakfastEnabled'] as bool;
+        _breakfastTime = settings['breakfastTime'] as String;
+        _lunchEnabled = settings['lunchEnabled'] as bool;
+        _lunchTime = settings['lunchTime'] as String;
+        _dinnerEnabled = settings['dinnerEnabled'] as bool;
+        _dinnerTime = settings['dinnerTime'] as String;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _pickTime({
@@ -282,49 +277,18 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                   elevation: 0,
                 ),
                 onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool(
-                    AppConstants.keyNotifExpiryAlert,
-                    _expiryAlert,
+                  await ReminderService().saveNotificationSettings(
+                    expiryAlert: _expiryAlert,
+                    nutritionExcess: _nutritionExcess,
+                    dailyMealLog: _dailyMealLog,
+                    ecoTips: _ecoTips,
+                    breakfastEnabled: _breakfastEnabled,
+                    breakfastTime: _breakfastTime,
+                    lunchEnabled: _lunchEnabled,
+                    lunchTime: _lunchTime,
+                    dinnerEnabled: _dinnerEnabled,
+                    dinnerTime: _dinnerTime,
                   );
-                  await prefs.setBool(
-                    AppConstants.keyNotifNutritionExcess,
-                    _nutritionExcess,
-                  );
-                  await prefs.setBool(
-                    AppConstants.keyNotifDailyMealLog,
-                    _dailyMealLog,
-                  );
-                  await prefs.setBool(
-                    AppConstants.keyNotifEcoTips,
-                    _ecoTips,
-                  );
-                  await prefs.setBool(
-                    AppConstants.keyNotifBreakfastEnabled,
-                    _breakfastEnabled,
-                  );
-                  await prefs.setString(
-                    AppConstants.keyNotifBreakfastTime,
-                    _breakfastTime,
-                  );
-                  await prefs.setBool(
-                    AppConstants.keyNotifLunchEnabled,
-                    _lunchEnabled,
-                  );
-                  await prefs.setString(
-                    AppConstants.keyNotifLunchTime,
-                    _lunchTime,
-                  );
-                  await prefs.setBool(
-                    AppConstants.keyNotifDinnerEnabled,
-                    _dinnerEnabled,
-                  );
-                  await prefs.setString(
-                    AppConstants.keyNotifDinnerTime,
-                    _dinnerTime,
-                  );
-
-                  await DBHelper().checkMealRemindersAndCreateNotifications();
 
                   if (context.mounted) {
                     Navigator.pop(context);

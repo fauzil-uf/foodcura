@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
-import '../../database/db_helper.dart';
+import '../../controllers/auth_controller.dart';
+import '../../services/preference_handler.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
@@ -88,9 +88,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   /// Menyimpan flag telah melihat onboarding ke SharedPreferences dan mengarahkan ke layar utama atau login.
   Future<void> _navigateToNext() async {
     // Simpan status bahwa onboarding sudah diselesaikan agar tidak muncul lagi pada sesi berikutnya.
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasSeenOnboarding', true);
-    final loggedInUser = await DBHelper().getLoggedInUser();
+    await PreferenceHandler.setHasSeenOnboarding(true);
+    final authController = AuthController();
+    await authController.loadCurrentUser();
+    final loggedInUser = authController.currentUser;
+    authController.dispose();
 
     if (!mounted) return;
 

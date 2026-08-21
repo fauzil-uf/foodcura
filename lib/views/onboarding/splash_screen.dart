@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
-import '../../services/preference_handler.dart';
+import '../../controllers/auth_controller.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
@@ -85,8 +85,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   /// Mengecek sesi login pengguna di SharedPreferences untuk menentukan rute navigasi selanjutnya.
   Future<void> _navigateNext() async {
-    // Periksa apakah token sesi login masih aktif untuk menghindari login ulang yang tidak perlu.
-    final bool isLoggedIn = PreferenceHandler.isLogin;
+    final authController = AuthController();
+    await authController.loadCurrentUser();
+    final bool isLoggedIn = authController.isAuthenticated;
+    authController.dispose();
 
     if (!mounted) return;
 

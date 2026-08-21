@@ -11,7 +11,6 @@ import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
-import '../services/notification_service.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -86,6 +85,13 @@ class DBHelper {
             cholesterol = 85.0
         WHERE food_name = 'Dada Ayam Panggang & Salad';
       ''');
+
+      // Pastikan pengguna lama memiliki nilai created_at yang valid
+      await db.rawUpdate('''
+        UPDATE ${AppConstants.tableUsers}
+        SET created_at = ?
+        WHERE created_at IS NULL OR TRIM(created_at) = '';
+      ''', [DateTime.now().toIso8601String()]);
     } catch (_) {}
   }
 
@@ -332,48 +338,6 @@ class DBHelper {
     await db.delete(AppConstants.tableUsers, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> computeAndSaveStreak({int? userId}) async {
-    final targetUserId = userId ?? await getActiveUserId();
-    if (targetUserId == null) return 1;
-
-    final prefs = await SharedPreferences.getInstance();
-    final streakKey = 'user_streak_$targetUserId';
-    final savedStreak = prefs.getInt(streakKey) ?? 0;
-
-    final db = await database;
-    final result = await db.rawQuery('SELECT DISTINCT date FROM $tableFoodLogs WHERE user_id = ? ORDER BY date DESC', [targetUserId]);
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-
-    final dateSet = <DateTime>{};
-    for (final r in result) {
-      final parsed = AppDateFormatter.parseDate(r['date'] as String?);
-      if (parsed != null) dateSet.add(DateTime(parsed.year, parsed.month, parsed.day));
-    }
-    dateSet.add(today);
-
-    final lastActiveDay = dateSet.isNotEmpty ? dateSet.first : today;
-    int currentStreak;
-    if (lastActiveDay == today) {
-      currentStreak = savedStreak > 0 ? savedStreak : 1;
-    } else if (lastActiveDay == yesterday) {
-      currentStreak = savedStreak > 0 ? savedStreak + 1 : 2;
-    } else {
-      int logStreak = 0;
-      DateTime checkDate = today;
-      while (dateSet.contains(checkDate)) {
-        logStreak++;
-        checkDate = checkDate.subtract(const Duration(days: 1));
-      }
-      currentStreak = logStreak > 0 ? logStreak : 1;
-    }
-
-    await prefs.setInt(streakKey, currentStreak);
-    return currentStreak;
-  }
-
   Future<bool> isEmailRegistered(String email) async {
     final db = await database;
     final res = await db.query(AppConstants.tableUsers, where: 'LOWER(TRIM(email)) = ?', whereArgs: [email.trim().toLowerCase()], limit: 1);
@@ -460,15 +424,15 @@ class DBHelper {
     return results.map((map) => FoodLogModel.fromMap(map)).toList();
   }
 
-  Future<NotificationModel?> addFoodLog(FoodLogModel log) async {
+  /// Memasukkan data log makanan baru secara murni (DAO)
+  Future<int> insertFoodLog(FoodLogModel log) async {
     final db = await database;
     final targetUserId = log.userId ?? await getActiveUserId();
-    if (targetUserId == null) return null;
+    if (targetUserId == null) return 0;
 
     // Hapus 'id' dari map agar mesin AUTOINCREMENT SQLite menghasilkan ID unik otomatis.
     final logMap = log.copyWith(userId: targetUserId).toMap()..remove('id');
-    await db.insert(tableFoodLogs, logMap, conflictAlgorithm: ConflictAlgorithm.replace);
-    return await checkNutritionExcess(userId: targetUserId);
+    return await db.insert(tableFoodLogs, logMap, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<int> updateFoodLog(FoodLogModel log) async {
@@ -477,9 +441,7 @@ class DBHelper {
     final targetUserId = log.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.update(tableFoodLogs, log.copyWith(userId: targetUserId).toMap(), where: 'id = ? AND user_id = ?', whereArgs: [log.id, targetUserId]);
-    await checkNutritionExcess(userId: targetUserId);
-    return res;
+    return await db.update(tableFoodLogs, log.copyWith(userId: targetUserId).toMap(), where: 'id = ? AND user_id = ?', whereArgs: [log.id, targetUserId]);
   }
 
   Future<int> deleteFoodLog(int id) async {
@@ -498,7 +460,6 @@ class DBHelper {
 
     final res = await db.insert(tablePantryItems, item.copyWith(userId: targetUserId).toMap()..remove('id'), conflictAlgorithm: ConflictAlgorithm.replace);
     PantryUpdateNotifier.instance.notifyPantryChanged();
-    await checkExpiryAndCreateNotifications(userId: targetUserId);
     return res;
   }
 
@@ -569,7 +530,6 @@ class DBHelper {
 
     final res = await db.update(tablePantryItems, item.copyWith(userId: targetUserId).toMap(), where: 'id = ? AND user_id = ?', whereArgs: [item.id, targetUserId]);
     PantryUpdateNotifier.instance.notifyPantryChanged();
-    await checkExpiryAndCreateNotifications(userId: targetUserId);
     return res;
   }
 
@@ -662,136 +622,6 @@ class DBHelper {
     final db = await database;
     final result = await db.rawQuery('SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND user_id = ?', [targetUserId]);
     return (result.first['count'] as int?) ?? 0;
-  }
-
-  // --- AUTOMATIC EXPIRY, MEAL & NUTRITION CHECKS ---
-
-  Future<void> checkExpiryAndCreateNotifications({int? userId}) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool(AppConstants.keyNotifExpiryAlert) ?? true)) return;
-
-    final targetUserId = userId ?? await getActiveUserId();
-    if (targetUserId == null) return;
-
-    final db = await database;
-    final items = await getPantryItems(userId: targetUserId);
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
-
-    for (var item in items) {
-      final days = item.daysUntilExpiry;
-      if (days <= 5) {
-        final title = days <= 0 ? '${item.name} sudah kadaluwarsa!' : days <= 2 ? '${item.name} hampir kadaluwarsa' : '${item.name} perlu segera digunakan';
-        final message = days <= 0 ? '${item.name} di ${item.storage.toLowerCase()} sudah melewati tanggal kadaluwarsa.' : '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
-
-        final existing = await db.query(tableNotifications, where: 'related_pantry_id = ? AND title = ? AND created_at >= ? AND user_id = ?', whereArgs: [item.id, title, todayStart, targetUserId]);
-        if (existing.isEmpty) {
-          final id = await addNotification(NotificationModel(userId: targetUserId, title: title, message: message, type: 'expiry_warning', iconType: 'warning', relatedPantryId: item.id, createdAt: DateTime.now()));
-          try {
-            await NotificationService.instance.showSystemNotification(id: id, title: title, body: message);
-          } catch (_) {}
-        }
-      }
-    }
-  }
-
-  static const List<Map<String, String>> _mealConfigs = [
-    {'type': 'Sarapan', 'enabledKey': AppConstants.keyNotifBreakfastEnabled, 'timeKey': AppConstants.keyNotifBreakfastTime, 'defaultTime': '07:30', 'title': 'Saatnya sarapan', 'message': 'Jangan lupa catat sarapanmu hari ini untuk tracking kalori.'},
-    {'type': 'Makan Siang', 'enabledKey': AppConstants.keyNotifLunchEnabled, 'timeKey': AppConstants.keyNotifLunchTime, 'defaultTime': '12:30', 'title': 'Saatnya makan siang', 'message': 'Jangan lupa catat makan siangmu hari ini untuk tracking kalori.'},
-    {'type': 'Makan Malam', 'enabledKey': AppConstants.keyNotifDinnerEnabled, 'timeKey': AppConstants.keyNotifDinnerTime, 'defaultTime': '19:00', 'title': 'Saatnya makan malam', 'message': 'Jangan lupa catat makan malammu hari ini untuk tracking kalori.'},
-  ];
-
-  Future<void> checkMealRemindersAndCreateNotifications({int? userId}) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true)) return;
-
-    final targetUserId = userId ?? await getActiveUserId();
-    if (targetUserId == null) return;
-
-    final db = await database;
-    final now = DateTime.now();
-    final todayStr = AppDateFormatter.formatToday();
-    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
-
-    for (final meal in _mealConfigs) {
-      if (!(prefs.getBool(meal['enabledKey']!) ?? true)) continue;
-
-      final timeStr = prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
-      final parts = timeStr.split(':');
-      final targetHour = int.tryParse(parts[0]) ?? 12;
-      final targetMinute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
-
-      final scheduledTime = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
-      if (now.isBefore(scheduledTime)) continue;
-
-      final logs = await db.query(tableFoodLogs, where: 'date = ? AND meal_type = ? AND user_id = ?', whereArgs: [todayStr, meal['type']!, targetUserId]);
-      if (logs.isEmpty) {
-        final title = meal['title']!;
-        final existing = await db.query(tableNotifications, where: 'type = ? AND title = ? AND created_at >= ? AND user_id = ?', whereArgs: ['meal_reminder', title, startOfDay, targetUserId]);
-        if (existing.isEmpty) {
-          final notif = NotificationModel(userId: targetUserId, title: title, message: meal['message']!, type: 'meal_reminder', iconType: 'restaurant', createdAt: now);
-          final id = await addNotification(notif);
-          try {
-            await NotificationService.instance.showSystemNotification(id: id, title: notif.title, body: notif.message);
-          } catch (_) {}
-        }
-      }
-    }
-  }
-
-  Future<void> _checkAndNotify(Database db, String keyword, String startOfDay, String title, String message, NotificationModel? Function() getContainer, void Function(NotificationModel) setContainer, {required int userId}) async {
-    final existing = await db.query(tableNotifications, where: 'title LIKE ? AND created_at >= ? AND user_id = ?', whereArgs: ['%$keyword%', startOfDay, userId]);
-    if (existing.isEmpty) {
-      final notif = NotificationModel(userId: userId, title: title, message: message, type: 'nutrition_excess', iconType: 'warning', createdAt: DateTime.now());
-      final id = await addNotification(notif);
-      try {
-        await NotificationService.instance.showSystemNotification(id: id, title: notif.title, body: notif.message);
-      } catch (_) {}
-      if (getContainer() == null) {
-        setContainer(NotificationModel(id: id, userId: userId, title: notif.title, message: notif.message, type: notif.type, iconType: notif.iconType, isRead: false, createdAt: notif.createdAt));
-      }
-    }
-  }
-
-  Future<NotificationModel?> checkNutritionExcess({int? userId}) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true)) return null;
-
-    final targetUserId = userId ?? await getActiveUserId();
-    if (targetUserId == null) return null;
-
-    final db = await database;
-    final todayStr = AppDateFormatter.formatToday();
-    final logs = await db.query(tableFoodLogs, where: 'date = ? AND user_id = ?', whereArgs: [todayStr, targetUserId]);
-    if (logs.isEmpty) return null;
-
-    int totalCalories = 0;
-    double totalProtein = 0, totalCarbs = 0, totalFat = 0, totalCholesterol = 0;
-    for (var log in logs) {
-      totalCalories += (log['calories'] as num).toInt();
-      totalProtein += (log['protein'] as num).toDouble();
-      totalCarbs += (log['carbs'] as num).toDouble();
-      totalFat += (log['fat'] as num).toDouble();
-      totalCholesterol += ((log['cholesterol'] as num?) ?? 0.0).toDouble();
-    }
-
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
-    NotificationModel? result;
-    void setResult(NotificationModel n) => result ??= n;
-
-    final rules = [
-      if (totalFat >= 67.0) ('Lemak', 'Peringatan Lemak Tinggi!', 'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & makanan berminyak.'),
-      if (totalCalories > 2000) ('Kalori', 'Peringatan Kalori Berlebih!', 'Total asupan kalori ($totalCalories kcal / 2000 kcal) telah melebihi target harian Anda.'),
-      if (totalCholesterol > 300.0) ('Kolesterol', 'Peringatan Kolesterol Tinggi!', 'Asupan kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) telah melebihi batas anjuran harian Kemenkes (300mg). Batasi makanan hewani tinggi lemak dan jeroan.'),
-      if (totalCarbs > 300.0) ('Karbohidrat', 'Peringatan Karbohidrat Tinggi!', 'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.'),
-      if (totalProtein > 65.0) ('Protein', 'Peringatan Protein Tinggi!', 'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian.'),
-    ];
-
-    for (final rule in rules) {
-      await _checkAndNotify(db, rule.$1, startOfDay, rule.$2, rule.$3, () => result, setResult, userId: targetUserId);
-    }
-    return result;
   }
 }
 

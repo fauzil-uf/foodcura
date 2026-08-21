@@ -22,11 +22,10 @@ class PantryScreen extends StatefulWidget {
 class _PantryScreenState extends State<PantryScreen> {
   final _controller = PantryController();
   final TextEditingController _searchController = TextEditingController();
-  int _selectedFilter = 0; // 0=Semua, 1=Urgent, 2=Segera, 3=Aman
+  int _selectedFilter = 0;
   int _unreadNotifCount = 0;
-  int _urgentAndSegeraCount = 0;
 
-  final List<String> _filters = [
+  static const List<String> _filters = [
     'Semua',
     'Urgent',
     'Segera (3-5 hari)',
@@ -76,7 +75,7 @@ class _PantryScreenState extends State<PantryScreen> {
 
   /// Mengubah filter status kedaluwarsa (Semua, Urgent, Segera, Aman) berdasarkan indeks filter.
   void _onFilterChanged(int index) {
-    _selectedFilter = index;
+    setState(() => _selectedFilter = index);
     String? filter;
     switch (index) {
       case 1:
@@ -125,8 +124,10 @@ class _PantryScreenState extends State<PantryScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          AddPantryItemModal(onItemAdded: () => _controller.loadPantryData()),
+      builder: (_) => AddPantryItemModal(
+        controller: _controller,
+        onItemAdded: () => _controller.loadPantryData(),
+      ),
     );
   }
 
@@ -138,6 +139,7 @@ class _PantryScreenState extends State<PantryScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => PantryItemDetailModal(
         item: item,
+        controller: _controller,
         onItemUpdated: () => _controller.loadPantryData(),
       ),
     );
@@ -183,7 +185,7 @@ class _PantryScreenState extends State<PantryScreen> {
   Widget build(BuildContext context) {
     final counts = _controller.statusCounts;
     // Akumulasi status urgent dan segera untuk kalkulasi badge peringatan resiko kedaluwarsa kulkas.
-    _urgentAndSegeraCount = (counts['urgent'] ?? 0) + (counts['segera'] ?? 0);
+    final urgentAndSegeraCount = (counts['urgent'] ?? 0) + (counts['segera'] ?? 0);
     _unreadNotifCount = _controller.unreadNotifications;
 
     final grouped = _groupByExpiry();
@@ -231,9 +233,9 @@ class _PantryScreenState extends State<PantryScreen> {
                                 const SizedBox(height: 16),
 
                                 // Summary alert
-                                if (_urgentAndSegeraCount > 0 &&
+                                if (urgentAndSegeraCount > 0 &&
                                     _selectedFilter == 0) ...[
-                                  _buildSummaryAlert(),
+                                  _buildSummaryAlert(urgentAndSegeraCount),
                                   const SizedBox(height: 16),
                                 ],
 
@@ -416,7 +418,7 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  Widget _buildSummaryAlert() {
+  Widget _buildSummaryAlert(int count) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
@@ -446,7 +448,7 @@ class _PantryScreenState extends State<PantryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$_urgentAndSegeraCount bahan perlu segera digunakan',
+                  '$count bahan perlu segera digunakan',
                   style: AppTextStyles.bodyMd.copyWith(
                     fontWeight: FontWeight.w700,
                     color: AppColors.deepForest,

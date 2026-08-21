@@ -3,18 +3,20 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
-import '../../../database/db_helper.dart';
+import '../../../controllers/pantry_controller.dart';
 import '../../../models/pantry_item_model.dart';
 import '../../widgets/app_food_image.dart';
 import 'add_pantry_item_modal.dart';
 
 class PantryItemDetailModal extends StatefulWidget {
   final PantryItemModel item;
+  final PantryController? controller;
   final VoidCallback onItemUpdated;
 
   const PantryItemDetailModal({
     super.key,
     required this.item,
+    this.controller,
     required this.onItemUpdated,
   });
 
@@ -23,12 +25,13 @@ class PantryItemDetailModal extends StatefulWidget {
 }
 
 class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
-  final DBHelper _db = DBHelper();
+  late final PantryController _controller;
   late PantryItemModel _currentItem;
 
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? PantryController();
     _currentItem = widget.item;
   }
 
@@ -36,7 +39,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
   Future<void> _markAsUsed() async {
     if (_currentItem.id != null) {
       final savedItem = _currentItem;
-      await _db.markPantryItemUsed(_currentItem.id!);
+      await _controller.markItemUsed(_currentItem.id!);
 
       if (mounted) {
         widget.onItemUpdated();
@@ -181,7 +184,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     );
 
     if (confirm == true && _currentItem.id != null) {
-      await _db.deletePantryItem(_currentItem.id!);
+      await _controller.deleteItem(_currentItem.id!);
       if (mounted) {
         widget.onItemUpdated();
         Navigator.pop(context);
@@ -204,6 +207,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
       backgroundColor: Colors.transparent,
       builder: (_) => AddPantryItemModal(
         itemToEdit: _currentItem,
+        controller: _controller,
         onItemAdded: widget.onItemUpdated,
       ),
     );

@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../database/db_helper.dart';
+import '../../controllers/auth_controller.dart';
 import '../widgets/app_text_field.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -19,11 +19,13 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final emailController = TextEditingController();
+  final _authController = AuthController();
   bool _loading = false;
 
   @override
   void dispose() {
     emailController.dispose();
+    _authController.dispose();
     super.dispose();
   }
 
@@ -37,7 +39,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     setState(() => _loading = true);
-    final terdaftar = await DBHelper().isEmailRegistered(email);
+    final terdaftar = await _authController.isEmailRegistered(email);
     setState(() => _loading = false);
 
     if (!mounted) return;

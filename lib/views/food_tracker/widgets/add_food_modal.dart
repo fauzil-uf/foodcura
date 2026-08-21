@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
-import '../../../database/db_helper.dart';
+import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
@@ -11,12 +11,14 @@ import '../../widgets/app_food_image.dart';
 class AddFoodModal extends StatefulWidget {
   final String initialMealType;
   final DateTime? targetDate;
+  final FoodTrackerController? controller;
   final VoidCallback onFoodAdded;
 
   const AddFoodModal({
     super.key,
     required this.initialMealType,
     this.targetDate,
+    this.controller,
     required this.onFoodAdded,
   });
 
@@ -25,6 +27,7 @@ class AddFoodModal extends StatefulWidget {
 }
 
 class _AddFoodModalState extends State<AddFoodModal> {
+  late final FoodTrackerController _controller;
   late String _selectedMeal;
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
@@ -65,14 +68,15 @@ class _AddFoodModalState extends State<AddFoodModal> {
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? FoodTrackerController();
     _selectedMeal = widget.initialMealType;
     _loadData();
   }
 
   /// Memuat katalog makanan lengkap dan 6 makanan terakhir yang pernah dicatat dari SQLite.
   Future<void> _loadData() async {
-    final catalog = await DBHelper().getFoodCatalog();
-    final recent = await DBHelper().getRecentAddedFoods(limit: 6);
+    final catalog = await _controller.getFoodCatalog();
+    final recent = await _controller.getRecentAddedFoods(limit: 6);
     if (mounted) {
       setState(() {
         _catalogFoods = catalog;
@@ -133,7 +137,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
       note: _noteController.text.trim(),
     );
 
-    final notif = await DBHelper().addFoodLog(log);
+    final notif = await _controller.addFoodLog(log);
     widget.onFoodAdded();
     if (mounted) {
       Navigator.pop(context);

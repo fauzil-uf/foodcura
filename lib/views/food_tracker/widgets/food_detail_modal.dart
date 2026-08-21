@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
-import '../../../database/db_helper.dart';
+import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 
 /// Modal rincian lengkap makronutrisi makanan tercatat dengan fitur edit catatan dan hapus riwayat log.
 class FoodDetailModal extends StatefulWidget {
   final FoodLogModel log;
+  final FoodTrackerController? controller;
   final VoidCallback onLogDeleted;
 
   const FoodDetailModal({
     super.key,
     required this.log,
+    this.controller,
     required this.onLogDeleted,
   });
 
@@ -22,12 +24,14 @@ class FoodDetailModal extends StatefulWidget {
 }
 
 class _FoodDetailModalState extends State<FoodDetailModal> {
+  late final FoodTrackerController _controller;
   late TextEditingController _noteController;
   bool _isEditingNote = false;
 
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? FoodTrackerController();
     _noteController = TextEditingController(text: widget.log.note ?? '');
   }
 
@@ -41,128 +45,92 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
   Future<void> _deleteFood() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (ctx) {
         return AlertDialog(
-          backgroundColor: AppColors.white,
-          surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
           ),
-          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          title: Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.errorContainer,
+                  color: AppColors.errorContainer.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.error.withValues(alpha: 0.2),
-                    width: 1.5,
-                  ),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.error,
-                    size: 28,
-                  ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.error,
+                  size: 24,
                 ),
               ),
-              const SizedBox(height: 16),
-
-              Text(
-                'Hapus Catatan Makanan',
-                style: AppTextStyles.heading2.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.deepForest,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: AppTextStyles.bodyMd.copyWith(
-                    fontSize: 13.5,
-                    color: AppColors.textGray,
-                    height: 1.45,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Apakah Anda yakin ingin menghapus '),
-                    TextSpan(
-                      text: widget.log.foodName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.deepForest,
-                      ),
-                    ),
-                    const TextSpan(
-                      text:
-                          ' dari catatan makanan? Data yang dihapus tidak dapat dikembalikan.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(
-                        'Batal',
-                        style: AppTextStyles.buttonSmall.copyWith(
-                          color: AppColors.textGray,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.error,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(
-                        'Hapus',
-                        style: AppTextStyles.buttonSmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              const Text(
+                'Hapus Catatan',
+                style: AppTextStyles.heading2,
               ),
             ],
           ),
+          content: Text(
+            'Apakah kamu yakin ingin menghapus "${widget.log.foodName}" dari catatan makanan?',
+            style: AppTextStyles.bodyMd.copyWith(
+              color: AppColors.textGray,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(
+                      'Batal',
+                      style: AppTextStyles.buttonSmall.copyWith(
+                        color: AppColors.textGray,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(
+                      'Hapus',
+                      style: AppTextStyles.buttonSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         );
       },
     );
 
     if (confirm == true && widget.log.id != null) {
-      await DBHelper().deleteFoodLog(widget.log.id!);
+      await _controller.deleteFoodLog(widget.log.id!);
       widget.onLogDeleted();
       if (mounted) {
         Navigator.pop(context);
@@ -179,22 +147,10 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
   /// Menyimpan atau memperbarui catatan kustom pengguna terkait menu makanan yang disantap.
   Future<void> _saveNote() async {
     if (widget.log.id != null) {
-      final updatedLog = FoodLogModel(
-        id: widget.log.id,
-        userId: widget.log.userId,
-        foodName: widget.log.foodName,
-        mealType: widget.log.mealType,
-        calories: widget.log.calories,
-        protein: widget.log.protein,
-        carbs: widget.log.carbs,
-        fat: widget.log.fat,
-        cholesterol: widget.log.cholesterol,
-        imagePath: widget.log.imagePath,
-        time: widget.log.time,
-        date: widget.log.date,
+      final updatedLog = widget.log.copyWith(
         note: _noteController.text.trim(),
       );
-      await DBHelper().updateFoodLog(updatedLog);
+      await _controller.updateFoodLog(updatedLog);
       widget.onLogDeleted();
       setState(() {
         _isEditingNote = false;

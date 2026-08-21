@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
-import '../../../database/db_helper.dart';
+import '../../../controllers/pantry_controller.dart';
 import '../../../database/pantry_grocery_catalog.dart';
 import '../../../models/pantry_ingredient_model.dart';
 import '../../../models/pantry_item_model.dart';
@@ -13,11 +13,13 @@ import '../../widgets/app_food_image.dart';
 class AddPantryItemModal extends StatefulWidget {
   final VoidCallback onItemAdded;
   final PantryItemModel? itemToEdit;
+  final PantryController? controller;
 
   const AddPantryItemModal({
     super.key,
     required this.onItemAdded,
     this.itemToEdit,
+    this.controller,
   });
 
   @override
@@ -25,7 +27,7 @@ class AddPantryItemModal extends StatefulWidget {
 }
 
 class _AddPantryItemModalState extends State<AddPantryItemModal> {
-  final DBHelper _db = DBHelper();
+  late final PantryController _controller;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
@@ -77,6 +79,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? PantryController();
     if (widget.itemToEdit != null) {
       final item = widget.itemToEdit!;
       _nameController.text = item.name;
@@ -211,9 +214,9 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     );
 
     if (widget.itemToEdit != null) {
-      await _db.updatePantryItem(item);
+      await _controller.updatePantryItem(item);
     } else {
-      await _db.addPantryItem(item);
+      await _controller.addPantryItem(item);
     }
 
     setState(() => _saving = false);
