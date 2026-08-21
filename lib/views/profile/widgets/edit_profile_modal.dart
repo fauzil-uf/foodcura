@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
-import '../../../controllers/auth_controller.dart';
+import '../../../controllers/profile_controller.dart';
 import '../../../models/user_model.dart';
 
 /// Modal lembar bawah untuk mengedit nama lengkap dan alamat email akun profil pengguna.
 class EditProfileModal extends StatefulWidget {
   final UserModelSQL? user;
-  final AuthController authController;
+  final ProfileController controller;
 
   const EditProfileModal({
     super.key,
     required this.user,
-    required this.authController,
+    required this.controller,
   });
 
   @override
@@ -160,7 +160,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
                   final newEmail = _emailCtrl.text.trim();
                   if (newName.isEmpty || newEmail.isEmpty) return;
 
-                  final success = await widget.authController.updateProfile(
+                  final success = await widget.controller.updateProfile(
                     name: newName,
                     email: newEmail,
                   );

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_date_formatter.dart';
 import '../../constants/app_typography.dart';
-import '../../controllers/auth_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../auth/login_screen.dart';
@@ -26,7 +25,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   final _profileController = ProfileController();
-  final _authController = AuthController();
 
   UserModelSQL? get _user => _profileController.user;
   int get _streak => _profileController.streak;
@@ -80,7 +78,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     _profileController.removeListener(_onProfileChanged);
     _profileController.dispose();
     _animController.dispose();
-    _authController.dispose();
     super.dispose();
   }
 
@@ -115,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       backgroundColor: Colors.transparent,
       builder: (_) => EditProfileModal(
         user: _user,
-        authController: _authController,
+        controller: _profileController,
       ),
     );
 
@@ -205,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
 
     if (confirm == true && mounted) {
-      await _authController.logout();
+      await _profileController.logout();
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
