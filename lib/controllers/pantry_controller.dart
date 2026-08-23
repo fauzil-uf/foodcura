@@ -43,6 +43,28 @@ class PantryController extends ChangeNotifier {
     return grouped;
   }
 
+  /// Mengelompokkan item berdasarkan status kedaluwarsa (urgent/expired, segera, aman)
+  Map<String, List<PantryItemModel>> get groupedByExpiry {
+    final urgent = <PantryItemModel>[];
+    final segera = <PantryItemModel>[];
+    final aman = <PantryItemModel>[];
+    for (final item in _items) {
+      switch (item.expiryStatus) {
+        case 'expired':
+        case 'urgent':
+          urgent.add(item);
+          break;
+        case 'segera':
+          segera.add(item);
+          break;
+        default:
+          aman.add(item);
+      }
+    }
+    return {'urgent': urgent, 'segera': segera, 'aman': aman};
+  }
+
+
   /// Memuat data inventaris dan menghitung ringkasan status
   Future<void> loadPantryData() async {
     _isLoading = true;
@@ -61,7 +83,20 @@ class PantryController extends ChangeNotifier {
         }
         _items = list;
       } else {
-        _items = await _db.getPantryItems(filter: _selectedFilter);
+        var list = await _db.getPantryItems();
+        if (_selectedFilter != null && _selectedFilter != 'Semua') {
+          final f = _selectedFilter!.toLowerCase();
+          if (f == 'urgent' || f == 'danger') {
+            list = list.where((i) => i.expiryStatus == 'urgent' || i.expiryStatus == 'expired' || i.daysUntilExpiry <= 2).toList();
+          } else if (f == 'segera' || f == 'warning') {
+            list = list.where((i) => i.expiryStatus == 'segera' || (i.daysUntilExpiry > 2 && i.daysUntilExpiry <= 5)).toList();
+          } else if (f == 'aman' || f == 'safe') {
+            list = list.where((i) => i.expiryStatus == 'aman' || i.daysUntilExpiry > 5).toList();
+          } else {
+            list = list.where((i) => i.storage.toLowerCase() == f).toList();
+          }
+        }
+        _items = list;
       }
 
       // 2. Ambil data ringkasan status & notifikasi

@@ -4,6 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
+import '../widgets/app_filter_chip_row.dart';
 import '../widgets/app_top_bar.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -96,47 +97,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final isSelected = _selectedFilter == index;
-                    return GestureDetector(
-                      onTap: () => _onFilterChanged(index),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                          border: isSelected
-                              ? null
-                              : Border.all(color: AppColors.surfaceDim),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _filters[index],
-                            style: AppTextStyles.chipText.copyWith(
-                              fontSize: 13,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : AppColors.textGray,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              child: AppFilterChipRow(
+                filters: _filters,
+                selectedIndex: _selectedFilter,
+                onChanged: _onFilterChanged,
               ),
             ),
 

@@ -44,15 +44,6 @@ class PreferenceHandler {
   /// Mengecek apakah onboarding sudah pernah dilihat
   static bool get hasSeenOnboarding => _prefs.getBool('hasSeenOnboarding') ?? false;
 
-  /// Mengambil jumlah hari beruntun (streak) mencatat makanan milik pengguna.
-  static int getStreak(int userId) {
-    return _prefs.getInt('user_streak_$userId') ?? 0;
-  }
-
-  /// Memperbarui jumlah hari beruntun (streak) pengguna ke SharedPreferences.
-  static Future<void> setStreak(int userId, int streak) async {
-    await _prefs.setInt('user_streak_$userId', streak);
-  }
 
   static SharedPreferences get prefs => _prefs;
 }

@@ -13,6 +13,8 @@ class AddFoodModal extends StatefulWidget {
   final DateTime? targetDate;
   final FoodTrackerController? controller;
   final VoidCallback onFoodAdded;
+  /// Jika diisi, modal tidak perlu query ulang ke database untuk daftar makanan terkini.
+  final List<FoodItemModel>? recentFoods;
 
   const AddFoodModal({
     super.key,
@@ -20,6 +22,7 @@ class AddFoodModal extends StatefulWidget {
     this.targetDate,
     this.controller,
     required this.onFoodAdded,
+    this.recentFoods,
   });
 
   @override
@@ -74,9 +77,10 @@ class _AddFoodModalState extends State<AddFoodModal> {
   }
 
   /// Memuat katalog makanan lengkap dan 6 makanan terakhir yang pernah dicatat dari SQLite.
+  /// Jika recentFoods sudah diteruskan dari luar, lewati query ke database untuk data tersebut.
   Future<void> _loadData() async {
     final catalog = await _controller.getFoodCatalog();
-    final recent = await _controller.getRecentAddedFoods(limit: 6);
+    final recent = widget.recentFoods ?? await _controller.getRecentAddedFoods(limit: 6);
     if (mounted) {
       setState(() {
         _catalogFoods = catalog;

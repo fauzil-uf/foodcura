@@ -15,8 +15,6 @@ class AppConstants {
 
   // SharedPreferences keys
   static const keyLoggedInUserId = 'logged_in_user_id';
-  static const keyStreakCount = 'user_streak_count';
-  static const keyStreakLastDate = 'user_streak_last_date';
 
   // Notification preference keys
   static const keyNotifExpiryAlert = 'notif_expiry_alert';

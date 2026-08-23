@@ -9,6 +9,7 @@ import '../../models/pantry_item_model.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_food_image.dart';
 import '../widgets/app_top_bar.dart';
+import '../widgets/app_filter_chip_row.dart';
 import 'widgets/add_pantry_item_modal.dart';
 import 'widgets/pantry_item_detail_modal.dart';
 
@@ -23,7 +24,6 @@ class _PantryScreenState extends State<PantryScreen> {
   final _controller = PantryController();
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0;
-  int _unreadNotifCount = 0;
 
   static const List<String> _filters = [
     'Semua',
@@ -38,8 +38,6 @@ class _PantryScreenState extends State<PantryScreen> {
     // Daftarkan listener controller lokal dan notifier global database.
     _controller.addListener(_onControllerChanged);
     _controller.loadPantryData();
-    NotificationNotifier.instance.addListener(_onNotifChanged);
-    NotificationNotifier.instance.refresh();
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
   }
 
@@ -48,7 +46,6 @@ class _PantryScreenState extends State<PantryScreen> {
     // Bersihkan seluruh listener saat keluar layar untuk menghemat memori.
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    NotificationNotifier.instance.removeListener(_onNotifChanged);
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     _searchController.dispose();
     super.dispose();
@@ -62,15 +59,6 @@ class _PantryScreenState extends State<PantryScreen> {
   /// Callback saat ada perubahan inventaris dari layar lain untuk memuat ulang stok dapur.
   void _onPantryChanged() {
     if (mounted) _controller.loadPantryData();
-  }
-
-  /// Callback untuk menyinkronkan counter lencana notifikasi yang belum dibaca.
-  void _onNotifChanged() {
-    if (mounted) {
-      setState(() {
-        _unreadNotifCount = NotificationNotifier.instance.value;
-      });
-    }
   }
 
   /// Mengubah filter status kedaluwarsa (Semua, Urgent, Segera, Aman) berdasarkan indeks filter.
@@ -124,9 +112,10 @@ class _PantryScreenState extends State<PantryScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // addPantryItem() di controller sudah memanggil loadPantryData() secara internal.
       builder: (_) => AddPantryItemModal(
         controller: _controller,
-        onItemAdded: () => _controller.loadPantryData(),
+        onItemAdded: () {},
       ),
     );
   }
@@ -145,9 +134,6 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  /// Memuat ulang seluruh daftar stok bahan dan status kedaluwarsa dari database SQLite.
-  void refreshData() => _controller.loadPantryData();
-
   /// Membuka halaman notifikasi dan me-refresh data stok saat kembali ke layar ini.
   void _openNotifications() {
     Navigator.push(
@@ -156,39 +142,14 @@ class _PantryScreenState extends State<PantryScreen> {
     ).then((_) => _controller.loadPantryData());
   }
 
-  /// Mengelompokkan bahan makanan ke dalam 3 kategori kedaluwarsa: urgent (H-1), segera (H-3 s/d H-5), dan aman.
-  Map<String, List<PantryItemModel>> _groupByExpiry() {
-    final urgentItems = <PantryItemModel>[];
-    final segeraItems = <PantryItemModel>[];
-    final amanItems = <PantryItemModel>[];
-
-    for (var item in _controller.items) {
-      switch (item.expiryStatus) {
-        case 'expired':
-        case 'urgent':
-          urgentItems.add(item);
-          break;
-        case 'segera':
-          segeraItems.add(item);
-          break;
-        case 'aman':
-          amanItems.add(item);
-          break;
-      }
-    }
-
-    return {'urgent': urgentItems, 'segera': segeraItems, 'aman': amanItems};
-  }
-
   /// Membangun antarmuka Pantry dengan radar kedaluwarsa bahan, filter lokasi simpan, dan daftar inventaris dapur.
   @override
   Widget build(BuildContext context) {
     final counts = _controller.statusCounts;
     // Akumulasi status urgent dan segera untuk kalkulasi badge peringatan resiko kedaluwarsa kulkas.
     final urgentAndSegeraCount = (counts['urgent'] ?? 0) + (counts['segera'] ?? 0);
-    _unreadNotifCount = _controller.unreadNotifications;
 
-    final grouped = _groupByExpiry();
+    final grouped = _controller.groupedByExpiry;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -199,7 +160,7 @@ class _PantryScreenState extends State<PantryScreen> {
               children: [
                 AppTopBar(
                   title: 'Pantry & Expiry',
-                  unreadNotifications: _unreadNotifCount,
+                  unreadNotifications: _controller.unreadNotifications,
                   onNotificationTap: _openNotifications,
                 ),
 
@@ -229,7 +190,11 @@ class _PantryScreenState extends State<PantryScreen> {
                                 const SizedBox(height: 16),
 
                                 // Filter tabs
-                                _buildFilterTabs(),
+                                AppFilterChipRow(
+                                  filters: _filters,
+                                  selectedIndex: _selectedFilter,
+                                  onChanged: _onFilterChanged,
+                                ),
                                 const SizedBox(height: 16),
 
                                 // Summary alert
@@ -380,43 +345,6 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  Widget _buildFilterTabs() {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _filters.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final isSelected = _selectedFilter == index;
-          return GestureDetector(
-            onTap: () => _onFilterChanged(index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: isSelected
-                    ? null
-                    : Border.all(color: AppColors.surfaceDim),
-              ),
-              child: Center(
-                child: Text(
-                  _filters[index],
-                  style: AppTextStyles.chipText.copyWith(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Colors.white : AppColors.textGray,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Widget _buildSummaryAlert(int count) {
     return Container(

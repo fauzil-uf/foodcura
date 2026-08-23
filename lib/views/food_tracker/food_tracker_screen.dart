@@ -84,6 +84,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
         initialMealType: mealType,
         targetDate: _controller.selectedDate,
         controller: _controller,
+        recentFoods: _controller.recentCatalog,
         onFoodAdded: _refreshData,
       ),
     );
@@ -154,102 +155,15 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       date: AppDateFormatter.formatToday(targetDate),
     );
 
+    // addFoodLog sudah memanggil loadData() secara internal — tidak perlu _refreshData() lagi.
     final notif = await _controller.addFoodLog(newLog);
-    await _refreshData();
 
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       if (notif != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            backgroundColor: AppColors.urgent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notif.title,
-                        style: AppTextStyles.buttonSmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        notif.message,
-                        style: AppTextStyles.caption.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        _showNutritionWarningSnackBar(notif.title, notif.message);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-            backgroundColor: AppColors.deepForest,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            content: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${food.name} Ditambahkan!',
-                        style: AppTextStyles.buttonSmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        '${food.calories} kcal dicatat ke $mealType',
-                        style: AppTextStyles.caption.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        _showFoodAddedSnackBar(food.name, food.calories, mealType);
       }
     }
 
@@ -260,6 +174,91 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
         _recentlyAddedFoodNames.remove(food.name);
       });
     }
+  }
+
+  /// Menampilkan SnackBar peringatan nutrisi berlebih (merah, 4 detik).
+  void _showNutritionWarningSnackBar(String title, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        backgroundColor: AppColors.urgent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.buttonSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    message,
+                    style: AppTextStyles.caption.copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Menampilkan SnackBar konfirmasi makanan berhasil dicatat (hijau, 2 detik).
+  void _showFoodAddedSnackBar(String foodName, int calories, String mealType) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppColors.deepForest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$foodName Ditambahkan!',
+                    style: AppTextStyles.buttonSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    '$calories kcal dicatat ke $mealType',
+                    style: AppTextStyles.caption.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Membangun antarmuka pelacak makanan dengan navigator tanggal, pencarian instan, ringkasan makronutrisi, dan tab waktu makan.
@@ -354,11 +353,8 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                           else
                             FoodMealTab(
                               mealType: _tabs[_selectedTabIndex],
-                              logs: _controller.allLogs
-                                  .where((log) => log.mealType == _tabs[_selectedTabIndex])
-                                  .toList(),
-                              totalCalories: _controller.allLogs
-                                  .where((log) => log.mealType == _tabs[_selectedTabIndex])
+                              logs: _controller.filteredLogs,
+                              totalCalories: _controller.filteredLogs
                                   .fold(0, (sum, item) => sum + item.calories),
                               selectedDate: _controller.selectedDate,
                               recentCatalog: _controller.recentCatalog,

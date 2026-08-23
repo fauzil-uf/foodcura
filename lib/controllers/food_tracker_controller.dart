@@ -60,10 +60,9 @@ class FoodTrackerController extends ChangeNotifier {
       ? _allLogs
       : _allLogs.where((l) => l.mealType == _tabs[_selectedTabIndex]).toList();
 
-  List<FoodLogModel> get sarapanLogs => _allLogs.where((l) => l.mealType == 'Sarapan').toList();
-  List<FoodLogModel> get makanSiangLogs => _allLogs.where((l) => l.mealType == 'Makan Siang').toList();
-  List<FoodLogModel> get makanMalamLogs => _allLogs.where((l) => l.mealType == 'Makan Malam').toList();
-  List<FoodLogModel> get camilanLogs => _allLogs.where((l) => l.mealType == 'Camilan').toList();
+  /// Helper: mendapatkan log berdasarkan nama meal type secara generik.
+  List<FoodLogModel> logsForMeal(String mealType) =>
+      _allLogs.where((l) => l.mealType == mealType).toList();
 
   int get totalCalories => _allLogs.fold(0, (sum, log) => sum + log.calories);
   double get totalProtein => _allLogs.fold(0.0, (sum, log) => sum + log.protein);

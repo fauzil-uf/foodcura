@@ -57,7 +57,43 @@ class ReminderService {
 
     for (var item in items) {
       final days = item.daysUntilExpiry;
-      if (days <= 5) {
+
+      // 1. Peringatan Dini 1 Bulan Sebelum Kedaluwarsa (H-30 / rentang 28-30 hari)
+      // Dikirim HANYA SEKALI per item agar pengguna dapat merencanakan stok jauh-jauh hari.
+      if (days >= 28 && days <= 30) {
+        final title = 'Pengingat 1 Bulan: ${item.name}';
+        final message =
+            '${item.name} di ${item.storage.toLowerCase()} akan kedaluwarsa dalam $days hari. Rencanakan penggunaannya agar tidak terbuang!';
+
+        final alreadyNotified = await db.query(
+          DBHelper.tableNotifications,
+          where: 'related_pantry_id = ? AND title LIKE ? AND user_id = ?',
+          whereArgs: [item.id, 'Pengingat 1 Bulan%', targetUserId],
+        );
+
+        if (alreadyNotified.isEmpty) {
+          final id = await _db.addNotification(
+            NotificationModel(
+              userId: targetUserId,
+              title: title,
+              message: message,
+              type: 'expiry_warning',
+              iconType: 'lightbulb',
+              relatedPantryId: item.id,
+              createdAt: DateTime.now(),
+            ),
+          );
+          try {
+            await _notificationService.showSystemNotification(
+              id: id,
+              title: title,
+              body: message,
+            );
+          } catch (_) {}
+        }
+      }
+      // 2. Peringatan Bertahap Saat Masuk Status Segera / Urgent / Expired (H-5 s/d H-0)
+      else if (days <= 5) {
         final title = days <= 0
             ? '${item.name} sudah kadaluwarsa!'
             : days <= 2

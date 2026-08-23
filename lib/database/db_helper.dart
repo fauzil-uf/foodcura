@@ -27,7 +27,6 @@ class DBHelper {
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB();
-    await _ensureDataIntegrity(_database!);
     return _database!;
   }
 
@@ -45,54 +44,6 @@ class DBHelper {
       },
       onDowngrade: onDatabaseDowngradeDelete,
     );
-  }
-
-  Future<void> _ensureDataIntegrity(Database db) async {
-    try {
-      final nonZeroChol = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM $tableFoods WHERE cholesterol > 0'),
-      ) ?? 0;
-      final okezoneInFoods = Sqflite.firstIntValue(
-        await db.rawQuery("SELECT COUNT(*) FROM $tableFoods WHERE image_path LIKE '%okezone%'"),
-      ) ?? 0;
-
-      if (nonZeroChol < 50 || okezoneInFoods > 0) {
-        await _seedDatabase(db);
-      }
-
-      // Perbarui log makanan lama yang masih menggunakan URL gambar lama/okezone
-      await db.rawUpdate('''
-        UPDATE $tableFoodLogs 
-        SET image_path = (
-          SELECT $tableFoods.image_path 
-          FROM $tableFoods 
-          WHERE LOWER(TRIM($tableFoods.name)) = LOWER(TRIM($tableFoodLogs.food_name)) 
-          LIMIT 1
-        )
-        WHERE image_path LIKE '%okezone%'
-           OR food_name = 'Rujak Buah'
-           OR food_name LIKE 'Dada Ayam%';
-      ''');
-
-      // Perbarui nama menu lama jika masih 'Dada Ayam Panggang & Salad'
-      await db.rawUpdate('''
-        UPDATE $tableFoodLogs 
-        SET food_name = 'Dada Ayam Panggang',
-            calories = 284,
-            protein = 31.0,
-            carbs = 0.0,
-            fat = 15.0,
-            cholesterol = 85.0
-        WHERE food_name = 'Dada Ayam Panggang & Salad';
-      ''');
-
-      // Pastikan pengguna lama memiliki nilai created_at yang valid
-      await db.rawUpdate('''
-        UPDATE ${AppConstants.tableUsers}
-        SET created_at = ?
-        WHERE created_at IS NULL OR TRIM(created_at) = '';
-      ''', [DateTime.now().toIso8601String()]);
-    } catch (_) {}
   }
 
   Future<void> _createTables(Database db) async {
@@ -182,23 +133,6 @@ class DBHelper {
         }
       }
       await batch.commit(noResult: true);
-
-      // Sinkronisasi data kolesterol pada catatan makanan lama yang bernilai 0 / NULL
-      await db.rawUpdate('''
-        UPDATE $tableFoodLogs 
-        SET cholesterol = (
-          SELECT $tableFoods.cholesterol 
-          FROM $tableFoods 
-          WHERE LOWER(TRIM($tableFoods.name)) = LOWER(TRIM($tableFoodLogs.food_name)) 
-          LIMIT 1
-        )
-        WHERE (cholesterol = 0 OR cholesterol IS NULL)
-          AND EXISTS (
-            SELECT 1 FROM $tableFoods 
-            WHERE LOWER(TRIM($tableFoods.name)) = LOWER(TRIM($tableFoodLogs.food_name)) 
-              AND $tableFoods.cholesterol > 0
-          )
-      ''');
     } catch (_) {}
   }
 
@@ -228,7 +162,7 @@ class DBHelper {
 
     final todayStr = AppDateFormatter.formatToday();
     final logs = [
-      FoodLogModel(userId: userId, foodName: 'Oatmeal Buah Segar', mealType: 'Sarapan', calories: 320, protein: 11.5, carbs: 54.0, fat: 5.5, cholesterol: 0.0, imagePath: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=500', time: '07:30', date: todayStr, note: 'Menu sarapan sehat kaya serat.'),
+      FoodLogModel(userId: userId, foodName: 'Roti Gandum Panggang', mealType: 'Sarapan', calories: 260, protein: 9.0, carbs: 44.0, fat: 5.0, cholesterol: 0.0, imagePath: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500', time: '07:30', date: todayStr, note: 'Menu sarapan praktis kaya serat dan energi.'),
       FoodLogModel(userId: userId, foodName: 'Dada Ayam Panggang', mealType: 'Makan Siang', calories: 284, protein: 31.0, carbs: 0.0, fat: 15.0, cholesterol: 85.0, imagePath: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=500', time: '12:30', date: todayStr, note: 'Tinggi protein untuk energi.'),
       FoodLogModel(userId: userId, foodName: 'Rujak Buah', mealType: 'Camilan', calories: 200, protein: 1.0, carbs: 24.0, fat: 11.0, cholesterol: 0.0, imagePath: 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500', time: '16:00', date: todayStr, note: 'Camilan buah segar kaya serat & vitamin C.'),
       FoodLogModel(userId: userId, foodName: 'Ikan Bandeng Bakar', mealType: 'Makan Malam', calories: 250, protein: 26.0, carbs: 2.0, fat: 15.0, cholesterol: 60.0, imagePath: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500', time: '19:30', date: todayStr, note: 'Menu makan malam kaya omega-3.'),
@@ -357,14 +291,6 @@ class DBHelper {
 
   Future<List<FoodItemModel>> getFoodCatalog() async {
     final db = await database;
-    final nonZeroCholCheck = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM $tableFoods WHERE cholesterol > 0'),
-    ) ?? 0;
-
-    if (nonZeroCholCheck < 50) {
-      await _seedDatabase(db);
-    }
-
     final results = await db.rawQuery('SELECT * FROM $tableFoods GROUP BY LOWER(TRIM(name))');
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
   }
@@ -463,34 +389,20 @@ class DBHelper {
     return res;
   }
 
-  Future<List<PantryItemModel>> getPantryItems({String? filter, int? userId}) async {
+  /// Mengambil semua bahan aktif (belum digunakan) milik user, diurutkan berdasarkan tanggal kedaluwarsa.
+  /// Logika filter status/penyimpanan ditangani oleh PantryController (Separation of Concerns).
+  Future<List<PantryItemModel>> getPantryItems({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
 
     final db = await database;
     final results = await db.query(
-      tablePantryItems, 
-      where: 'is_used = 0 AND user_id = ?', 
-      whereArgs: [targetUserId], 
-      orderBy: 'expiry_date ASC'
+      tablePantryItems,
+      where: 'is_used = 0 AND user_id = ?',
+      whereArgs: [targetUserId],
+      orderBy: 'expiry_date ASC',
     );
-    
-    var items = results.map((map) => PantryItemModel.fromMap(map)).toList();
-
-    if (filter != null && filter != 'Semua') {
-      final f = filter.toLowerCase();
-      if (f == 'urgent' || f == 'danger') {
-        items = items.where((i) => i.expiryStatus == 'urgent' || i.expiryStatus == 'expired' || i.daysUntilExpiry <= 2).toList();
-      } else if (f == 'segera' || f == 'warning') {
-        items = items.where((i) => i.expiryStatus == 'segera' || (i.daysUntilExpiry > 2 && i.daysUntilExpiry <= 5)).toList();
-      } else if (f == 'aman' || f == 'safe') {
-        items = items.where((i) => i.expiryStatus == 'aman' || i.daysUntilExpiry > 5).toList();
-      } else {
-        items = items.where((i) => i.storage.toLowerCase() == f).toList();
-      }
-    }
-
-    return items;
+    return results.map((map) => PantryItemModel.fromMap(map)).toList();
   }
 
   Future<List<PantryItemModel>> searchPantryItems(String query, {int? userId}) async {
