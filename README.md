@@ -51,45 +51,53 @@ FoodCura adalah aplikasi mobile cerdas berbasis Flutter yang menggabungkan penca
 
 ## 🏛️ Arsitektur Proyek (MVC Pattern)
 
-Aplikasi ini dibangun menggunakan arsitektur **Model-View-Controller (MVC)** yang bersih dan terisolasi:
+Aplikasi ini dibangun menggunakan arsitektur **Model-View-Controller (MVC)** yang bersih, terstruktur, dan terisolasi:
 
 ```
 lib/
-├── constants/          # Design tokens (AppColors, AppTypography, AppDecorations, AppImages, AppDateFormatter, ApiConstants)
-├── controllers/        # State & Business Logic layer (ChangeNotifier)
+├── constants/          # Design tokens & tema (AppColors, AppTypography, AppTheme, AppImages, AppConstants, AppDateFormatter, ApiConstants)
+├── controllers/        # State & Business Logic layer (ChangeNotifier & reactive state)
 │   ├── auth_controller.dart
 │   ├── dashboard_controller.dart
+│   ├── food_info_controller.dart
 │   ├── food_tracker_controller.dart
-│   ├── pantry_controller.dart
 │   ├── notification_controller.dart
+│   ├── pantry_controller.dart
+│   ├── profile_controller.dart
 │   └── quiz_controller.dart
-├── database/           # SQLite DBHelper & Reactive Notifiers
-├── models/             # Immutable data models & entities (UserModel, FoodItem, FoodLog, PantryItem, dll)
-├── services/           # External API integrations (Google Gemini AI Service)
+├── database/           # SQLite DBHelper, schema management, & katalog bahan mentah (pantry_grocery_catalog)
+├── models/             # Data models & entities (UserModel, FoodItemModel, FoodLogModel, PantryItemModel, QuizModel, dll)
+├── services/           # Layanan AI, Notifikasi, Perhitungan Nutrisi, Streak, Pengingat, & SharedPreferences
+│   ├── gemini_service.dart
+│   ├── notification_service.dart
+│   ├── nutrition_service.dart
+│   ├── preference_handler.dart
+│   ├── reminder_service.dart
+│   └── streak_service.dart
 └── views/              # Pure UI Presentation layer (Feature-Grouped)
-    ├── auth/           # Login, Register, Forgot Password
-    ├── dashboard/      # DashboardScreen & widgets (EcoImpactModal, QuizModal)
+    ├── auth/           # LoginScreen, RegisterScreen, ForgotPasswordScreen
+    ├── dashboard/      # DashboardScreen & widgets (QuizModal)
     ├── food_info/      # FoodInfoScreen & widgets (ArticleDetailModal)
-    ├── food_tracker/   # FoodTrackerScreen & widgets (AddFoodModal, AllCatalogModal, FoodDetailModal)
-    ├── navigation/     # MainNavigationScreen (5 tabs bottom bar)
+    ├── food_tracker/   # FoodTrackerScreen & widgets (AddFoodModal, AllCatalogModal, FoodDetailModal, FoodSummaryCard, FoodMealTab, dll)
+    ├── navigation/     # MainNavigationScreen (5 tabs bottom navigation bar)
     ├── notification/   # NotificationScreen
     ├── onboarding/     # SplashScreen, OnboardingScreen
     ├── pantry/         # PantryScreen & widgets (AddPantryItemModal, PantryItemDetailModal)
-    ├── profile/        # ProfileScreen, HelpCenterScreen
-    └── widgets/        # Common reusable components (AppFoodImage, AppLogo, AppTextField)
+    ├── profile/        # ProfileScreen, HelpCenterScreen & modals (EditProfileModal, NotificationSettingsModal, PrivacySecurityModal, AboutFoodCuraDialog)
+    └── widgets/        # Shared reusable UI widgets (AppCircularProgress, AppFilterChipRow, AppFoodImage, AppTextField, AppTopBar)
 ```
 
 ---
 
 ## 🤖 Integrasi Fitur Google Gemini AI
 
-FoodCura mengintegrasikan **Google Gemini AI Service** ([gemini_service.dart](lib/services/gemini_service.dart)) pada 3 pilar fitur:
-1. **AI Interactive Quiz** ([quiz_modal.dart](lib/views/dashboard/widgets/quiz_modal.dart)):
-   - Generator kuis dinamis 5 soal pilihan ganda interaktif bertema gizi, batas konsumsi gula/garam, dan penyimpanan makanan dengan Structured JSON mode & panjang opsi seimbang.
-2. **AI Daily Nutrition Coach** ([dashboard_controller.dart](lib/controllers/dashboard_controller.dart)):
+FoodCura mengintegrasikan **Google Gemini AI Service** ([gemini_service.dart](file:///d:/project/foodcura/lib/services/gemini_service.dart)) pada 3 pilar fitur:
+1. **AI Interactive Quiz** ([quiz_modal.dart](file:///d:/project/foodcura/lib/views/dashboard/widgets/quiz_modal.dart)):
+   - Generator kuis dinamis 5 soal pilihan ganda interaktif bertema gizi, batas konsumsi gula/garam, dan pencegahan pemborosan makanan dengan Structured JSON mode & panjang opsi seimbang.
+2. **AI Daily Nutrition Coach** ([dashboard_controller.dart](file:///d:/project/foodcura/lib/controllers/dashboard_controller.dart)):
    - Analisis otomatis asupan harian (kalori, protein, karbohidrat, lemak, dan kolesterol) dengan rekomendasi menu makanan personal secara real-time.
-3. **AI Eco Impact & Carbon Savings** ([pantry_controller.dart](lib/controllers/pantry_controller.dart)):
-   - Kalkulasi narasi apresiasi dampak lingkungan (estimasi kg CO₂e dicegah dan estimasi pengeluaran dapur dihemat) saat pengguna menyelamatkan bahan makanan dari kulkas.
+3. **AI Eco Impact & Carbon Savings** ([pantry_controller.dart](file:///d:/project/foodcura/lib/controllers/pantry_controller.dart)):
+   - Kalkulasi narasi apresiasi dampak lingkungan (estimasi kg CO₂e dicegah dan estimasi pengeluaran dapur dihemat) saat pengguna menandai bahan makanan habis termasak.
 4. **Multi-Model Fallback Chain**:
    - Mendukung model: `gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`, dan `gemini-flash-latest`.
    - Dilengkapi *Curated Offline Pool Fallback* sehingga fitur tetap dapat berjalan 100% lancar saat tanpa koneksi internet atau kuota API habis.
@@ -137,7 +145,7 @@ flutter analyze
 ```bash
 flutter test
 ```
-* **Coverage**: 16/16 Test Passed (AuthController, FoodTrackerController, PantryController, QuizController, AppDateFormatter, Typography & Widget Test).
+* **Coverage**: 29/29 Tests Passed (AuthController, DashboardController, FoodInfoController, FoodTrackerController, PantryController, NotificationController, QuizController, ProfileController, AppDateFormatter, StreakService, NutritionService, ReminderService, Widget & UI Tests).
 
 ---
 
@@ -146,29 +154,29 @@ flutter test
 ### **v2.0.0** — Major Architectural Redesign (MVC), Gemini AI & Complete Feature Suite (Current)
 #### [Added]
 - **Fitur AI Gemini & Edukasi Interaktif**:
-  - **AI Mini Quiz** ([food_info_screen.dart](lib/views/food_info/food_info_screen.dart) & [quiz_modal.dart](lib/views/dashboard/widgets/quiz_modal.dart)): Kuis edukasi gizi dan food waste berbasis AI Structured JSON mode.
+  - **AI Mini Quiz** ([food_info_screen.dart](file:///d:/project/foodcura/lib/views/food_info/food_info_screen.dart) & [quiz_modal.dart](file:///d:/project/foodcura/lib/views/dashboard/widgets/quiz_modal.dart)): Kuis edukasi gizi dan food waste berbasis AI Structured JSON mode.
   - **AI Nutrition Coach**: Analisis asupan makronutrisi dan saran menu di Dashboard.
   - **AI Eco Impact Calculator**: Narasi kalkulasi jejak karbon saat menyelamatkan stok makanan di Pantry.
-  - Integrasi **Google Gemini AI Service** ([gemini_service.dart](lib/services/gemini_service.dart)) dengan multi-model chain (`gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`, `gemini-flash-latest`) & Structured JSON mode.
-- **Fitur Profil Pengguna & Eco Points** ([profile_screen.dart](lib/views/profile/profile_screen.dart)):
+  - Integrasi **Google Gemini AI Service** ([gemini_service.dart](file:///d:/project/foodcura/lib/services/gemini_service.dart)) dengan multi-model chain (`gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`, `gemini-flash-latest`) & Structured JSON mode.
+- **Fitur Profil Pengguna & Eco Points** ([profile_screen.dart](file:///d:/project/foodcura/lib/views/profile/profile_screen.dart)):
   - Avatar dinamis Google Account-style berbasis inisial huruf dengan color palette modulo.
   - Tracking Eco Points, Streak harian, form edit profil, dan manajemen sesi login/logout.
-- **Fitur Pusat Bantuan** ([help_center_screen.dart](lib/views/profile/help_center_screen.dart)):
+- **Fitur Pusat Bantuan** ([help_center_screen.dart](file:///d:/project/foodcura/lib/views/profile/help_center_screen.dart)):
   - Live search bar bantuan, accordion FAQ terstruktur (Umum, Nutrisi, Food Waste, Akun & Keamanan), dan tombol Hubungi Kami.
 - **Arsitektur MVC & Grouping Berbasis Fitur**:
-  - Pemisahan 6 Controller murni: `AuthController`, `DashboardController`, `FoodTrackerController`, `PantryController`, `NotificationController`, `QuizController`.
+  - Pemisahan 8 Controller murni: `AuthController`, `DashboardController`, `FoodInfoController`, `FoodTrackerController`, `NotificationController`, `PantryController`, `ProfileController`, `QuizController`.
   - Restrukturisasi sub-folder `views` terisolasi per-fitur (`auth`, `dashboard`, `food_tracker`, `pantry`, `food_info`, `profile`, `notification`, `onboarding`, `navigation`).
 - **Ekspansi Test Suites**:
-  - Penambahan [controllers_test.dart](test/controllers_test.dart), [date_formatter_test.dart](test/date_formatter_test.dart), dan integrasi widget tests (16/16 tests passed).
+  - Penambahan [controllers_test.dart](file:///d:/project/foodcura/test/controllers_test.dart), [profile_controller_test.dart](file:///d:/project/foodcura/test/profile_controller_test.dart), [services_test.dart](file:///d:/project/foodcura/test/services_test.dart), [streak_test.dart](file:///d:/project/foodcura/test/streak_test.dart), [date_formatter_test.dart](file:///d:/project/foodcura/test/date_formatter_test.dart), dan integrasi widget tests (29/29 tests passed).
 - **Aset & Utilitas Baru**:
-  - Desain token [app_decorations.dart](lib/constants/app_decorations.dart) dan Google SVG Vector Icon (`assets/icons/google.svg`).
-  - Model domain baru: `ArticleModel`, `QuizQuestion`, dan reactive `EcoPointsNotifier`.
+  - Desain token [app_theme.dart](file:///d:/project/foodcura/lib/constants/app_theme.dart) dan Google SVG Vector Icon (`assets/icons/google.svg`).
+  - Model domain baru: `ArticleModel`, `QuizQuestion`, dan reactive notifiers.
 
 #### [Changed]
-- **Navigasi Utama 5 Tab**: Peningkatan [MainNavigationScreen](lib/views/navigation/main_navigation_screen.dart) mengintegrasikan Dashboard, Tracker, Pantry, Info Edukasi, dan Profil.
+- **Navigasi Utama 5 Tab**: Peningkatan [MainNavigationScreen](file:///d:/project/foodcura/lib/views/navigation/main_navigation_screen.dart) mengintegrasikan Dashboard, Tracker, Pantry, Info Edukasi, dan Profil.
 - **Refactoring Clean Code & Desain Tokens**:
   - Migrasi seluruh `.withOpacity(...)` usang ke `.withValues(alpha: ...)`.
-  - Sentralisasi konsisten pada `AppColors`, `AppTextStyles`, `AppDecorations`, dan `AppImages`.
+  - Sentralisasi konsisten pada `AppColors`, `AppTextStyles`, `AppTheme`, dan `AppImages`.
   - Penyesuaian `DBHelper` dengan optimasi query dan reaktifitas stream.
 
 #### [Fixed]
