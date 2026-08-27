@@ -8,7 +8,9 @@ import '../database/db_helper.dart';
 import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
+import '../services/app_notifiers.dart';
 import '../services/nutrition_service.dart';
+import '../services/streak_service.dart';
 
 /// Controller untuk mengelola pencatatan makanan, filter waktu makan,
 /// kalkulasi nutrisi harian, dan peringatan batas nutrisi.
@@ -214,6 +216,8 @@ class FoodTrackerController extends ChangeNotifier {
   Future<NotificationModel?> addFoodLog(FoodLogModel log) async {
     await _db.insertFoodLog(log);
     final notif = await _nutritionService.checkNutritionExcess(userId: log.userId);
+    await StreakService(db: _db).computeAndSaveStreak(userId: log.userId);
+    PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadData();
     return notif;
   }
@@ -222,6 +226,8 @@ class FoodTrackerController extends ChangeNotifier {
   Future<NotificationModel?> updateFoodLog(FoodLogModel log) async {
     await _db.updateFoodLog(log);
     final notif = await _nutritionService.checkNutritionExcess(userId: log.userId);
+    await StreakService(db: _db).computeAndSaveStreak(userId: log.userId);
+    PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadData();
     return notif;
   }
@@ -229,6 +235,8 @@ class FoodTrackerController extends ChangeNotifier {
   /// Menghapus log makanan berdasarkan id
   Future<void> deleteFoodLog(int id) async {
     await _db.deleteFoodLog(id);
+    await StreakService(db: _db).computeAndSaveStreak();
+    PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadData();
   }
 

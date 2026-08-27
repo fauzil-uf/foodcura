@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +10,8 @@ import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
+import '../services/app_notifiers.dart';
+import '../utils/security_helper.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -197,6 +198,7 @@ class DBHelper {
       final userMap = pengguna.toMap()..remove('id');
       userMap['email'] = pengguna.email.trim().toLowerCase();
       userMap['name'] = pengguna.name.trim();
+      userMap['password'] = SecurityHelper.hashPassword(pengguna.password);
       userMap['created_at'] = pengguna.createdAt ?? DateTime.now().toIso8601String();
 
       final id = await db.insert(AppConstants.tableUsers, userMap, conflictAlgorithm: ConflictAlgorithm.abort);
@@ -219,15 +221,39 @@ class DBHelper {
 
   Future<UserModelSQL?> loginUser(String email, String password) async {
     final db = await database;
-    final results = await db.query(AppConstants.tableUsers, where: 'LOWER(TRIM(email)) = ? AND password = ?', whereArgs: [email.trim().toLowerCase(), password], limit: 1);
+    final cleanEmail = email.trim().toLowerCase();
+    final results = await db.query(
+      AppConstants.tableUsers,
+      where: 'LOWER(TRIM(email)) = ?',
+      whereArgs: [cleanEmail],
+      limit: 1,
+    );
+
     if (results.isNotEmpty) {
-      final user = UserModelSQL.fromMap(results.first);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(AppConstants.keyLoggedInUserId, user.id!);
-      await EcoPointsNotifier.instance.refresh();
-      await NotificationNotifier.instance.refresh();
-      PantryUpdateNotifier.instance.notifyPantryChanged();
-      return user;
+      final userMap = Map<String, dynamic>.from(results.first);
+      final storedPassword = userMap['password'] as String? ?? '';
+
+      if (SecurityHelper.verifyPassword(password, storedPassword)) {
+        // Auto-upgrade legacy plaintext password ke SHA-256 hash jika belum di-hash
+        if (!SecurityHelper.isHashed(storedPassword)) {
+          final secureHash = SecurityHelper.hashPassword(password);
+          await db.update(
+            AppConstants.tableUsers,
+            {'password': secureHash},
+            where: 'id = ?',
+            whereArgs: [userMap['id']],
+          );
+          userMap['password'] = secureHash;
+        }
+
+        final user = UserModelSQL.fromMap(userMap);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt(AppConstants.keyLoggedInUserId, user.id!);
+        await EcoPointsNotifier.instance.refresh();
+        await NotificationNotifier.instance.refresh();
+        PantryUpdateNotifier.instance.notifyPantryChanged();
+        return user;
+      }
     }
     return null;
   }
@@ -238,6 +264,52 @@ class DBHelper {
     final db = await database;
     final results = await db.query(AppConstants.tableUsers, where: 'id = ?', whereArgs: [userId], limit: 1);
     return results.isNotEmpty ? UserModelSQL.fromMap(results.first) : null;
+  }
+
+  Future<UserModelSQL?> findOrCreateGoogleUser(String email, String name) async {
+    final db = await database;
+    final cleanEmail = email.trim().toLowerCase();
+    final cleanName = name.trim().isNotEmpty ? name.trim() : 'Pengguna FoodCura';
+
+    final results = await db.query(
+      AppConstants.tableUsers,
+      where: 'LOWER(TRIM(email)) = ?',
+      whereArgs: [cleanEmail],
+      limit: 1,
+    );
+
+    int userId;
+    UserModelSQL user;
+
+    if (results.isNotEmpty) {
+      user = UserModelSQL.fromMap(results.first);
+      userId = user.id!;
+    } else {
+      final userMap = {
+        'name': cleanName,
+        'email': cleanEmail,
+        'password': 'google_oauth_user',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      userId = await db.insert(AppConstants.tableUsers, userMap);
+      user = UserModelSQL(
+        id: userId,
+        name: cleanName,
+        email: cleanEmail,
+        password: 'google_oauth_user',
+        createdAt: userMap['created_at'],
+      );
+      await seedInitialPantryForUser(userId, db: db);
+      await seedInitialFoodLogsForUser(userId, db: db);
+      await _seedNotifications(db, userId: userId);
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.keyLoggedInUserId, userId);
+    await EcoPointsNotifier.instance.refresh();
+    await NotificationNotifier.instance.refresh();
+    PantryUpdateNotifier.instance.notifyPantryChanged();
+    return user;
   }
 
   Future<void> logoutUser() async {
@@ -280,10 +352,26 @@ class DBHelper {
 
   Future<bool> changePassword({required int userId, required String oldPassword, required String newPassword}) async {
     final db = await database;
-    final userResults = await db.query(AppConstants.tableUsers, where: 'id = ? AND password = ?', whereArgs: [userId, oldPassword], limit: 1);
+    final userResults = await db.query(
+      AppConstants.tableUsers,
+      where: 'id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
     if (userResults.isEmpty) return false;
 
-    final count = await db.update(AppConstants.tableUsers, {'password': newPassword}, where: 'id = ?', whereArgs: [userId]);
+    final storedPassword = userResults.first['password'] as String? ?? '';
+    if (!SecurityHelper.verifyPassword(oldPassword, storedPassword)) {
+      return false;
+    }
+
+    final newHashedPassword = SecurityHelper.hashPassword(newPassword);
+    final count = await db.update(
+      AppConstants.tableUsers,
+      {'password': newHashedPassword},
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
     return count > 0;
   }
 
@@ -534,60 +622,5 @@ class DBHelper {
     final db = await database;
     final result = await db.rawQuery('SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND user_id = ?', [targetUserId]);
     return (result.first['count'] as int?) ?? 0;
-  }
-}
-
-class NotificationNotifier extends ValueNotifier<int> {
-  static final NotificationNotifier instance = NotificationNotifier._();
-  NotificationNotifier._() : super(0);
-
-  Future<void> refresh() async {
-    final count = await DBHelper().getUnreadNotificationCount();
-    value = count;
-  }
-}
-
-class EcoPointsNotifier extends ValueNotifier<int> {
-  static final EcoPointsNotifier instance = EcoPointsNotifier._();
-  EcoPointsNotifier._() : super(0);
-
-  static const String _baseKey = 'user_eco_points';
-
-  Future<String> _getKey() async {
-    final userId = await DBHelper().getActiveUserId();
-    return userId != null ? '${_baseKey}_$userId' : _baseKey;
-  }
-
-  Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = await _getKey();
-    value = prefs.getInt(key) ?? 0;
-  }
-
-  Future<void> addPoints(int points) async {
-    if (points <= 0) return;
-    final prefs = await SharedPreferences.getInstance();
-    final key = await _getKey();
-    final current = prefs.getInt(key) ?? 0;
-    final updated = current + points;
-    await prefs.setInt(key, updated);
-    value = updated;
-  }
-
-  Future<void> refresh() async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = await _getKey();
-    value = prefs.getInt(key) ?? 0;
-  }
-}
-
-/// Notifier global untuk sinkronisasi instan state inventaris dapur (Pantry & Expiry)
-class PantryUpdateNotifier extends ValueNotifier<int> {
-  static final PantryUpdateNotifier instance = PantryUpdateNotifier._();
-  PantryUpdateNotifier._() : super(0);
-
-  void notifyPantryChanged() {
-    // Naikkan counter value untuk memicu sinyal pembaruan serentak di Dashboard, Pantry, dan Navbar.
-    value++;
   }
 }

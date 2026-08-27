@@ -85,10 +85,19 @@ class StreakService {
       }
     }
 
-    // 4. Batasi agar tidak pernah melebihi jumlah hari sejak bergabung
+    // 4. Batasi agar tidak pernah melebihi jumlah hari sejak bergabung atau log pertama
+    DateTime? effectiveJoinDay;
     if (joinDate != null) {
-      final joinDay = DateTime(joinDate.year, joinDate.month, joinDate.day);
-      final daysSinceJoin = today.difference(joinDay).inDays + 1;
+      effectiveJoinDay = DateTime(joinDate.year, joinDate.month, joinDate.day);
+    }
+    if (dateSet.isNotEmpty) {
+      final earliestLogDate = dateSet.reduce((a, b) => a.isBefore(b) ? a : b);
+      if (effectiveJoinDay == null || earliestLogDate.isBefore(effectiveJoinDay)) {
+        effectiveJoinDay = earliestLogDate;
+      }
+    }
+    if (effectiveJoinDay != null) {
+      final daysSinceJoin = today.difference(effectiveJoinDay).inDays + 1;
       if (daysSinceJoin > 0 && currentStreak > daysSinceJoin) {
         currentStreak = daysSinceJoin;
       }

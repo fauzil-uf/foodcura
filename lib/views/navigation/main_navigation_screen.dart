@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
-import '../../database/db_helper.dart';
+import '../../services/app_notifiers.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../food_info/food_info_screen.dart';
 import '../food_tracker/food_tracker_screen.dart';

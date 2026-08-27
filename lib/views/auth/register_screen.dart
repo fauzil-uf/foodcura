@@ -6,8 +6,10 @@ import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
 import '../../services/preference_handler.dart';
-import 'login_screen.dart';
+import '../navigation/main_navigation_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../widgets/app_text_field.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -77,6 +79,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
         (route) => false,
       );
     } else if (_authController.errorMessage != null) {
+      _showSnackBar(_authController.errorMessage!);
+    }
+  }
+
+  /// Masuk / Daftar langsung dengan akun Google via Firebase Auth
+  Future<void> _handleGoogleSignIn() async {
+    final success = await _authController.signInWithGoogle();
+
+    if (!mounted) return;
+
+    if (success) {
+      final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
+      if (!hasSeenOnboarding) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+          (route) => false,
+        );
+      }
+     } else if (_authController.errorMessage != null) {
       _showSnackBar(_authController.errorMessage!);
     }
   }
@@ -282,7 +310,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         ),
                                       ),
                                     ),
-                                    onPressed: () => _showSnackBar('Google Sign-In belum tersedia'),
+                                    onPressed: _authController.isLoading
+                                        ? null
+                                        : _handleGoogleSignIn,
                                     icon: SvgPicture.asset(
                                       AppImages.icGoogle,
                                       width: 20,

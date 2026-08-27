@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "767149958522",
+    "project_id": "foodcura-c2a5c",
+    "storage_bucket": "foodcura-c2a5c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:767149958522:android:ad8547f0f615682f19a2c3",
+        "android_client_info": {
+          "package_name": "com.fauzil.foodcura"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "767149958522-fade5kfuv54vttjj6agi6ed9frujutsi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fauzil.foodcura",
+            "certificate_hash": "1d94d23daef0aef342e6d8bac9d6e98af7d62a65"
+          }
+        },
+        {
+          "client_id": "767149958522-7spce6nk3sl942m4d3c0506rimaqh1ui.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLv-Fd8QgczajbYP043SUqMIu14QFK4mo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "767149958522-7spce6nk3sl942m4d3c0506rimaqh1ui.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

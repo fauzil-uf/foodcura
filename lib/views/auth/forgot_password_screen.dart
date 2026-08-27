@@ -1,8 +1,3 @@
-// NOTE: Layar Forgot Password di-comment sementara karena saat ini aplikasi
-// masih beroperasi dengan database lokal (SQLite/Offline) dan belum menggunakan Firebase Auth.
-// Layar ini utuh dan siap diaktifkan kembali saat integrasi Firebase Auth diterapkan.
-
-/*
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -39,21 +34,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     setState(() => _loading = true);
-    final terdaftar = await _authController.isEmailRegistered(email);
+    final success = await _authController.sendPasswordReset(email);
     setState(() => _loading = false);
 
     if (!mounted) return;
 
-    if (terdaftar) {
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tautan reset password telah dikirim ke email kamu.'),
+          backgroundColor: AppColors.ecoGreen,
+          content: Text(
+            'Tautan reset password telah dikirim ke email kamu. Periksa folder Inbox atau Spam.',
+          ),
+          duration: Duration(seconds: 4),
         ),
       );
+      Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Email tidak ditemukan.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(_authController.errorMessage ?? 'Gagal mengirim email reset password.'),
+        ),
+      );
     }
   }
 
@@ -122,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          'Masukkan email terdaftar untuk menerima tautan reset password.',
+                          'Masukkan email terdaftar untuk menerima tautan reset password via Firebase.',
                           textAlign: TextAlign.center,
                           style: AppTextStyles.body.copyWith(
                             color: AppColors.textGraySoft,
@@ -265,4 +268,3 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
-*/

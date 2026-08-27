@@ -9,7 +9,7 @@ import '../../services/preference_handler.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../widgets/app_text_field.dart';
-// import 'forgot_password_screen.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -65,6 +65,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
+      if (!hasSeenOnboarding) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+          (route) => false,
+        );
+      }
+    } else if (_authController.errorMessage != null) {
+      _showSnackBar(_authController.errorMessage!);
+    }
+  }
+
+  /// Masuk dengan akun Google via Firebase Auth
+  Future<void> _handleGoogleSignIn() async {
+    final success = await _authController.signInWithGoogle();
+
+    if (!mounted) return;
+
+    if (success) {
+      final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
       if (!hasSeenOnboarding) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -162,9 +188,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: () => _showSnackBar(
-                                'Fitur Lupa Password belum tersedia',
-                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ForgotPasswordScreen(),
+                                  ),
+                                );
+                              },
                               child: const Text(
                                 'Lupa Password?',
                                 style: AppTextStyles.linkBold,
@@ -230,7 +261,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                               ),
-                              onPressed: () => _showSnackBar('Google Sign-In belum tersedia'),
+                              onPressed: _authController.isLoading
+                                  ? null
+                                  : _handleGoogleSignIn,
                               icon: SvgPicture.asset(
                                 AppImages.icGoogle,
                                 width: 22,

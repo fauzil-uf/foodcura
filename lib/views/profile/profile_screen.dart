@@ -5,6 +5,7 @@ import '../../constants/app_date_formatter.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
+import '../../services/app_notifiers.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_top_bar.dart';
@@ -66,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     _profileController.initListeners();
     _profileController.addListener(_onProfileChanged);
+    PantryUpdateNotifier.instance.addListener(_loadProfileData);
     _loadProfileData();
   }
 
@@ -75,6 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   void dispose() {
+    PantryUpdateNotifier.instance.removeListener(_loadProfileData);
     _profileController.removeListener(_onProfileChanged);
     _profileController.dispose();
     _animController.dispose();

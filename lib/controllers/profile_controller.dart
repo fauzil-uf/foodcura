@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
+import '../services/app_notifiers.dart';
+import '../services/auth_service.dart';
 import '../services/streak_service.dart';
 
 /// Controller untuk mengelola data profil, statistik bento (Eco Points, Streak),
@@ -146,6 +148,7 @@ class ProfileController extends ChangeNotifier {
   /// Logout dan hapus sesi pengguna
   Future<void> logout() async {
     await _db.logoutUser();
+    await AuthService.instance.signOut();
     _user = null;
     _streak = 0;
     _ecoPoints = 0;

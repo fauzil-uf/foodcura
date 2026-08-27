@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_images.dart';
 import '../../../constants/app_typography.dart';
 
 /// Dialog informasi versi aplikasi, arsitektur MVC, dan teknologi cerdas Google Gemini AI.
@@ -13,20 +14,36 @@ class AboutFoodCuraDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.infoContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.eco_rounded,
-              color: AppColors.primary,
-              size: 22,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              AppImages.logo,
+              width: 32,
+              height: 32,
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(width: 12),
-          const Text('Tentang FoodCura', style: AppTextStyles.headlineSm),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Food',
+                  style: AppTextStyles.headlineSm.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.deepForest,
+                  ),
+                ),
+                TextSpan(
+                  text: 'Cura',
+                  style: AppTextStyles.headlineSm.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       content: Column(
@@ -34,7 +51,7 @@ class AboutFoodCuraDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'FoodCura v2.0.0',
+            'FoodCura v2.1.0',
             style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),

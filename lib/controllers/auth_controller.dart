@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
+import '../services/auth_service.dart';
 
 /// Controller untuk mengelola state autentikasi dan sesi pengguna.
 class AuthController extends ChangeNotifier {
@@ -162,11 +163,65 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Mengeluarkan pengguna dan membersihkan sesi lokal
+  /// Mengeluarkan pengguna dan membersihkan sesi lokal serta Firebase
   Future<void> logout() async {
     await _db.logoutUser();
+    await AuthService.instance.signOut();
     _currentUser = null;
     notifyListeners();
+  }
+
+  /// Masuk menggunakan akun Google via Firebase Auth dan menyinkronkan dengan SQLite lokal
+  Future<bool> signInWithGoogle() async {
+    _setLoading(true);
+    try {
+      final credential = await AuthService.instance.signInWithGoogle();
+      if (credential == null || credential.user == null) {
+        _setLoading(false);
+        return false;
+      }
+
+      final fbUser = credential.user!;
+      final email = fbUser.email ?? '';
+      final name = fbUser.displayName ?? (email.isNotEmpty ? email.split('@').first : 'Pengguna FoodCura');
+
+      if (email.isEmpty) {
+        _setLoading(false, 'Gagal mengambil email dari akun Google.');
+        return false;
+      }
+
+      final user = await _db.findOrCreateGoogleUser(email, name);
+      if (user != null) {
+        _currentUser = user;
+        _setLoading(false);
+        return true;
+      }
+
+      _setLoading(false, 'Gagal menyinkronkan akun dengan database.');
+      return false;
+    } catch (e) {
+      _setLoading(false, e.toString());
+      return false;
+    }
+  }
+
+  /// Mengirimkan tautan reset kata sandi ke email pengguna via Firebase Auth
+  Future<bool> sendPasswordReset(String email) async {
+    final cleanEmail = email.trim();
+    if (cleanEmail.isEmpty) {
+      _setLoading(false, 'Masukkan alamat email terlebih dahulu!');
+      return false;
+    }
+
+    _setLoading(true);
+    try {
+      await AuthService.instance.sendPasswordReset(cleanEmail);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setLoading(false, e.toString());
+      return false;
+    }
   }
 
   /// Mengecek apakah email terdaftar

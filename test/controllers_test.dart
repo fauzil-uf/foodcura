@@ -117,6 +117,13 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getInt('logged_in_user_id'), isNull);
     });
+
+    test('sendPasswordReset rejects empty email', () async {
+      final auth = AuthController();
+      final result = await auth.sendPasswordReset('   ');
+      expect(result, isFalse);
+      expect(auth.errorMessage, contains('alamat email'));
+    });
   });
 
   group('DashboardController and AI Nutrition Coach tests', () {

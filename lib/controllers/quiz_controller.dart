@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import '../database/db_helper.dart';
 import '../models/quiz_model.dart';
+import '../services/app_notifiers.dart';
 import '../services/gemini_service.dart';
 
 /// Controller untuk mengelola siklus kuis edukasi AI, validasi jawaban,
