@@ -1,12 +1,6 @@
 import '../constants/app_date_formatter.dart';
 
-/// Model representasi notifikasi dalam aplikasi FoodCura.
-///
-/// Mendukung berbagai tipe notifikasi:
-/// - `expiry_warning`: Pengingat masa kadaluwarsa bahan makanan di Pantry.
-/// - `nutrition_excess`: Peringatan kelebihan batas asupan nutrisi harian.
-/// - `tips`: Edukasi & tips pencegahan food waste.
-/// - `system`: Informasi pembaruan sistem dan pencapaian.
+/// Model notifikasi aplikasi (peringatan kedaluwarsa, nutrisi, tips, sistem)
 class NotificationModel {
   final int? id;
   final int? userId;
@@ -30,10 +24,10 @@ class NotificationModel {
     required this.createdAt,
   });
 
-  /// Tampilkan waktu relatif presisi sampai menit
+  /// Format waktu relatif (misal: '5 menit lalu', 'Kemarin')
   String get timeAgo => AppDateFormatter.formatRelativeTime(createdAt);
 
-  /// Apakah notifikasi dibuat hari ini
+  /// Cek apakah notifikasi masuk hari ini
   bool get isToday {
     final now = DateTime.now();
     return createdAt.year == now.year &&
@@ -41,7 +35,6 @@ class NotificationModel {
         createdAt.day == now.day;
   }
 
-  /// Mengonversi objek [NotificationModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -56,7 +49,6 @@ class NotificationModel {
     };
   }
 
-  /// Membuat instance [NotificationModel] dari hasil pembacaan baris [Map] SQLite.
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
     return NotificationModel(
       id: map['id'] as int?,
@@ -71,7 +63,6 @@ class NotificationModel {
     );
   }
 
-  /// Membuat salinan objek dengan opsi pembaruan field tertentu.
   NotificationModel copyWith({
     int? id,
     int? userId,

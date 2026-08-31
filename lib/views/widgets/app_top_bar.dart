@@ -4,8 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 
-/// Top App Bar terpusat dan reusable untuk seluruh layar utama FoodCura.
-/// Menghilangkan ratusan baris duplikasi styling header, logo, dan badge notifikasi.
+// Top bar navigasi aplikasi (judul, logo brand, tombol back, lonceng notifikasi)
 class AppTopBar extends StatelessWidget {
   final String? title;
   final bool showBrandLogo;
@@ -26,7 +25,6 @@ class AppTopBar extends StatelessWidget {
     this.actions,
   });
 
-  /// Membangun bilah header atas dengan judul/logo di sisi kiri dan tombol aksi atau lonceng notifikasi di sisi kanan.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -34,9 +32,9 @@ class AppTopBar extends StatelessWidget {
       height: 70,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(
-        color: Color(0xFFF7F5EE),
+        color: AppColors.topBarSurface,
         border: Border(
-          bottom: BorderSide(color: Color(0xFFE5DFC9), width: 1.2),
+          bottom: BorderSide(color: AppColors.topBarBorder, width: 1.2),
         ),
         boxShadow: [
           BoxShadow(
@@ -96,9 +94,12 @@ class AppTopBar extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEBE6D8),
+                  color: AppColors.topBarButtonBg,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFDFD7C2), width: 1),
+                  border: Border.all(
+                    color: AppColors.topBarButtonBorder,
+                    width: 1,
+                  ),
                 ),
                 child: const Icon(
                   Icons.arrow_back_rounded,
@@ -129,9 +130,12 @@ class AppTopBar extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEBE6D8),
+                  color: AppColors.topBarButtonBg,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFDFD7C2), width: 1),
+                  border: Border.all(
+                    color: AppColors.topBarButtonBorder,
+                    width: 1,
+                  ),
                 ),
                 child: Stack(
                   alignment: Alignment.center,

@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../controllers/quiz_controller.dart';
 import '../../../models/quiz_model.dart';
 
-/// Modal interaktif mini kuis nutrisi dan pencegahan food waste didukung oleh Google Gemini AI dengan fallback offline.
+// Modal kuis edukasi gizi & food waste (AI + offline)
 class QuizModal extends StatefulWidget {
   const QuizModal({super.key});
 
@@ -38,22 +38,21 @@ class _QuizModalState extends State<QuizModal> {
     super.dispose();
   }
 
-  /// Callback listener saat status controller kuis diperbarui untuk me-render perubahan UI.
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  /// Memuat paket soal kuis baru baik via REST API Gemini maupun dari bank soal lokal offline.
+  // Muat daftar soal kuis dari Gemini AI atau offline fallback
   Future<void> _fetchQuiz() async {
     await _controller.fetchQuiz();
   }
 
-  /// Memproses pilihan jawaban pengguna dan menghitung skor Eco Poin secara instan.
+  // Pilih jawaban dan evaluasi kebenaran jawaban
   void _selectAnswer(int index) {
     _controller.selectAnswer(index);
   }
 
-  /// Berpindah ke butir pertanyaan kuis berikutnya atau menampilkan rangkuman skor akhir.
+  // Lanjut ke soal berikutnya atau tampilkan layar hasil akhir
   void _nextQuestion() {
     _controller.nextQuestion();
   }
@@ -233,10 +232,7 @@ class _QuizModalState extends State<QuizModal> {
                 height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.border,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: AppColors.border, width: 1.5),
                 ),
               );
               double opacity = 1.0;
@@ -319,8 +315,8 @@ class _QuizModalState extends State<QuizModal> {
                             style: AppTextStyles.bodyMd.copyWith(
                               fontWeight:
                                   (_answered && (isCorrect || isSelected))
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               color: textColor,
                               height: 1.3,
                             ),
@@ -360,9 +356,10 @@ class _QuizModalState extends State<QuizModal> {
                               : Icons.info_outline_rounded,
                           size: 18,
                           color:
-                              _selectedOptionIndex == currentQ.correctAnswerIndex
-                                  ? const Color(0xFF2E7D32)
-                                  : const Color(0xFFE65100),
+                              _selectedOptionIndex ==
+                                  currentQ.correctAnswerIndex
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFE65100),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -374,9 +371,9 @@ class _QuizModalState extends State<QuizModal> {
                             fontWeight: FontWeight.w800,
                             color:
                                 _selectedOptionIndex ==
-                                        currentQ.correctAnswerIndex
-                                    ? const Color(0xFF1B5E20)
-                                    : const Color(0xFFE65100),
+                                    currentQ.correctAnswerIndex
+                                ? const Color(0xFF1B5E20)
+                                : const Color(0xFFE65100),
                           ),
                         ),
                       ],

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/article_model.dart';
+import '../../widgets/app_food_image.dart';
 
-/// Modal rincian artikel edukasi lengkap dengan gambar ilustrasi, badge kategori, dan konten bacaan gizi.
+// Modal baca artikel edukasi gizi
 class ArticleDetailModal extends StatelessWidget {
   final ArticleModel article;
 
@@ -103,25 +104,12 @@ class ArticleDetailModal extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Image.network(
-                      article.imageUrl,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        height: 200,
-                        color: AppColors.mintTint,
-                        child: const Center(
-                          child: Icon(
-                            Icons.article_outlined,
-                            size: 48,
-                            color: AppColors.ecoGreen,
-                          ),
-                        ),
-                      ),
-                    ),
+                  AppFoodImage(
+                    imagePath: article.imageUrl,
+                    width: double.infinity,
+                    height: 200,
+                    borderRadius: 24,
+                    fallbackIcon: Icons.article_outlined,
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -169,6 +157,7 @@ class ArticleDetailModal extends StatelessWidget {
   }
 }
 
+// Parser dan perender konten teks artikel dengan dukungan format markdown bold & numbered list
 class _ArticleContentRenderer extends StatelessWidget {
   final String content;
   const _ArticleContentRenderer({required this.content});
@@ -198,6 +187,7 @@ class _ArticleContentRenderer extends StatelessWidget {
     );
   }
 
+  // Item daftar bernomor
   Widget _buildListItem(String number, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,10 +215,12 @@ class _ArticleContentRenderer extends StatelessWidget {
     );
   }
 
+  // Paragraf teks dengan dukungan format tebal
   Widget _buildRichParagraph(String text) {
     return RichText(text: TextSpan(children: _parseInline(text)));
   }
 
+  // Parse token format teks tebal (**teks**)
   List<TextSpan> _parseInline(String text) {
     final spans = <TextSpan>[];
     final regex = RegExp(r'\*\*(.+?)\*\*');

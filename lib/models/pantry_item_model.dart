@@ -1,10 +1,4 @@
-/// Model representasi bahan makanan yang disimpan di dalam Pantry/Inventaris.
-///
-/// Menyediakan kalkulasi dinamis untuk:
-/// - [daysUntilExpiry]: Sisa hari menuju tanggal kedaluwarsa.
-/// - [expiryStatus]: Kategori status ('expired', 'urgent', 'segera', 'aman').
-/// - [expiryProgress]: Nilai persentase (0.0 - 1.0) untuk progress bar visual.
-/// - [quantityDisplay]: Format display jumlah, unit, dan lokasi penyimpanan.
+/// Model bahan makanan di inventaris dapur (Pantry).
 class PantryItemModel {
   final int? id;
   final int? userId;
@@ -30,7 +24,7 @@ class PantryItemModel {
     required this.createdAt,
   });
 
-  /// Hitung sisa hari sampai kadaluwarsa dari sekarang
+  /// Hitung sisa hari menuju tanggal kedaluwarsa
   int get daysUntilExpiry {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -38,7 +32,7 @@ class PantryItemModel {
     return expiry.difference(today).inDays;
   }
 
-  /// Status kadaluwarsa: 'expired', 'urgent', 'segera', 'aman'
+  /// Status kedaluwarsa: 'expired', 'urgent' (<=2 hari), 'segera' (<=5 hari), 'aman' (>5 hari)
   String get expiryStatus {
     final days = daysUntilExpiry;
     if (days < 0) return 'expired';
@@ -47,7 +41,7 @@ class PantryItemModel {
     return 'aman';
   }
 
-  /// Persentase progress bar (0.0 - 1.0), semakin dekat expired semakin penuh
+  /// Persentase bar kedaluwarsa (0.0 - 1.0)
   double get expiryProgress {
     final days = daysUntilExpiry;
     if (days <= 0) return 1.0;
@@ -55,7 +49,7 @@ class PantryItemModel {
     return 1.0 - (days / 10.0);
   }
 
-  /// Format display jumlah + unit + storage
+  /// Format tampilan jumlah dan lokasi penyimpanan
   String get quantityDisplay {
     final qty = quantity % 1 == 0
         ? quantity.toInt().toString()

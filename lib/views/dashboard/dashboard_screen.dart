@@ -10,9 +10,11 @@ import '../food_tracker/widgets/add_food_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_circular_progress.dart';
 import '../widgets/app_food_image.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/quiz_modal.dart';
 
+// Layar dashboard & ringkasan nutrisi harian
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onNavigateToTracker;
   final VoidCallback? onNavigateToPantry;
@@ -36,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+    // Animasi fade-in saat pertama kali layar dibuka
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
@@ -46,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
     _animController.forward();
 
+    // Inisialisasi controller dan listener real-time
     _controller.addListener(_onControllerChanged);
     _controller.loadDashboardData();
     NotificationNotifier.instance.addListener(_onNotifChanged);
@@ -63,81 +67,64 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  /// Callback saat state DashboardController berubah untuk me-render ulang UI.
+  // Update UI saat data controller berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  /// Callback untuk memperbarui counter lencana notifikasi saat ada peringatan baru.
+  // Refresh badge unread notifikasi jika ada pembaruan
   void _onNotifChanged() {
-    if (mounted) _controller.loadDashboardData();
+    if (mounted) _controller.refreshUnreadCount();
   }
 
-  /// Callback saat stok dapur berubah untuk memperbarui daftar bahan yang butuh diselamatkan.
+  // Muat ulang data dashboard jika terjadi perubahan stok pantry di layar lain
   void _onPantryChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
-  /// Memuat ulang seluruh data ringkasan nutrisi, streak belajar, dan status bahan dari SQLite.
-  Future<void> _fetchSummaryFromDB() async {
-    await _controller.loadDashboardData();
-  }
-
-  /// Membuka layar notifikasi dan menyinkronkan data ringkasan setelah kembali.
+  // Buka layar notifikasi dan refresh unread count setelah kembali
   void _openNotifications() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NotificationScreen()),
-    ).then((_) => _fetchSummaryFromDB());
+    ).then((_) => _controller.refreshUnreadCount());
   }
 
-  /// Membuka modal kuis interaktif gizi harian dan memperbarui streak belajar.
+  // Buka modal kuis interaktif gizi & food waste
   void _startQuiz() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const QuizModal(),
-    ).then((_) => _fetchSummaryFromDB());
+    );
   }
 
-  /// Membuka modal pencatatan konsumsi makanan langsung dari kartu ringkasan Dashboard.
+  // Buka modal input catat makanan baru
   void _openAddFoodModal({String mealType = 'Makan Siang'}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AddFoodModal(
-        initialMealType: mealType,
-        onFoodAdded: _fetchSummaryFromDB,
-      ),
+      builder: (_) => AddFoodModal(initialMealType: mealType),
     );
   }
 
-  /// Menandai bahan dapur telah dimasak, menambahkan eco-points, dan memicu sinyal pembaruan global.
+  // Tandai bahan pantry sudah dimasak dan beri reward poin
   Future<void> _markPantryItemCooked(PantryItemModel item) async {
     if (item.id != null) {
       await _controller.markPantryItemUsed(item.id!);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${item.name} berhasil ditandai telah dimasak/digunakan.',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          '${item.name} ditandai telah dimasak!',
+          subtitle: '+5 Eco Points telah ditambahkan ke akunmu',
         );
       }
-      _fetchSummaryFromDB();
     }
   }
 
-  /// Menghasilkan sapaan ramah dinamis (Pagi, Siang, Sore, Malam) sesuai jam perangkat pengguna.
+  // Sapaan kontekstual berdasarkan waktu saat ini (Pagi, Siang, Sore, Malam)
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
     if (hour >= 4 && hour < 11) return 'Selamat Pagi';
@@ -146,7 +133,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     return 'Selamat Malam';
   }
 
-  /// Membangun antarmuka beranda dashboard dengan banner sapaan, radar kedaluwarsa, progres kalori harian, dan rekomendasi kuis.
   @override
   Widget build(BuildContext context) {
     final user = _controller.user;
@@ -169,40 +155,33 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
 
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 18,
-                    bottom: 110,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Sapaan & Live Status Badges
-                      _buildGreetingAndBadges(userName, greeting),
-                      const SizedBox(height: 16),
-
-                      // 2. HERO HEALTH & NUTRITION HUB CARD
-                      _buildHeroHealthHubCard(),
-                      const SizedBox(height: 20),
-
-                      // 3. AI NUTRITION COACH CARD
-                      _buildAiNutritionCoachCard(),
-                      const SizedBox(height: 20),
-
-                      // 5. RADAR EXPIRY & STOK PANTRY (EXPANDED FULL WIDTH)
-                      _buildPantryRadarSection(),
-                      const SizedBox(height: 20),
-
-                      // 6. LINIMASA SANTAPAN HARI INI (TODAY'S MEAL FEED)
-                      _buildTodayMealsSection(),
-                      const SizedBox(height: 20),
-
-                      // 7. BANNER TANTANGAN MINIQUIZ
-                      _buildMiniQuizBanner(),
-                    ],
+                child: RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () => _controller.loadDashboardData(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 18,
+                      bottom: 110,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildGreetingAndBadges(userName, greeting),
+                        const SizedBox(height: 16),
+                        _buildHeroHealthHubCard(),
+                        const SizedBox(height: 20),
+                        _buildAiNutritionCoachCard(),
+                        const SizedBox(height: 20),
+                        _buildPantryRadarSection(),
+                        const SizedBox(height: 20),
+                        _buildTodayMealsSection(),
+                        const SizedBox(height: 20),
+                        _buildMiniQuizBanner(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -213,13 +192,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── GREETING & LIVE BADGES ────────────────────────────────────────────────
+  // Sapaan user & streak harian
   Widget _buildGreetingAndBadges(String userName, String greeting) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 4),
-        // Personalized Greeting & Subtitle
         Text(
           '$greeting, $userName! 👋',
           style: AppTextStyles.heading2.copyWith(
@@ -239,10 +217,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
         const SizedBox(height: 12),
-        // Live Status Badges Row
         Row(
           children: [
-            // Streak Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -267,7 +243,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
             const Spacer(),
-            // Date Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -301,7 +276,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── 2. HERO HEALTH & NUTRITION HUB CARD ───────────────────────────────────
+  // Ringkasan nutrisi harian (kalori & makronutrien)
   Widget _buildHeroHealthHubCard() {
     final totalCals = _controller.totalCalories;
     final targetCals = _controller.targetCalories;
@@ -327,7 +302,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
       child: Stack(
         children: [
-          // Background ambient circles
           Positioned(
             right: -30,
             top: -30,
@@ -358,7 +332,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Sub-header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -427,45 +400,34 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Row(
                   children: [
                     // Calorie Circular Progress Ring
-                    SizedBox(
-                      width: 108,
-                      height: 108,
-                      child: Stack(
-                        alignment: Alignment.center,
+                    AppCircularProgress(
+                      size: 108,
+                      progress: ratio,
+                      color: totalCals > targetCals
+                          ? const Color(0xFFFF5252)
+                          : const Color(0xFF4CAF50),
+                      bgColor: Colors.white.withValues(alpha: 0.15),
+                      strokeWidth: 9.0,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CustomPaint(
-                            size: const Size(108, 108),
-                            painter: AppCircularProgressPainter(
-                              progress: ratio,
-                              color: totalCals > targetCals
-                                  ? const Color(0xFFFF5252)
-                                  : const Color(0xFF4CAF50),
-                              bgColor: Colors.white.withValues(alpha: 0.15),
-                              strokeWidth: 9.0,
+                          Text(
+                            '$totalCals',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              height: 1.0,
                             ),
                           ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '$totalCals',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.0,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'kcal',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'kcal',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -552,8 +514,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       current: _controller.lemakGrams,
                       max: _controller.lemakMax,
                       unit: 'g',
-                      barColor:
-                          _controller.lemakGrams >= _controller.lemakMax
+                      barColor: _controller.lemakGrams >= _controller.lemakMax
                           ? const Color(0xFFFF5252)
                           : const Color(0xFFFFB74D),
                     ),
@@ -578,6 +539,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // Mini card indikator makronutrien
   Widget _buildMacroPillCard({
     required String label,
     required double current,
@@ -642,7 +604,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── 3. AI NUTRITION COACH CARD ────────────────────────────────────────────
+  // Rekomendasi gizi AI Gemini
   Widget _buildAiNutritionCoachCard() {
     return Container(
       width: double.infinity,
@@ -829,7 +791,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── 5. EXPIRY RADAR & PANTRY MONITOR (FULL WIDTH) ─────────────────────────
+  // Radar pantau bahan pantry yang mendekati kedaluwarsa
   Widget _buildPantryRadarSection() {
     final urgentList = _controller.urgentPantryItems;
     final segeraList = _controller.segeraPantryItems;
@@ -853,19 +815,22 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: totalAtRisk > 0 ? const Color(0xFFFFF3E0) : AppColors.mintTint,
+                  color: totalAtRisk > 0
+                      ? const Color(0xFFFFF3E0)
+                      : AppColors.mintTint,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.inventory_2_rounded,
-                  color: totalAtRisk > 0 ? const Color(0xFFE65100) : AppColors.primary,
+                  color: totalAtRisk > 0
+                      ? const Color(0xFFE65100)
+                      : AppColors.primary,
                   size: 20,
                 ),
               ),
@@ -897,13 +862,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
               const SizedBox(width: 6),
-              // Status Badges
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (urgentList.isNotEmpty) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3.5,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFEBEE),
                         borderRadius: BorderRadius.circular(8),
@@ -922,7 +889,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ],
                   if (segeraList.isNotEmpty) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3.5,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF8E1),
                         borderRadius: BorderRadius.circular(8),
@@ -940,7 +910,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ],
                   if (totalAtRisk == 0)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3.5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.mintTint,
                         borderRadius: BorderRadius.circular(8),
@@ -1003,20 +976,28 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             )
           else ...[
-            // Combined at-risk items (urgent first, then segera)
             ...[...urgentList, ...segeraList].take(4).map((item) {
               final days = item.daysUntilExpiry;
-              final isUrgent = item.expiryStatus == 'expired' || item.expiryStatus == 'urgent';
+              final isUrgent =
+                  item.expiryStatus == 'expired' ||
+                  item.expiryStatus == 'urgent';
               final timeText = days <= 0
                   ? (days == 0 ? 'Hari ini!' : 'Lewat ${-days}h')
                   : '$days hari lagi';
-              final badgeBg = isUrgent ? const Color(0xFFFFEBEE) : const Color(0xFFFFF8E1);
-              final badgeColor = isUrgent ? const Color(0xFFD32F2F) : const Color(0xFFF57F17);
+              final badgeBg = isUrgent
+                  ? const Color(0xFFFFEBEE)
+                  : const Color(0xFFFFF8E1);
+              final badgeColor = isUrgent
+                  ? const Color(0xFFD32F2F)
+                  : const Color(0xFFF57F17);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(16),
@@ -1061,9 +1042,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Expiry chip
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: badgeBg,
                           borderRadius: BorderRadius.circular(8),
@@ -1078,7 +1061,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Quick Mark as Cooked button
                       InkWell(
                         onTap: () => _markPantryItemCooked(item),
                         borderRadius: BorderRadius.circular(999),
@@ -1134,7 +1116,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── 6. TODAY'S MEAL FEED ──────────────────────────────────────────────────
+  // Linimasa makanan hari ini
   Widget _buildTodayMealsSection() {
     final todayLogs = _controller.todayLogs;
 
@@ -1330,7 +1312,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── 7. MINI QUIZ BANNER ───────────────────────────────────────────────────
+  // Banner mini kuis gizi harian
   Widget _buildMiniQuizBanner() {
     return Container(
       width: double.infinity,

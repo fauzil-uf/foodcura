@@ -10,7 +10,7 @@ import 'services/notification_service.dart';
 import 'services/preference_handler.dart';
 import 'views/onboarding/splash_screen.dart';
 
-/// Titik masuk utama aplikasi (Entry Point) yang menginisialisasi binding Flutter, Firebase, lokalisasi tanggal Indonesia, SharedPreferences, dan Service Notifikasi Lokal.
+// Entry point aplikasi FoodCura
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -24,7 +24,7 @@ void main() async {
   runApp(const FoodCuraApp());
 }
 
-/// Root Widget aplikasi FoodCura yang mengonfigurasi tema global dan rute layar pembuka (SplashScreen).
+// Root widget aplikasi FoodCura
 class FoodCuraApp extends StatelessWidget {
   const FoodCuraApp({super.key});
 

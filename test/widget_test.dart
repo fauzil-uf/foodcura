@@ -4,6 +4,8 @@ import 'package:foodcura/constants/app_typography.dart';
 import 'package:foodcura/constants/app_theme.dart';
 
 import 'package:foodcura/views/profile/help_center_screen.dart';
+import 'package:foodcura/views/profile/widgets/about_foodcura_dialog.dart'
+    as foodcura_about;
 
 void main() {
   testWidgets('Theme and typography loads properly', (
@@ -64,4 +66,25 @@ void main() {
       );
     },
   );
+
+  testWidgets('AboutFoodCuraDialog renders app version and license button', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: Text('Test Dialog'))),
+      ),
+    );
+
+    final BuildContext context = tester.element(find.text('Test Dialog'));
+    showDialog(
+      context: context,
+      builder: (_) => const foodcura_about.AboutFoodCuraDialog(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('FoodCura v2.1.0'), findsOneWidget);
+    expect(find.text('Lihat Lisensi Open Source'), findsOneWidget);
+    expect(find.text('Tutup'), findsOneWidget);
+  });
 }

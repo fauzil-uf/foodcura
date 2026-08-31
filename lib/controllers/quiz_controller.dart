@@ -4,8 +4,7 @@ import '../models/quiz_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/gemini_service.dart';
 
-/// Controller untuk mengelola siklus kuis edukasi AI, validasi jawaban,
-/// kalkulasi skor, dan pemberian reward Eco Points.
+// Controller kuis edukasi gizi & reward Eco Points
 class QuizController extends ChangeNotifier {
   final GeminiService _geminiService;
 
@@ -34,8 +33,8 @@ class QuizController extends ChangeNotifier {
 
   QuizQuestion? get currentQuestion =>
       _questions.isNotEmpty && _currentIndex < _questions.length
-          ? _questions[_currentIndex]
-          : null;
+      ? _questions[_currentIndex]
+      : null;
 
   /// Memuat kuis baru (online via Gemini atau offline pool)
   Future<void> fetchQuiz() async {

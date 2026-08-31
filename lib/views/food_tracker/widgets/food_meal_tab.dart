@@ -7,7 +7,7 @@ import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 
-/// Widget tampilan tab waktu makan spesifik (Sarapan, Makan Siang, Makan Malam, Camilan) dengan daftar log tercatat, tips gizi, dan saran cepat.
+// Tab waktu makan (Sarapan, Makan Siang, Makan Malam, Camilan)
 class FoodMealTab extends StatelessWidget {
   const FoodMealTab({
     super.key,
@@ -242,7 +242,9 @@ class FoodMealTab extends StatelessWidget {
                   Builder(
                     builder: (context) {
                       return GestureDetector(
-                        onTap: isAdded ? null : () => onQuickAdd(food, mealType),
+                        onTap: isAdded
+                            ? null
+                            : () => onQuickAdd(food, mealType),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           width: 36,
@@ -277,6 +279,7 @@ class FoodMealTab extends StatelessWidget {
     );
   }
 
+  // Kartu item makanan yang tercatat pada tab waktu makan
   Widget _buildFoodLogCard(BuildContext context, FoodLogModel log) {
     return GestureDetector(
       onTap: () => onOpenDetail(log),

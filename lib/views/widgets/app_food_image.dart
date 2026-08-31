@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 
-/// Widget visualisasi gambar makanan dan bahan dapur terpusat.
-/// Mendukung URL online (Network), asset lokal, fallback icon elegan,
-/// serta loading indicator otomatis.
+// Widget gambar makanan dengan dukungan URL online, aset lokal, dan fallback
 class AppFoodImage extends StatelessWidget {
   final String? imagePath;
   final double width;
@@ -25,7 +23,6 @@ class AppFoodImage extends StatelessWidget {
     this.fallbackIcon = Icons.fastfood_rounded,
   });
 
-  /// Merender gambar makanan baik dari URL network maupun asset lokal dengan pemotongan sudut melengkung (ClipRRect).
   @override
   Widget build(BuildContext context) {
     final effectiveBorderRadius =
@@ -39,8 +36,7 @@ class AppFoodImage extends StatelessWidget {
     }
 
     final path = imagePath!.trim();
-    final isNetwork =
-        path.startsWith('http://') || path.startsWith('https://');
+    final isNetwork = path.startsWith('http://') || path.startsWith('https://');
 
     Widget imageWidget;
     if (isNetwork) {
@@ -76,13 +72,9 @@ class AppFoodImage extends StatelessWidget {
       );
     }
 
-    return ClipRRect(
-      borderRadius: effectiveBorderRadius,
-      child: imageWidget,
-    );
+    return ClipRRect(borderRadius: effectiveBorderRadius, child: imageWidget);
   }
 
-  /// Membangun placeholder visual elegan jika tautan gambar tidak ditemukan atau gagal dimuat.
   Widget _buildFallback() {
     return Container(
       width: width,

@@ -1,4 +1,4 @@
-/// Model representasi bahan baku mentah (ingredients) khusus untuk inventaris dapur (Pantry).
+// Model bahan baku mentah untuk katalog pantry
 class PantryIngredientModel {
   final String name;
   final String category;

@@ -1,7 +1,7 @@
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
-/// Utilitas formatting dan parsing tanggal/waktu standar Indonesia murni menggunakan package intl.
+// Helper format tanggal & waktu (Locale Indonesia)
 class AppDateFormatter {
   AppDateFormatter._();
 

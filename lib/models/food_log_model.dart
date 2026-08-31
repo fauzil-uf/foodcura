@@ -1,12 +1,9 @@
-/// Model representasi catatan konsumsi makanan harian pengguna.
-///
-/// Menyimpan data makanan yang dicatat (nama, waktu, tanggal, tipe makan,
-/// kalori, makronutrisi, kolesterol riil, serta catatan tambahan opsional).
+/// Model catatan konsumsi makanan harian pengguna (Food Tracker).
 class FoodLogModel {
   final int? id;
   final int? userId;
   final String foodName;
-  final String mealType; // 'Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan'
+  final String mealType;
   final int calories;
   final double protein;
   final double carbs;
@@ -33,7 +30,6 @@ class FoodLogModel {
     this.note,
   });
 
-  /// Mengonversi objek [FoodLogModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -52,7 +48,6 @@ class FoodLogModel {
     };
   }
 
-  /// Membuat instance [FoodLogModel] dari hasil pembacaan baris [Map] SQLite.
   factory FoodLogModel.fromMap(Map<String, dynamic> map) {
     return FoodLogModel(
       id: map['id'] as int?,
@@ -71,7 +66,6 @@ class FoodLogModel {
     );
   }
 
-  /// Membuat salinan objek dengan opsi pembaruan field tertentu.
   FoodLogModel copyWith({
     int? id,
     int? userId,

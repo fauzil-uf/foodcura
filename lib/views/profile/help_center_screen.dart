@@ -3,27 +3,12 @@ import 'package:flutter/services.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
+import '../widgets/app_empty_state.dart';
+import '../widgets/app_search_bar.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
 
-class HelpFaqItem {
-  final String question;
-  final String answer;
-  final IconData? icon;
-
-  const HelpFaqItem({required this.question, required this.answer, this.icon});
-}
-
-class HelpFaqCategory {
-  final String title;
-  final IconData icon;
-  final List<HelpFaqItem> items;
-
-  const HelpFaqCategory({
-    required this.title,
-    required this.icon,
-    required this.items,
-  });
-}
+import '../../models/help_faq_model.dart';
 
 /// Layar pusat bantuan pengguna yang menyajikan pencarian FAQ interaktif, kategori panduan, dan kanal kontak dukungan pelanggan.
 class HelpCenterScreen extends StatefulWidget {
@@ -160,7 +145,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     super.dispose();
   }
 
-  /// Mengubah status buka/tutup akordeon FAQ untuk pertanyaan tertentu.
   void _toggleQuestion(String question) {
     setState(() {
       if (_expandedQuestions.contains(question)) {
@@ -171,7 +155,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     });
   }
 
-  /// Membuka modal kontak dukungan pelanggan FoodCura.
   void _openContactSupport() {
     showModalBottomSheet(
       context: context,
@@ -181,7 +164,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
-  /// Membangun modal kontak dengan opsi email, WhatsApp resmi, dan form pesan bantuan.
+  // Modal kontak bantuan tim support pelanggan (WhatsApp, Email, Telepon)
   Widget _buildContactModal(BuildContext ctx) {
     return Container(
       decoration: const BoxDecoration(
@@ -262,11 +245,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 const ClipboardData(text: 'support@foodcura.app'),
               );
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Alamat email berhasil disalin ke clipboard!'),
-                  backgroundColor: AppColors.ecoGreen,
-                ),
+              AppSnackBar.showSuccess(
+                context,
+                'Alamat email berhasil disalin ke clipboard!',
               );
             },
           ),
@@ -280,11 +261,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             onTap: () {
               Clipboard.setData(const ClipboardData(text: '+6281234567890'));
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Nomor WhatsApp disalin (+6281234567890)'),
-                  backgroundColor: AppColors.ecoGreen,
-                ),
+              AppSnackBar.showSuccess(
+                context,
+                'Nomor WhatsApp disalin (+6281234567890)',
               );
             },
           ),
@@ -326,7 +305,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
-  /// Membangun kartu opsi saluran kontak dengan aksi salin atau navigasi interaktif.
   Widget _buildContactCard({
     required IconData icon,
     required String title,
@@ -447,36 +425,59 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Batal',
-              style: AppTextStyles.buttonSmall.copyWith(
-                color: AppColors.textGray,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Pesan Anda telah terkirim! Tim kami akan segera merespons.',
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.border),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                  backgroundColor: AppColors.ecoGreen,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'Batal',
+                    style: AppTextStyles.buttonSmall.copyWith(
+                      color: AppColors.textGray,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              );
-            },
-            child: const Text('Kirim', style: AppTextStyles.buttonSmall),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Pesan Anda telah terkirim!',
+                      subtitle: 'Tim kami akan segera merespons via email.',
+                    );
+                  },
+                  child: Text(
+                    'Kirim',
+                    style: AppTextStyles.buttonSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -509,7 +510,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     return result;
   }
 
-  /// Membangun antarmuka Pusat Bantuan dengan bilah pencarian FAQ, daftar kategori tanya-jawab, dan kartu kontak bantuan.
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredCategories;
@@ -602,67 +602,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceDim),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 16),
-          const Icon(Icons.search, color: AppColors.textGray, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => setState(() => _searchQuery = val),
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.deepForest),
-              decoration: InputDecoration(
-                hintText: 'Cari bantuan...',
-                hintStyle: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textGray,
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-            ),
-          ),
-          if (_searchQuery.isNotEmpty)
-            GestureDetector(
-              onTap: () {
-                _searchController.clear();
-                setState(() => _searchQuery = '');
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    size: 14,
-                    color: AppColors.textGray,
-                  ),
-                ),
-              ),
-            ),
-          const SizedBox(width: 4),
-        ],
-      ),
+    return AppSearchBar(
+      controller: _searchController,
+      hintText: 'Cari bantuan...',
+      onChanged: (val) => setState(() => _searchQuery = val),
+      onClear: () => setState(() => _searchQuery = ''),
     );
   }
 
@@ -939,44 +883,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   Widget _buildEmptySearchResult() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      alignment: Alignment.center,
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: AppColors.mintTint,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.search_off_rounded,
-              size: 32,
-              color: AppColors.ecoGreen,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Pertanyaan Tidak Ditemukan',
-            style: AppTextStyles.headlineMd.copyWith(
-              fontSize: 16,
-              color: AppColors.deepForest,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Coba gunakan kata kunci lain atau langsung hubungi tim dukungan kami.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.caption.copyWith(
-              fontSize: 12,
-              color: AppColors.textGray,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+    return const AppEmptyState(
+      icon: Icons.search_off_rounded,
+      title: 'Pertanyaan Tidak Ditemukan',
+      message:
+          'Coba gunakan kata kunci lain atau langsung hubungi tim dukungan kami.',
+      padding: EdgeInsets.all(32),
     );
   }
 }

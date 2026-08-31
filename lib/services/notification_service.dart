@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-/// Layanan notifikasi sistem native (Android & iOS) untuk memunculkan
-/// banner notifikasi pop-up heads-up (seperti WhatsApp) saat batas nutrisi
-/// berlebih atau stok makanan mendekati kedaluwarsa.
+// Service notifikasi lokal sistem (flutter_local_notifications)
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -18,11 +16,13 @@ class NotificationService {
   static const String channelDescription =
       'Notifikasi penting peringatan nutrisi berlebih dan stok kedaluwarsa';
 
-  /// Inisialisasi plugin notifikasi lokal sistem
+  // Inisialisasi local notification
   Future<void> init() async {
     if (_initialized) return;
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/launcher_icon',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -48,7 +48,7 @@ class NotificationService {
     }
   }
 
-  /// Meminta izin notifikasi (wajib di Android 13+ / Tiramisu dan iOS)
+  // Minta izin notifikasi (Android 13+ / iOS)
   Future<void> requestPermissions() async {
     try {
       final androidImplementation = _localNotifications
@@ -77,7 +77,7 @@ class NotificationService {
     }
   }
 
-  /// Menampilkan notifikasi banner pop-up heads-up (di atas layar sistem)
+  // Tampilkan notifikasi push sistem
   Future<void> showSystemNotification({
     required int id,
     required String title,
@@ -97,7 +97,7 @@ class NotificationService {
       showWhen: true,
       enableVibration: true,
       playSound: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@mipmap/launcher_icon',
       styleInformation: BigTextStyleInformation(body),
     );
 
@@ -125,7 +125,7 @@ class NotificationService {
     }
   }
 
-  /// Membatalkan notifikasi berdasarkan ID tertentu
+  // Batalkan notifikasi tertentu
   Future<void> cancelNotification(int id) async {
     try {
       await _localNotifications.cancel(id);

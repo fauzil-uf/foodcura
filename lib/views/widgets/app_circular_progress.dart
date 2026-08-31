@@ -1,8 +1,52 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Painter lingkaran progress ring untuk kalori & nutrisi di Dashboard dan Food Tracker.
-/// Mengeliminasi duplikasi class CustomPainter di kedua layar utama.
+import '../../constants/app_colors.dart';
+
+// Widget cincin progres melingkar untuk ringkasan kalori dan nutrisi
+class AppCircularProgress extends StatelessWidget {
+  final double progress;
+  final double size;
+  final Color color;
+  final Color bgColor;
+  final double strokeWidth;
+  final Widget? child;
+
+  const AppCircularProgress({
+    super.key,
+    required this.progress,
+    this.size = 108,
+    this.color = AppColors.primary,
+    this.bgColor = AppColors.surfaceContainerHigh,
+    this.strokeWidth = 9.0,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: Size(size, size),
+            painter: AppCircularProgressPainter(
+              progress: progress,
+              color: color,
+              bgColor: bgColor,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          ?child,
+        ],
+      ),
+    );
+  }
+}
+
+// CustomPainter untuk menggambar ring progres kalori dan makronutrien
 class AppCircularProgressPainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -16,7 +60,7 @@ class AppCircularProgressPainter extends CustomPainter {
     this.strokeWidth = 9.0,
   });
 
-  /// Menggambar lintasan lingkaran latar belakang dan busur progres aktif searah jarum jam (-90 derajat awal).
+  // Gambar lingkaran latar belakang dan busur progres
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -45,7 +89,6 @@ class AppCircularProgressPainter extends CustomPainter {
     );
   }
 
-  /// Menentukan apakah canvas perlu digambar ulang saat nilai progres atau warna berubah.
   @override
   bool shouldRepaint(covariant AppCircularProgressPainter oldDelegate) {
     return oldDelegate.progress != progress ||

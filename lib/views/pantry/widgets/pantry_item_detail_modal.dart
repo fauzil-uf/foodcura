@@ -5,19 +5,22 @@ import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/pantry_controller.dart';
 import '../../../models/pantry_item_model.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/app_food_image.dart';
+import '../../widgets/app_snack_bar.dart';
 import 'add_pantry_item_modal.dart';
 
+// Modal detail & aksi bahan makanan pantry
 class PantryItemDetailModal extends StatefulWidget {
   final PantryItemModel item;
   final PantryController? controller;
-  final VoidCallback onItemUpdated;
+  final VoidCallback? onItemUpdated;
 
   const PantryItemDetailModal({
     super.key,
     required this.item,
     this.controller,
-    required this.onItemUpdated,
+    this.onItemUpdated,
   });
 
   @override
@@ -35,172 +38,52 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     _currentItem = widget.item;
   }
 
-  /// Menandai bahan makanan telah digunakan/dimasak dan memperbarui data inventaris.
+  // Tandai bahan telah dimasak & tambahkan Eco Points
   Future<void> _markAsUsed() async {
     if (_currentItem.id != null) {
       final savedItem = _currentItem;
       await _controller.markItemUsed(_currentItem.id!);
 
       if (mounted) {
-        widget.onItemUpdated();
+        widget.onItemUpdated?.call();
         Navigator.pop(context);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${savedItem.name} berhasil ditandai telah dimasak/digunakan.',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          '${savedItem.name} ditandai telah dimasak!',
+          subtitle: '+5 Eco Points telah ditambahkan ke akunmu',
         );
       }
     }
   }
 
-  /// Menampilkan dialog konfirmasi sebelum menghapus bahan makanan dari database SQLite.
+  // Tampilkan dialog konfirmasi hapus bahan dari pantry
   Future<void> _confirmDelete() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.showConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.errorContainer,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.error,
-                  size: 28,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Text(
-              'Hapus Bahan Makanan',
-              style: AppTextStyles.heading2.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.deepForest,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-
-            RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: AppTextStyles.bodyMd.copyWith(
-                  fontSize: 13.5,
-                  color: AppColors.textGray,
-                  height: 1.45,
-                ),
-                children: [
-                  const TextSpan(text: 'Apakah Anda yakin ingin menghapus '),
-                  TextSpan(
-                    text: _currentItem.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.deepForest,
-                    ),
-                  ),
-                  const TextSpan(
-                    text: ' dari pantry? Data yang dihapus tidak dapat dikembalikan.',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(
-                      'Batal',
-                      style: AppTextStyles.buttonSmall.copyWith(
-                        color: AppColors.textGray,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(
-                      'Hapus',
-                      style: AppTextStyles.buttonSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+      title: 'Hapus Bahan Makanan',
+      message:
+          'Apakah Anda yakin ingin menghapus dari pantry? Data yang dihapus tidak dapat dikembalikan.',
+      highlightedItem: _currentItem.name,
+      confirmLabel: 'Hapus',
+      cancelLabel: 'Batal',
     );
 
     if (confirm == true && _currentItem.id != null) {
       await _controller.deleteItem(_currentItem.id!);
       if (mounted) {
-        widget.onItemUpdated();
+        widget.onItemUpdated?.call();
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${_currentItem.name} telah dihapus'),
-            backgroundColor: AppColors.urgent,
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          '${_currentItem.name} telah dihapus dari Pantry',
         );
       }
     }
   }
 
-  /// Membuka modal edit form untuk memperbarui data stok atau tanggal kedaluwarsa bahan.
+  // Buka modal untuk mengubah data nama, jumlah, atau masa simpan bahan
   void _openEditModal() {
-    Navigator.pop(context); // Close detail modal first
+    Navigator.pop(context); // Tutup modal detail terlebih dahulu
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

@@ -1,17 +1,16 @@
-/// String/angka konstan terpusat — nama app, nama & versi database, dsb.
+/// Konstanta konfigurasi global aplikasi, database SQLite, dan kunci SharedPreferences.
 class AppConstants {
   AppConstants._();
 
   static const appName = 'FoodCura';
+  static const appVersion = '2.1.0';
+  static const appBuildNumber = '3';
+  static const appVersionDisplay = 'v2.1.0';
 
   // Database (SQFLite)
   static const dbName = 'foodcura.db';
   static const dbVersion = 1;
   static const tableUsers = 'users';
-
-  // API & Network
-  static const connectTimeout = 15000; // ms
-  static const receiveTimeout = 15000; // ms
 
   // SharedPreferences keys
   static const keyLoggedInUserId = 'logged_in_user_id';

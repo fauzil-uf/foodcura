@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Preset TextStyle terpusat — font "Plus Jakarta Sans" standar desain.
-/// Dideklarasikan sebagai `static const` untuk efisiensi alokasi memori RAM & performa rendering.
+/// Desain sistem tipografi aplikasi FoodCura berbasis font "Plus Jakarta Sans".
 class AppTextStyles {
   AppTextStyles._();
 

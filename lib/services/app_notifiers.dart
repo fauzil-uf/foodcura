@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/db_helper.dart';
 
-/// Notifier global untuk menghitung jumlah notifikasi belum dibaca secara real-time
+// Notifier jumlah notifikasi belum dibaca
 class NotificationNotifier extends ValueNotifier<int> {
   static final NotificationNotifier instance = NotificationNotifier._();
   NotificationNotifier._() : super(0);
@@ -14,7 +14,7 @@ class NotificationNotifier extends ValueNotifier<int> {
   }
 }
 
-/// Notifier global untuk memantau perubahan Eco Points pengguna
+// Notifier Eco Points pengguna
 class EcoPointsNotifier extends ValueNotifier<int> {
   static final EcoPointsNotifier instance = EcoPointsNotifier._();
   EcoPointsNotifier._() : super(0);
@@ -49,7 +49,7 @@ class EcoPointsNotifier extends ValueNotifier<int> {
   }
 }
 
-/// Notifier global untuk sinkronisasi instan state inventaris dapur dan data antar-layar
+// Notifier event perubahan data pantry
 class PantryUpdateNotifier extends ValueNotifier<int> {
   static final PantryUpdateNotifier instance = PantryUpdateNotifier._();
   PantryUpdateNotifier._() : super(0);

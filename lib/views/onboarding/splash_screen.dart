@@ -7,7 +7,7 @@ import '../../controllers/auth_controller.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
-/// Layar pembuka (Splash Screen) dengan animasi logo elastis, efek shimmer teks, dan pengecekan sesi login pengguna.
+// Layar splash pembuka & inisialisasi sesi login
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -26,12 +26,11 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<Offset> _textSlide;
   late final Animation<double> _shimmerAnimation;
 
-  /// Menginisialisasi controller animasi elastis logo, pergeseran teks, dan pengulangan kilau shimmer.
   @override
   void initState() {
     super.initState();
 
-    // 1. Animasi Logo Pop-in: Menggunakan kurva elastis agar logo membal (bouncy entrance) dan memudar masuk secara mulus.
+    // 1. Animasi Logo Pop-in
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -46,7 +45,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // 2. Animasi Teks Meluncur: Menggeser teks 'FoodCura' dari sisi kiri (Offset -0.45) ke posisi tengah (Offset.zero) dengan kurva easeOutCubic.
+    // 2. Animasi Teks Meluncur
     _textController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -60,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen>
           CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
         );
 
-    // 3. Efek Kilau Shimmer: Menggerakkan gradasi warna cahaya putih-mint melintasi teks secara berulang (repeat) dari kiri ke kanan (-1.0 ke 2.0).
+    // 3. Efek Kilau Shimmer
     _shimmerController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -72,8 +71,6 @@ class _SplashScreenState extends State<SplashScreen>
     _startAnimations();
   }
 
-  /// Menjalankan koreografi animasi bertingkat (Staggered Animation):
-  /// Logo muncul terlebih dahulu -> Teks meluncur masuk -> Tahan sejenak agar pengguna dapat menikmati visual -> Pindah rute.
   Future<void> _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 300));
     _logoController.forward();
@@ -83,7 +80,6 @@ class _SplashScreenState extends State<SplashScreen>
     if (mounted) _navigateNext();
   }
 
-  /// Mengecek sesi login pengguna di SharedPreferences untuk menentukan rute navigasi selanjutnya.
   Future<void> _navigateNext() async {
     final authController = AuthController();
     await authController.loadCurrentUser();
@@ -108,7 +104,6 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  /// Melepas seluruh AnimationController dari memori untuk mencegah kebocoran memori (memory leak).
   @override
   void dispose() {
     _logoController.dispose();
@@ -117,7 +112,6 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  /// Membangun kanvas latar belakang layar penuh dengan gradasi hijau hutan dan lingkaran ambient.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -271,7 +265,6 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  /// Membangun elemen lingkaran dekoratif latar belakang dengan opasitas rendah untuk efek atmosferik.
   Widget _buildDecorativeCircle(double size, double opacity) {
     return Container(
       width: size,

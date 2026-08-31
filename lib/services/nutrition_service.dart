@@ -6,14 +6,15 @@ import '../database/db_helper.dart';
 import '../models/notification_model.dart';
 import 'notification_service.dart';
 
-/// Service untuk evaluasi batas gizi harian (AKG Kemenkes) dan pemicu notifikasi kelebihan nutrisi.
+// Service pemantau batas asupan gizi harian (AKG) & pemicu notifikasi peringatan
 class NutritionService {
   final DBHelper _db;
   final NotificationService _notificationService;
 
   NutritionService({DBHelper? db, NotificationService? notificationService})
-      : _db = db ?? DBHelper(),
-        _notificationService = notificationService ?? NotificationService.instance;
+    : _db = db ?? DBHelper(),
+      _notificationService =
+          notificationService ?? NotificationService.instance;
 
   static const double maxDailyFat = 67.0;
   static const int maxDailyCalories = 2000;
@@ -21,13 +22,17 @@ class NutritionService {
   static const double maxDailyCarbs = 300.0;
   static const double maxDailyProtein = 65.0;
 
-  /// Mengevaluasi log makanan hari ini dan mengirim notifikasi jika melampaui batas AKG.
+  // Cek asupan gizi hari ini, picu notifikasi jika melebihi batas AKG
   Future<NotificationModel?> checkNutritionExcess({int? userId}) async {
     final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true)) return null;
+    if (!(prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true)) {
+      return null;
+    }
 
     final targetUserId = userId ?? await _db.getActiveUserId();
-    if (targetUserId == null) return null;
+    if (targetUserId == null) {
+      return null;
+    }
 
     final db = await _db.database;
     final todayStr = AppDateFormatter.formatToday();
@@ -36,7 +41,9 @@ class NutritionService {
       where: 'date = ? AND user_id = ?',
       whereArgs: [todayStr, targetUserId],
     );
-    if (logs.isEmpty) return null;
+    if (logs.isEmpty) {
+      return null;
+    }
 
     int totalCalories = 0;
     double totalProtein = 0, totalCarbs = 0, totalFat = 0, totalCholesterol = 0;
@@ -126,9 +133,24 @@ class NutritionService {
         createdAt: DateTime.now(),
       );
       final id = await _db.addNotification(notif);
+
+      // ID deterministik spesifik jenis nutrisi
+      int systemNotifId = 30000;
+      if (keyword.contains('Lemak')) {
+        systemNotifId = 30001;
+      } else if (keyword.contains('Kalori')) {
+        systemNotifId = 30002;
+      } else if (keyword.contains('Kolesterol')) {
+        systemNotifId = 30003;
+      } else if (keyword.contains('Karbohidrat')) {
+        systemNotifId = 30004;
+      } else if (keyword.contains('Protein')) {
+        systemNotifId = 30005;
+      }
+
       try {
         await _notificationService.showSystemNotification(
-          id: id,
+          id: systemNotifId,
           title: notif.title,
           body: notif.message,
         );

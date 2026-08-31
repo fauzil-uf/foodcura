@@ -7,13 +7,14 @@ import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
+import '../../widgets/app_snack_bar.dart';
 
+// Modal catat makanan baru ke log harian
 class AddFoodModal extends StatefulWidget {
   final String initialMealType;
   final DateTime? targetDate;
   final FoodTrackerController? controller;
-  final VoidCallback onFoodAdded;
-  /// Jika diisi, modal tidak perlu query ulang ke database untuk daftar makanan terkini.
+  final VoidCallback? onFoodAdded;
   final List<FoodItemModel>? recentFoods;
 
   const AddFoodModal({
@@ -21,7 +22,7 @@ class AddFoodModal extends StatefulWidget {
     required this.initialMealType,
     this.targetDate,
     this.controller,
-    required this.onFoodAdded,
+    this.onFoodAdded,
     this.recentFoods,
   });
 
@@ -76,11 +77,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
     _loadData();
   }
 
-  /// Memuat katalog makanan lengkap dan 6 makanan terakhir yang pernah dicatat dari SQLite.
-  /// Jika recentFoods sudah diteruskan dari luar, lewati query ke database untuk data tersebut.
+  // Muat katalog makanan dan riwayat makanan terakhir ditambahkan
   Future<void> _loadData() async {
     final catalog = await _controller.getFoodCatalog();
-    final recent = widget.recentFoods ?? await _controller.getRecentAddedFoods(limit: 6);
+    final recent =
+        widget.recentFoods ?? await _controller.getRecentAddedFoods(limit: 6);
     if (mounted) {
       setState(() {
         _catalogFoods = catalog;
@@ -94,7 +95,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     }
   }
 
-  /// Memfilter daftar makanan secara instan berdasarkan nama atau kategori makanan.
+  // Filter daftar makanan yang ditampilkan berdasarkan kata kunci pencarian
   void _filterFoods(String query) {
     setState(() {
       final q = query.trim().toLowerCase();
@@ -119,13 +120,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
     });
   }
 
-  /// Menyimpan catatan makanan terpilih ke database SQLite dan mengecek ambang batas nutrisi harian.
+  // Simpan log makanan baru ke database SQLite
   Future<void> _saveFoodLog() async {
     if (_selectedFood == null) return;
 
     final now = DateTime.now();
-    final timeStr =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     final log = FoodLogModel(
       foodName: _selectedFood!.name,
@@ -136,58 +135,32 @@ class _AddFoodModalState extends State<AddFoodModal> {
       fat: _selectedFood!.fat,
       cholesterol: _selectedFood!.cholesterol,
       imagePath: _selectedFood!.imagePath,
-      time: timeStr,
+      time: AppDateFormatter.formatTime(),
       date: AppDateFormatter.formatToday(widget.targetDate ?? now),
       note: _noteController.text.trim(),
     );
 
     final notif = await _controller.addFoodLog(log);
-    widget.onFoodAdded();
+    widget.onFoodAdded?.call();
     if (mounted) {
       Navigator.pop(context);
 
       if (notif != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.urgent,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(notif.title, style: AppTextStyles.buttonSmall),
-                      const SizedBox(height: 2),
-                      Text(
-                        notif.message,
-                        style: AppTextStyles.caption.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        AppSnackBar.showWarning(
+          context,
+          title: notif.title,
+          message: notif.message,
+        );
+      } else {
+        AppSnackBar.showSuccess(
+          context,
+          '${_selectedFood!.name} Ditambahkan!',
+          subtitle: '${_selectedFood!.calories} kcal dicatat ke $_selectedMeal',
         );
       }
     }
   }
 
-  /// Melepaskan controller teks catatan dan pencarian dari memori.
   @override
   void dispose() {
     _noteController.dispose();
@@ -195,7 +168,6 @@ class _AddFoodModalState extends State<AddFoodModal> {
     super.dispose();
   }
 
-  /// Membangun antarmuka modal pemilihan kategori waktu makan, bilah pencarian instan, dan daftar pilihan makanan.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -269,13 +241,9 @@ class _AddFoodModalState extends State<AddFoodModal> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Fitur Scan Barcode & Foto Makanan belum tersedia',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                        AppSnackBar.showInfo(
+                          context,
+                          'Fitur Scan Barcode & Foto Makanan segera hadir!',
                         );
                       },
                       child: Container(

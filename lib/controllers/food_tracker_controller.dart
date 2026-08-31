@@ -12,16 +12,21 @@ import '../services/app_notifiers.dart';
 import '../services/nutrition_service.dart';
 import '../services/streak_service.dart';
 
-/// Controller untuk mengelola pencatatan makanan, filter waktu makan,
-/// kalkulasi nutrisi harian, dan peringatan batas nutrisi.
+// Controller pencatatan makanan, tracking nutrisi, & batas AKG
 class FoodTrackerController extends ChangeNotifier {
   final DBHelper _db;
   final NutritionService _nutritionService;
+  final StreakService _streakService;
   Timer? _searchDebounce;
 
-  FoodTrackerController({DBHelper? db, NutritionService? nutritionService})
-      : _db = db ?? DBHelper(),
-        _nutritionService = nutritionService ?? NutritionService(db: db ?? DBHelper());
+  FoodTrackerController({
+    DBHelper? db,
+    NutritionService? nutritionService,
+    StreakService? streakService,
+  }) : _db = db ?? DBHelper(),
+       _nutritionService =
+           nutritionService ?? NutritionService(db: db ?? DBHelper()),
+       _streakService = streakService ?? StreakService(db: db ?? DBHelper());
 
   int _selectedTabIndex = 0;
   DateTime _selectedDate = DateTime.now();
@@ -67,10 +72,12 @@ class FoodTrackerController extends ChangeNotifier {
       _allLogs.where((l) => l.mealType == mealType).toList();
 
   int get totalCalories => _allLogs.fold(0, (sum, log) => sum + log.calories);
-  double get totalProtein => _allLogs.fold(0.0, (sum, log) => sum + log.protein);
+  double get totalProtein =>
+      _allLogs.fold(0.0, (sum, log) => sum + log.protein);
   double get totalCarbs => _allLogs.fold(0.0, (sum, log) => sum + log.carbs);
   double get totalFat => _allLogs.fold(0.0, (sum, log) => sum + log.fat);
-  double get totalCholesterol => _allLogs.fold(0.0, (sum, log) => sum + log.cholesterol);
+  double get totalCholesterol =>
+      _allLogs.fold(0.0, (sum, log) => sum + log.cholesterol);
 
   bool get isToday {
     final now = DateTime.now();
@@ -115,48 +122,46 @@ class FoodTrackerController extends ChangeNotifier {
     }
   }
 
-  /// Mengubah indeks tab waktu makan yang sedang aktif (0: Semua, 1: Sarapan, dst).
   void setSelectedTab(int index) {
     _selectedTabIndex = index;
     notifyListeners();
   }
 
-  /// Memilih tanggal log spesifik dan memuat data makanan pada tanggal tersebut.
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
     loadData();
   }
 
-  /// Mundur 1 hari ke belakang dari tanggal yang sedang dipilih.
   void previousDay() {
     _selectedDate = _selectedDate.subtract(const Duration(days: 1));
     loadData();
   }
 
-  /// Maju 1 hari ke depan dari tanggal yang sedang dipilih.
   void nextDay() {
     _selectedDate = _selectedDate.add(const Duration(days: 1));
     loadData();
   }
 
-  /// Mengatur tanggal pilihan kembali ke hari ini secara instan.
   void setToday() {
     _selectedDate = DateTime.now();
     loadData();
   }
 
-  /// Mengatur tanggal pilihan ke hari kemarin secara instan.
   void setYesterday() {
     _selectedDate = DateTime.now().subtract(const Duration(days: 1));
     loadData();
   }
 
-  /// Menghitung peringatan batas nutrisi secara efisien
   void _calculateWarnings() {
     _warnings = [];
 
     void addWarn(String title, String msg, Color color, IconData icon) {
-      _warnings.add({'title': title, 'message': msg, 'color': color, 'icon': icon});
+      _warnings.add({
+        'title': title,
+        'message': msg,
+        'color': color,
+        'icon': icon,
+      });
     }
 
     if (totalFat >= NutritionService.maxDailyFat) {
@@ -215,8 +220,10 @@ class FoodTrackerController extends ChangeNotifier {
   /// Menambahkan log makanan baru ke database dan memicu evaluasi AKG
   Future<NotificationModel?> addFoodLog(FoodLogModel log) async {
     await _db.insertFoodLog(log);
-    final notif = await _nutritionService.checkNutritionExcess(userId: log.userId);
-    await StreakService(db: _db).computeAndSaveStreak(userId: log.userId);
+    final notif = await _nutritionService.checkNutritionExcess(
+      userId: log.userId,
+    );
+    await _streakService.computeAndSaveStreak(userId: log.userId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadData();
     return notif;
@@ -225,8 +232,10 @@ class FoodTrackerController extends ChangeNotifier {
   /// Memperbarui log makanan yang sudah ada
   Future<NotificationModel?> updateFoodLog(FoodLogModel log) async {
     await _db.updateFoodLog(log);
-    final notif = await _nutritionService.checkNutritionExcess(userId: log.userId);
-    await StreakService(db: _db).computeAndSaveStreak(userId: log.userId);
+    final notif = await _nutritionService.checkNutritionExcess(
+      userId: log.userId,
+    );
+    await _streakService.computeAndSaveStreak(userId: log.userId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadData();
     return notif;
@@ -235,7 +244,7 @@ class FoodTrackerController extends ChangeNotifier {
   /// Menghapus log makanan berdasarkan id
   Future<void> deleteFoodLog(int id) async {
     await _db.deleteFoodLog(id);
-    await StreakService(db: _db).computeAndSaveStreak();
+    await _streakService.computeAndSaveStreak();
     PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadData();
   }

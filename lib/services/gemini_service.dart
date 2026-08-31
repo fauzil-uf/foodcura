@@ -5,15 +5,7 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../models/quiz_model.dart';
 
-/// Service AI edukasi kuis nutrisi dan evaluasi gizi harian.
-///
-/// Fitur utama:
-/// 1. **Online Generation**: Menggunakan Google Gemini API untuk membuat 5 pertanyaan
-///    kuis baru secara dinamis berdasarkan berbagai variasi topik.
-/// 2. **Offline Fallback**: Menyediakan kumpulan soal offline terkurasi dengan opsi jawaban
-///    panjang seimbang agar kuis tetap dapat dimainkan tanpa koneksi internet.
-/// 3. **AI Daily Nutrition Coach**: Memberikan evaluasi dan saran pola makan personal
-///    berdasarkan target kalori dan makronutrisi harian.
+// Service integrasi Gemini AI (kuis nutrisi & saran gizi harian)
 class GeminiService {
   static final GeminiService instance = GeminiService._();
   GeminiService._();
@@ -287,7 +279,7 @@ Kembalikan HANYA array JSON murni:
     return _buildOfflineFallback();
   }
 
-  /// Evaluasi pola makan harian (AI Daily Nutrition Coach)
+  // Evaluasi nutrisi harian oleh AI Coach
   Future<String> evaluateDailyNutrition({
     required int calories,
     required double protein,

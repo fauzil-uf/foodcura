@@ -1,9 +1,8 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/article_model.dart';
 
-/// Daftar statis artikel edukasi yang dikelola di level controller
-/// agar View tidak menyimpan data konten secara langsung.
+// Daftar artikel edukasi gizi & food waste
 const List<ArticleModel> _kArticles = [
   ArticleModel(
     id: 1,
@@ -215,8 +214,7 @@ const List<ArticleModel> _kArticles = [
   ),
 ];
 
-/// Controller untuk mengelola state layar FoodInfo:
-/// filter kategori, pencarian artikel, dan visibilitas daftar artikel.
+// Controller edukasi Food Info (filter kategori & pencarian artikel)
 class FoodInfoController extends ChangeNotifier {
   static const List<String> categories = [
     'Semua',

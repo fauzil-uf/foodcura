@@ -1,10 +1,6 @@
 import 'dart:convert';
 
-/// Model representasi data katalog makanan dan kandungan nutrisinya.
-///
-/// Menyimpan informasi kalori, makronutrisi (protein, karbohidrat, lemak),
-/// kandungan kolesterol (mg) berbasis TKPI Kemenkes RI,
-/// kategori waktu makan, dan path gambar lokal/network.
+/// Model katalog makanan dan informasi kandungan nutrisi (TKPI Kemenkes RI).
 class FoodItemModel {
   final int? id;
   final String name;
@@ -28,7 +24,6 @@ class FoodItemModel {
     required this.imagePath,
   });
 
-  /// Mengonversi objek [FoodItemModel] menjadi format [Map] untuk SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -43,7 +38,6 @@ class FoodItemModel {
     };
   }
 
-  /// Mengonstruksi objek [FoodItemModel] dari rekaman baris [Map] database SQLite.
   factory FoodItemModel.fromMap(Map<String, dynamic> map) {
     return FoodItemModel(
       id: map['id'] as int?,
@@ -58,7 +52,7 @@ class FoodItemModel {
     );
   }
 
-  /// Menginferensi kategori waktu makan secara otomatis berdasarkan pola kata kunci nama hidangan.
+  /// Inferensi kategori waktu makan otomatis dari nama hidangan
   static String _inferCategory(String name) {
     final lower = name.toLowerCase();
     if (lower.contains('rujak cingur')) {
@@ -124,23 +118,30 @@ class FoodItemModel {
     return 'Makan Siang';
   }
 
-  /// Parse dari satu entry JSON object (Map)
   factory FoodItemModel.fromJson(Map<String, dynamic> json) {
     final nm = (json['name'] as String? ?? '').trim();
+    final cal = json['calories'] ?? json['energy'] ?? json['cal'] ?? 0;
+    final prot = json['proteins'] ?? json['protein'] ?? 0;
+    final carb =
+        json['carbohydrate'] ?? json['carbs'] ?? json['carbohydrates'] ?? 0;
+    final ft = json['fat'] ?? 0;
+    final chol = json['cholesterol'] ?? json['chol'] ?? 0;
+    final img = json['image'] ?? json['image_path'] ?? json['imageUrl'] ?? '';
+    final cat = (json['category'] as String?)?.trim();
+
     return FoodItemModel(
       id: (json['id'] as num?)?.toInt(),
       name: nm,
-      calories: (json['calories'] as num? ?? 0).toInt(),
-      protein: (json['proteins'] as num? ?? 0).toDouble(),
-      carbs: (json['carbohydrate'] as num? ?? 0).toDouble(),
-      fat: (json['fat'] as num? ?? 0).toDouble(),
-      cholesterol: (json['cholesterol'] as num? ?? 0).toDouble(),
-      category: _inferCategory(nm),
-      imagePath: (json['image'] as String? ?? '').trim(),
+      calories: (cal as num).toInt(),
+      protein: (prot as num).toDouble(),
+      carbs: (carb as num).toDouble(),
+      fat: (ft as num).toDouble(),
+      cholesterol: (chol as num).toDouble(),
+      category: (cat != null && cat.isNotEmpty) ? cat : _inferCategory(nm),
+      imagePath: (img as String).trim(),
     );
   }
 
-  /// Parse seluruh file JSON asset menjadi list FoodItemModel
   static List<FoodItemModel> listFromJsonString(String jsonString) {
     final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
     return list

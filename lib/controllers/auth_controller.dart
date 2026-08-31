@@ -4,7 +4,7 @@ import '../database/db_helper.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
-/// Controller untuk mengelola state autentikasi dan sesi pengguna.
+// Controller state autentikasi (login, register, logout, session user)
 class AuthController extends ChangeNotifier {
   final DBHelper _db;
 
@@ -71,7 +71,10 @@ class AuthController extends ChangeNotifier {
     final cleanEmail = email.trim();
 
     // Validasi kelengkapan form pendaftaran.
-    if (cleanName.isEmpty || cleanEmail.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (cleanName.isEmpty ||
+        cleanEmail.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       _setLoading(false, 'Isi semua field!');
       return false;
     }
@@ -110,7 +113,10 @@ class AuthController extends ChangeNotifier {
   }
 
   /// Memperbarui nama dan email profil pengguna
-  Future<bool> updateProfile({required String name, required String email}) async {
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+  }) async {
     if (_currentUser == null) return false;
     final cleanName = name.trim();
     final cleanEmail = email.trim();
@@ -122,7 +128,10 @@ class AuthController extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final updated = _currentUser!.copyWith(name: cleanName, email: cleanEmail);
+      final updated = _currentUser!.copyWith(
+        name: cleanName,
+        email: cleanEmail,
+      );
       final success = await _db.updateUser(updated);
       if (success) _currentUser = updated;
       _setLoading(false);
@@ -183,7 +192,9 @@ class AuthController extends ChangeNotifier {
 
       final fbUser = credential.user!;
       final email = fbUser.email ?? '';
-      final name = fbUser.displayName ?? (email.isNotEmpty ? email.split('@').first : 'Pengguna FoodCura');
+      final name =
+          fbUser.displayName ??
+          (email.isNotEmpty ? email.split('@').first : 'Pengguna FoodCura');
 
       if (email.isEmpty) {
         _setLoading(false, 'Gagal mengambil email dari akun Google.');
@@ -225,5 +236,6 @@ class AuthController extends ChangeNotifier {
   }
 
   /// Mengecek apakah email terdaftar
-  Future<bool> isEmailRegistered(String email) => _db.isEmailRegistered(email.trim());
+  Future<bool> isEmailRegistered(String email) =>
+      _db.isEmailRegistered(email.trim());
 }

@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/food_item_model.dart';
 import '../../widgets/app_food_image.dart';
 
-/// Widget panel hasil pencarian makanan interaktif dari katalog lokal TKPI dengan tombol tambah instan (Quick Add).
+// Hasil pencarian makanan dari katalog
 class FoodSearchResults extends StatelessWidget {
   const FoodSearchResults({
     super.key,
@@ -129,7 +129,9 @@ class FoodSearchResults extends StatelessWidget {
                       duration: const Duration(milliseconds: 200),
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isAdded ? AppColors.mintTint : AppColors.primary,
+                          backgroundColor: isAdded
+                              ? AppColors.mintTint
+                              : AppColors.primary,
                           elevation: isAdded ? 0 : 2,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -162,7 +164,9 @@ class FoodSearchResults extends StatelessWidget {
                               style: AppTextStyles.buttonSmall.copyWith(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: isAdded ? AppColors.primary : Colors.white,
+                                color: isAdded
+                                    ? AppColors.primary
+                                    : Colors.white,
                               ),
                             ),
                           ],

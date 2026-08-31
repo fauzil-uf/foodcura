@@ -6,14 +6,15 @@ import '../database/db_helper.dart';
 import '../models/notification_model.dart';
 import 'notification_service.dart';
 
-/// Service untuk memantau tanggal kedaluwarsa stok pantry dan memicu pengingat jam makan harian.
+// Service pemantau kedaluwarsa bahan pantry & reminder jam makan
 class ReminderService {
   final DBHelper _db;
   final NotificationService _notificationService;
 
   ReminderService({DBHelper? db, NotificationService? notificationService})
-      : _db = db ?? DBHelper(),
-        _notificationService = notificationService ?? NotificationService.instance;
+    : _db = db ?? DBHelper(),
+      _notificationService =
+          notificationService ?? NotificationService.instance;
 
   static const List<Map<String, String>> mealConfigs = [
     {
@@ -30,7 +31,8 @@ class ReminderService {
       'timeKey': AppConstants.keyNotifLunchTime,
       'defaultTime': '12:30',
       'title': 'Saatnya makan siang',
-      'message': 'Jangan lupa catat makan siangmu hari ini untuk tracking kalori.',
+      'message':
+          'Jangan lupa catat makan siangmu hari ini untuk tracking kalori.',
     },
     {
       'type': 'Makan Malam',
@@ -38,158 +40,225 @@ class ReminderService {
       'timeKey': AppConstants.keyNotifDinnerTime,
       'defaultTime': '19:00',
       'title': 'Saatnya makan malam',
-      'message': 'Jangan lupa catat makan malammu hari ini untuk tracking kalori.',
+      'message':
+          'Jangan lupa catat makan malammu hari ini untuk tracking kalori.',
     },
   ];
 
-  /// Mengecek stok pantry dan membuat notifikasi jika ada bahan yang mendekati atau melewati masa simpan.
-  Future<void> checkExpiryAndCreateNotifications({int? userId}) async {
+  static bool _isCheckingExpiry = false;
+  static DateTime? _lastExpiryCheck;
+  static bool _isCheckingMeals = false;
+  static DateTime? _lastMealCheck;
+
+  // Cek masa simpan bahan pantry & buat notifikasi
+  Future<void> checkExpiryAndCreateNotifications({
+    int? userId,
+    bool force = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool(AppConstants.keyNotifExpiryAlert) ?? true)) return;
 
     final targetUserId = userId ?? await _db.getActiveUserId();
     if (targetUserId == null) return;
 
-    final db = await _db.database;
-    final items = await _db.getPantryItems(userId: targetUserId);
+    // Mutex & debounce: Cegah race condition pemanggilan simultan dari banyak controller
     final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+    if (!force && _isCheckingExpiry) return;
+    if (!force &&
+        _lastExpiryCheck != null &&
+        now.difference(_lastExpiryCheck!).inSeconds < 10) {
+      return;
+    }
 
-    for (var item in items) {
-      final days = item.daysUntilExpiry;
+    _isCheckingExpiry = true;
+    _lastExpiryCheck = now;
 
-      // 1. Peringatan Dini 1 Bulan Sebelum Kedaluwarsa (H-30 / rentang 28-30 hari)
-      // Dikirim HANYA SEKALI per item agar pengguna dapat merencanakan stok jauh-jauh hari.
-      if (days >= 28 && days <= 30) {
-        final title = 'Pengingat 1 Bulan: ${item.name}';
-        final message =
-            '${item.name} di ${item.storage.toLowerCase()} akan kedaluwarsa dalam $days hari. Rencanakan penggunaannya agar tidak terbuang!';
+    try {
+      final db = await _db.database;
+      final items = await _db.getPantryItems(userId: targetUserId);
+      final todayStart = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).toIso8601String();
 
-        final alreadyNotified = await db.query(
-          DBHelper.tableNotifications,
-          where: 'related_pantry_id = ? AND title LIKE ? AND user_id = ?',
-          whereArgs: [item.id, 'Pengingat 1 Bulan%', targetUserId],
-        );
+      for (var item in items) {
+        if (item.id == null) continue;
+        final days = item.daysUntilExpiry;
 
-        if (alreadyNotified.isEmpty) {
-          final id = await _db.addNotification(
-            NotificationModel(
-              userId: targetUserId,
-              title: title,
-              message: message,
-              type: 'expiry_warning',
-              iconType: 'lightbulb',
-              relatedPantryId: item.id,
-              createdAt: DateTime.now(),
-            ),
+        // 1. Peringatan Dini 1 Bulan Sebelum Kedaluwarsa (H-30 / rentang 28-30 hari)
+        // Dikirim HANYA SEKALI per item agar pengguna dapat merencanakan stok jauh-jauh hari.
+        if (days >= 28 && days <= 30) {
+          final title = 'Pengingat 1 Bulan: ${item.name}';
+          final message =
+              '${item.name} di ${item.storage.toLowerCase()} akan kedaluwarsa dalam $days hari. Rencanakan penggunaannya agar tidak terbuang!';
+
+          final alreadyNotified = await db.query(
+            DBHelper.tableNotifications,
+            where: 'related_pantry_id = ? AND user_id = ?',
+            whereArgs: [item.id, targetUserId],
           );
-          try {
-            await _notificationService.showSystemNotification(
-              id: id,
-              title: title,
-              body: message,
+
+          if (alreadyNotified.isEmpty) {
+            await _db.addNotification(
+              NotificationModel(
+                userId: targetUserId,
+                title: title,
+                message: message,
+                type: 'expiry_warning',
+                iconType: 'lightbulb',
+                relatedPantryId: item.id,
+                createdAt: DateTime.now(),
+              ),
             );
-          } catch (_) {}
+            // Gunakan ID deterministik per bahan agar Android meng-update notifikasi dan tidak menduplikasi kartu
+            final systemNotifId = 20000 + item.id!;
+            try {
+              await _notificationService.showSystemNotification(
+                id: systemNotifId,
+                title: title,
+                body: message,
+              );
+            } catch (_) {}
+          }
+        }
+        // 2. Peringatan Bertahap Saat Masuk Status Segera / Urgent / Expired (H-5 s/d H-0)
+        else if (days <= 5) {
+          final title = days <= 0
+              ? '${item.name} sudah kadaluwarsa!'
+              : days <= 2
+              ? '${item.name} hampir kadaluwarsa'
+              : '${item.name} perlu segera digunakan';
+          final message = days <= 0
+              ? '${item.name} di ${item.storage.toLowerCase()} sudah melewati tanggal kadaluwarsa.'
+              : '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
+
+          // Cek ketat: 1 bahan pantry hanya boleh memicu MAKSIMAL 1 notifikasi per hari
+          final existing = await db.query(
+            DBHelper.tableNotifications,
+            where: 'related_pantry_id = ? AND user_id = ? AND created_at >= ?',
+            whereArgs: [item.id, targetUserId, todayStart],
+          );
+
+          if (existing.isEmpty) {
+            await _db.addNotification(
+              NotificationModel(
+                userId: targetUserId,
+                title: title,
+                message: message,
+                type: 'expiry_warning',
+                iconType: 'warning',
+                relatedPantryId: item.id,
+                createdAt: DateTime.now(),
+              ),
+            );
+            // ID deterministik spesifik item (20000 + id bahan) menjamin 0 duplikasi di status bar Android
+            final systemNotifId = 20000 + item.id!;
+            try {
+              await _notificationService.showSystemNotification(
+                id: systemNotifId,
+                title: title,
+                body: message,
+              );
+            } catch (_) {}
+          }
         }
       }
-      // 2. Peringatan Bertahap Saat Masuk Status Segera / Urgent / Expired (H-5 s/d H-0)
-      else if (days <= 5) {
-        final title = days <= 0
-            ? '${item.name} sudah kadaluwarsa!'
-            : days <= 2
-                ? '${item.name} hampir kadaluwarsa'
-                : '${item.name} perlu segera digunakan';
-        final message = days <= 0
-            ? '${item.name} di ${item.storage.toLowerCase()} sudah melewati tanggal kadaluwarsa.'
-            : '${item.name} di ${item.storage.toLowerCase()} akan kadaluwarsa dalam $days hari.';
-
-        final existing = await db.query(
-          DBHelper.tableNotifications,
-          where: 'related_pantry_id = ? AND title = ? AND created_at >= ? AND user_id = ?',
-          whereArgs: [item.id, title, todayStart, targetUserId],
-        );
-
-        if (existing.isEmpty) {
-          final id = await _db.addNotification(
-            NotificationModel(
-              userId: targetUserId,
-              title: title,
-              message: message,
-              type: 'expiry_warning',
-              iconType: 'warning',
-              relatedPantryId: item.id,
-              createdAt: DateTime.now(),
-            ),
-          );
-          try {
-            await _notificationService.showSystemNotification(
-              id: id,
-              title: title,
-              body: message,
-            );
-          } catch (_) {}
-        }
-      }
+    } finally {
+      _isCheckingExpiry = false;
     }
   }
 
   /// Mengecek jadwal pengingat makan dan membuat notifikasi jika pengguna belum mencatat makanan untuk jam makan tersebut.
-  Future<void> checkMealRemindersAndCreateNotifications({int? userId}) async {
+  Future<void> checkMealRemindersAndCreateNotifications({
+    int? userId,
+    bool force = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true)) return;
 
     final targetUserId = userId ?? await _db.getActiveUserId();
     if (targetUserId == null) return;
 
-    final db = await _db.database;
     final now = DateTime.now();
-    final todayStr = AppDateFormatter.formatToday();
-    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
+    if (!force && _isCheckingMeals) return;
+    if (!force &&
+        _lastMealCheck != null &&
+        now.difference(_lastMealCheck!).inSeconds < 10) {
+      return;
+    }
 
-    for (final meal in mealConfigs) {
-      if (!(prefs.getBool(meal['enabledKey']!) ?? true)) continue;
+    _isCheckingMeals = true;
+    _lastMealCheck = now;
 
-      final timeStr = prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
-      final parts = timeStr.split(':');
-      final targetHour = int.tryParse(parts[0]) ?? 12;
-      final targetMinute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+    try {
+      final db = await _db.database;
+      final todayStr = AppDateFormatter.formatToday();
+      final startOfDay = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).toIso8601String();
 
-      final scheduledTime = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
-      if (now.isBefore(scheduledTime)) continue;
+      for (var i = 0; i < mealConfigs.length; i++) {
+        final meal = mealConfigs[i];
+        if (!(prefs.getBool(meal['enabledKey']!) ?? true)) continue;
 
-      final logs = await db.query(
-        DBHelper.tableFoodLogs,
-        where: 'date = ? AND meal_type = ? AND user_id = ?',
-        whereArgs: [todayStr, meal['type']!, targetUserId],
-      );
+        final timeStr =
+            prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
+        final parts = timeStr.split(':');
+        final targetHour = int.tryParse(parts[0]) ?? 12;
+        final targetMinute = parts.length > 1
+            ? (int.tryParse(parts[1]) ?? 0)
+            : 0;
 
-      if (logs.isEmpty) {
-        final title = meal['title']!;
-        final existing = await db.query(
-          DBHelper.tableNotifications,
-          where: 'type = ? AND title = ? AND created_at >= ? AND user_id = ?',
-          whereArgs: ['meal_reminder', title, startOfDay, targetUserId],
+        final scheduledTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          targetHour,
+          targetMinute,
+        );
+        if (now.isBefore(scheduledTime)) continue;
+
+        final logs = await db.query(
+          DBHelper.tableFoodLogs,
+          where: 'date = ? AND meal_type = ? AND user_id = ?',
+          whereArgs: [todayStr, meal['type']!, targetUserId],
         );
 
-        if (existing.isEmpty) {
-          final notif = NotificationModel(
-            userId: targetUserId,
-            title: title,
-            message: meal['message']!,
-            type: 'meal_reminder',
-            iconType: 'restaurant',
-            createdAt: now,
+        if (logs.isEmpty) {
+          final title = meal['title']!;
+          final existing = await db.query(
+            DBHelper.tableNotifications,
+            where: 'type = ? AND title = ? AND created_at >= ? AND user_id = ?',
+            whereArgs: ['meal_reminder', title, startOfDay, targetUserId],
           );
-          final id = await _db.addNotification(notif);
-          try {
-            await _notificationService.showSystemNotification(
-              id: id,
-              title: notif.title,
-              body: notif.message,
+
+          if (existing.isEmpty) {
+            final notif = NotificationModel(
+              userId: targetUserId,
+              title: title,
+              message: meal['message']!,
+              type: 'meal_reminder',
+              iconType: 'restaurant',
+              createdAt: now,
             );
-          } catch (_) {}
+            await _db.addNotification(notif);
+            // ID deterministik per jadwal makan (10001, 10002, 10003)
+            final systemNotifId = 10001 + i;
+            try {
+              await _notificationService.showSystemNotification(
+                id: systemNotifId,
+                title: notif.title,
+                body: notif.message,
+              );
+            } catch (_) {}
+          }
         }
       }
+    } finally {
+      _isCheckingMeals = false;
     }
   }
 
@@ -198,14 +267,18 @@ class ReminderService {
     final prefs = await SharedPreferences.getInstance();
     return {
       'expiryAlert': prefs.getBool(AppConstants.keyNotifExpiryAlert) ?? true,
-      'nutritionExcess': prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true,
+      'nutritionExcess':
+          prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true,
       'dailyMealLog': prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true,
       'ecoTips': prefs.getBool(AppConstants.keyNotifEcoTips) ?? true,
-      'breakfastEnabled': prefs.getBool(AppConstants.keyNotifBreakfastEnabled) ?? true,
-      'breakfastTime': prefs.getString(AppConstants.keyNotifBreakfastTime) ?? '07:30',
+      'breakfastEnabled':
+          prefs.getBool(AppConstants.keyNotifBreakfastEnabled) ?? true,
+      'breakfastTime':
+          prefs.getString(AppConstants.keyNotifBreakfastTime) ?? '07:30',
       'lunchEnabled': prefs.getBool(AppConstants.keyNotifLunchEnabled) ?? true,
       'lunchTime': prefs.getString(AppConstants.keyNotifLunchTime) ?? '12:30',
-      'dinnerEnabled': prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true,
+      'dinnerEnabled':
+          prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true,
       'dinnerTime': prefs.getString(AppConstants.keyNotifDinnerTime) ?? '19:00',
     };
   }
@@ -228,7 +301,10 @@ class ReminderService {
     await prefs.setBool(AppConstants.keyNotifNutritionExcess, nutritionExcess);
     await prefs.setBool(AppConstants.keyNotifDailyMealLog, dailyMealLog);
     await prefs.setBool(AppConstants.keyNotifEcoTips, ecoTips);
-    await prefs.setBool(AppConstants.keyNotifBreakfastEnabled, breakfastEnabled);
+    await prefs.setBool(
+      AppConstants.keyNotifBreakfastEnabled,
+      breakfastEnabled,
+    );
     await prefs.setString(AppConstants.keyNotifBreakfastTime, breakfastTime);
     await prefs.setBool(AppConstants.keyNotifLunchEnabled, lunchEnabled);
     await prefs.setString(AppConstants.keyNotifLunchTime, lunchTime);

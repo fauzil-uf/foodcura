@@ -1,7 +1,4 @@
-/// Model representasi data pengguna pada database SQLite.
-///
-/// Digunakan untuk proses autentikasi (Registrasi, Login) dan sinkronisasi
-/// data profil (nama, email, avatar dinamis).
+/// Model entitas pengguna akun FoodCura di database SQLite lokal.
 class UserModelSQL {
   final int? id;
   final String name;
@@ -17,7 +14,6 @@ class UserModelSQL {
     this.createdAt,
   });
 
-  /// Mengonversi objek [UserModelSQL] menjadi format [Map] untuk disimpan ke SQLite.
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -28,7 +24,6 @@ class UserModelSQL {
     };
   }
 
-  /// Membuat instance [UserModelSQL] dari hasil pembacaan baris [Map] SQLite.
   factory UserModelSQL.fromMap(Map<String, dynamic> map) {
     return UserModelSQL(
       id: map['id'] as int?,
@@ -39,7 +34,6 @@ class UserModelSQL {
     );
   }
 
-  /// Membuat salinan objek dengan opsi pembaruan field tertentu.
   UserModelSQL copyWith({
     int? id,
     String? name,

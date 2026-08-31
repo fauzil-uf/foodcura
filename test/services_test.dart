@@ -24,7 +24,9 @@ void main() {
   group('ReminderService tests', () {
     test('Verifies standard meal schedule configs are configured', () {
       expect(ReminderService.mealConfigs.length, equals(3));
-      final mealTypes = ReminderService.mealConfigs.map((m) => m['type']).toList();
+      final mealTypes = ReminderService.mealConfigs
+          .map((m) => m['type'])
+          .toList();
       expect(mealTypes, containsAll(['Sarapan', 'Makan Siang', 'Makan Malam']));
     });
   });

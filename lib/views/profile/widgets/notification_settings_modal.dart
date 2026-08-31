@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
-import '../../../services/reminder_service.dart';
+import '../../../controllers/profile_controller.dart';
+import '../../widgets/app_snack_bar.dart';
 
-/// Modal konfigurasi preferensi peringatan kedaluwarsa pantry, batas nutrisi, dan jadwal waktu makan harian.
+// Modal pengaturan preferensi notifikasi
 class NotificationSettingsModal extends StatefulWidget {
-  const NotificationSettingsModal({super.key});
+  final ProfileController controller;
+
+  const NotificationSettingsModal({super.key, required this.controller});
 
   @override
   State<NotificationSettingsModal> createState() =>
@@ -34,8 +37,9 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     _loadSettings();
   }
 
+  // Muat status preferensi notifikasi dari controller
   Future<void> _loadSettings() async {
-    final settings = await ReminderService().loadNotificationSettings();
+    final settings = await widget.controller.loadNotificationSettings();
     if (mounted) {
       setState(() {
         _expiryAlert = settings['expiryAlert'] as bool;
@@ -53,6 +57,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     }
   }
 
+  // Dialog pemilih jam pengingat waktu makan
   Future<void> _pickTime({
     required String currentTime,
     required Function(String) onSelected,
@@ -89,7 +94,6 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     }
   }
 
-  /// Membangun modal lembar bawah berisi switch toggle preferensi notifikasi dan konfigurasi jam makan.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -277,7 +281,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                   elevation: 0,
                 ),
                 onPressed: () async {
-                  await ReminderService().saveNotificationSettings(
+                  await widget.controller.saveNotificationSettings(
                     expiryAlert: _expiryAlert,
                     nutritionExcess: _nutritionExcess,
                     dailyMealLog: _dailyMealLog,
@@ -292,15 +296,9 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
 
                   if (context.mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Pengaturan notifikasi berhasil disimpan!',
-                        ),
-                        backgroundColor: AppColors.primary,
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
-                      ),
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Pengaturan notifikasi berhasil disimpan!',
                     );
                   }
                 },
@@ -316,6 +314,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     );
   }
 
+  // Baris item jadwal waktu makan beserta switch aktif/nonaktif dan pemilih jam
   Widget _buildMealTimeRow({
     required IconData icon,
     required Color iconColor,
@@ -390,6 +389,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     );
   }
 
+  // Baris opsi pengaturan dengan switch toggle
   Widget _buildSwitchTile({
     required String title,
     required String subtitle,

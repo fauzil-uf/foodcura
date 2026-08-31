@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_date_formatter.dart';
-import '../../constants/app_typography.dart';
 import '../../controllers/food_tracker_controller.dart';
 import '../../models/food_item_model.dart';
 import '../../models/food_log_model.dart';
+import '../../services/app_notifiers.dart';
 import '../notification/notification_screen.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/add_food_modal.dart';
 import 'widgets/all_catalog_modal.dart';
@@ -16,6 +17,7 @@ import 'widgets/food_search_results.dart';
 import 'widgets/food_summary_card.dart';
 import 'widgets/food_tracker_header.dart';
 
+// Layar pelacak nutrisi & log makanan harian
 class FoodTrackerScreen extends StatefulWidget {
   final int initialTabIndex;
 
@@ -28,7 +30,6 @@ class FoodTrackerScreen extends StatefulWidget {
 class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   final _controller = FoodTrackerController();
   final TextEditingController _searchController = TextEditingController();
-  // Set penahan untuk mencegah input ganda akibat ketukan cepat (anti-spam).
   final Set<String> _recentlyAddedFoodNames = {};
 
   List<String> get _tabs => _controller.tabs;
@@ -37,45 +38,59 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   @override
   void initState() {
     super.initState();
+    // Pasang tab awal dan sinkronkan listener event global
     _controller.setSelectedTab(widget.initialTabIndex);
-    // Pasang listener reaktif agar UI otomatis render ulang saat state controller berubah.
     _controller.addListener(_onControllerChanged);
+    PantryUpdateNotifier.instance.addListener(_onPantryChanged);
+    NotificationNotifier.instance.addListener(_onNotifChanged);
     _refreshData();
   }
 
   @override
   void dispose() {
-    // Lepas listener dan matikan controller saat keluar layar guna mencegah kebocoran memori.
     _controller.removeListener(_onControllerChanged);
+    PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
+    NotificationNotifier.instance.removeListener(_onNotifChanged);
     _controller.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
+  // Update tampilan saat state controller berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
+  // Muat ulang daftar makanan jika ada bahan pantry yang baru dimasak
+  void _onPantryChanged() {
+    if (mounted) _controller.loadData();
+  }
+
+  // Refresh badge notifikasi unread jika ada notifikasi baru
+  void _onNotifChanged() {
+    if (mounted) _controller.refreshUnreadCount();
+  }
+
+  // Ambil data log makanan untuk tanggal yang sedang dipilih
   Future<void> _refreshData() async {
-    // Muat ulang data log harian dan perbarui counter notifikasi belum terbaca.
     await _controller.loadData();
   }
 
+  // Buka layar notifikasi
   void _openNotifications() {
-    // Buka layar notifikasi dan refresh data setelah kembali.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NotificationScreen()),
-    ).then((_) => _refreshData());
+    ).then((_) => _controller.refreshUnreadCount());
   }
 
+  // Filter katalog makanan berdasarkan query input pencarian
   void _onSearchChanged(String query) {
-    // Teruskan kata kunci pencarian ke controller dengan debouncing.
     _controller.searchCatalog(query);
   }
 
+  // Buka modal input catat makanan baru untuk jenis makan tertentu
   void _openAddFoodModal(String mealType) {
-    // Tampilkan modal pencatatan makanan untuk jenis waktu makan tertentu.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -85,13 +100,12 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
         targetDate: _controller.selectedDate,
         controller: _controller,
         recentFoods: _controller.recentCatalog,
-        onFoodAdded: _refreshData,
       ),
     );
   }
 
+  // Modal telusuri semua katalog makanan
   void _openAllCatalogModal(String mealType) {
-    // Tampilkan modal katalog lengkap seluruh makanan TKPI.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -100,46 +114,36 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
         currentMealType: mealType,
         targetDate: _controller.selectedDate,
         controller: _controller,
-        onFoodAdded: _refreshData,
       ),
     );
   }
 
+  // Modal detail & edit makanan
   void _openDetailModal(FoodLogModel log) {
-    // Tampilkan modal rincian nutrisi dan opsi hapus log makanan.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FoodDetailModal(
-        log: log,
-        controller: _controller,
-        onLogDeleted: _refreshData,
-      ),
+      builder: (_) => FoodDetailModal(log: log, controller: _controller),
     );
   }
 
+  // Placeholder scanner makanan
   void _openFoodScanner() {
-    // Handler sementara untuk fitur pemindai barcode & foto makanan.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur Scan Barcode & Foto Makanan belum tersedia'),
-        behavior: SnackBarBehavior.floating,
-      ),
+    AppSnackBar.showInfo(
+      context,
+      'Fitur Scan Barcode & Foto Makanan segera hadir!',
     );
   }
 
+  // Quick add makanan (dengan anti-spam)
   Future<void> _quickAddFood(FoodItemModel food, String mealType) async {
-    // Abaikan jika item ini sedang dalam proses penyimpanan.
     if (_recentlyAddedFoodNames.contains(food.name)) return;
 
     setState(() {
       _recentlyAddedFoodNames.add(food.name);
     });
 
-    final now = DateTime.now();
-    final timeStr =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     final targetDate = _controller.selectedDate;
 
     final newLog = FoodLogModel(
@@ -151,19 +155,26 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       fat: food.fat,
       cholesterol: food.cholesterol,
       imagePath: food.imagePath,
-      time: timeStr,
+      time: AppDateFormatter.formatTime(),
       date: AppDateFormatter.formatToday(targetDate),
     );
 
-    // addFoodLog sudah memanggil loadData() secara internal — tidak perlu _refreshData() lagi.
+    // addFoodLog sudah memanggil loadData() secara internal.
     final notif = await _controller.addFoodLog(newLog);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       if (notif != null) {
-        _showNutritionWarningSnackBar(notif.title, notif.message);
+        AppSnackBar.showWarning(
+          context,
+          title: notif.title,
+          message: notif.message,
+        );
       } else {
-        _showFoodAddedSnackBar(food.name, food.calories, mealType);
+        AppSnackBar.showSuccess(
+          context,
+          '${food.name} Ditambahkan!',
+          subtitle: '${food.calories} kcal dicatat ke $mealType',
+        );
       }
     }
 
@@ -176,92 +187,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     }
   }
 
-  /// Menampilkan SnackBar peringatan nutrisi berlebih (merah, 4 detik).
-  void _showNutritionWarningSnackBar(String title, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-        backgroundColor: AppColors.urgent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Row(
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.buttonSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    message,
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Menampilkan SnackBar konfirmasi makanan berhasil dicatat (hijau, 2 detik).
-  void _showFoodAddedSnackBar(String foodName, int calories, String mealType) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        backgroundColor: AppColors.deepForest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(5),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$foodName Ditambahkan!',
-                    style: AppTextStyles.buttonSmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    '$calories kcal dicatat ke $mealType',
-                    style: AppTextStyles.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Membangun antarmuka pelacak makanan dengan navigator tanggal, pencarian instan, ringkasan makronutrisi, dan tab waktu makan.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -279,94 +204,109 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
 
             Expanded(
               child: _controller.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.only(
-                        left: 20,
-                        right: 20,
-                        top: 18,
-                        bottom: 110,
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          FoodTrackerHeader(
-                            tabs: _tabs,
-                            selectedTabIndex: _selectedTabIndex,
-                            selectedDate: _controller.selectedDate,
-                            dateDisplayLabel: _controller.dateDisplayLabel,
-                            searchController: _searchController,
-                            isSearching: _controller.isSearching,
-                            onBack: () => _controller.setSelectedTab(0),
-                            onDateTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _controller.selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.light(
-                                        primary: AppColors.primary,
-                                        onPrimary: Colors.white,
-                                        onSurface: AppColors.deepForest,
-                                      ),
-                                    ),
-                                    child: child!,
-                                  );
-                                },
-                              );
-                              if (picked != null) {
-                                _controller.setSelectedDate(picked);
-                              }
-                            },
-                            onPreviousDay: () => _controller.previousDay(),
-                            onNextDay: () => _controller.nextDay(),
-                            onSearchChanged: _onSearchChanged,
-                            onFoodScannerTap: _openFoodScanner,
-                            onTabChanged: (index) => _controller.setSelectedTab(index),
-                          ),
-                          const SizedBox(height: 20),
-
-                          if (_controller.isSearching)
-                            FoodSearchResults(
-                              searchQuery: _searchController.text,
-                              searchResults: _controller.searchResults,
-                              currentMealType: _selectedTabIndex > 0
-                                  ? _tabs[_selectedTabIndex]
-                                  : 'Makan Siang',
-                              recentlyAddedFoodNames: _recentlyAddedFoodNames,
-                              onClear: () {
-                                _searchController.clear();
-                                _onSearchChanged('');
-                              },
-                              onQuickAdd: _quickAddFood,
-                            )
-                          else if (_selectedTabIndex == 0)
-                            FoodSummaryCard(
-                              controller: _controller,
-                              nutrientWarnings: _controller.warnings,
-                              onAddFood: _openAddFoodModal,
-                              onOpenMealTab: (index) => _controller.setSelectedTab(index),
-                            )
-                          else
-                            FoodMealTab(
-                              mealType: _tabs[_selectedTabIndex],
-                              logs: _controller.filteredLogs,
-                              totalCalories: _controller.filteredLogs
-                                  .fold(0, (sum, item) => sum + item.calories),
+                    )
+                  : RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () => _controller.loadData(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 18,
+                          bottom: 110,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FoodTrackerHeader(
+                              tabs: _tabs,
+                              selectedTabIndex: _selectedTabIndex,
                               selectedDate: _controller.selectedDate,
-                              recentCatalog: _controller.recentCatalog,
-                              recentlyAddedFoodNames: _recentlyAddedFoodNames,
-                              onAddFood: _openAddFoodModal,
-                              onOpenDetail: _openDetailModal,
-                              onOpenAllCatalog: () => _openAllCatalogModal(
-                                    _tabs[_selectedTabIndex],
+                              dateDisplayLabel: _controller.dateDisplayLabel,
+                              searchController: _searchController,
+                              isSearching: _controller.isSearching,
+                              onBack: () => _controller.setSelectedTab(0),
+                              onDateTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _controller.selectedDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365),
                                   ),
-                              onQuickAdd: _quickAddFood,
+                                  builder: (context, child) {
+                                    return Theme(
+                                      data: Theme.of(context).copyWith(
+                                        colorScheme: const ColorScheme.light(
+                                          primary: AppColors.primary,
+                                          onPrimary: Colors.white,
+                                          onSurface: AppColors.deepForest,
+                                        ),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+                                if (picked != null) {
+                                  _controller.setSelectedDate(picked);
+                                }
+                              },
+                              onPreviousDay: () => _controller.previousDay(),
+                              onNextDay: () => _controller.nextDay(),
+                              onSearchChanged: _onSearchChanged,
+                              onFoodScannerTap: _openFoodScanner,
+                              onTabChanged: (index) =>
+                                  _controller.setSelectedTab(index),
                             ),
-                        ],
+                            const SizedBox(height: 20),
+
+                            if (_controller.isSearching)
+                              FoodSearchResults(
+                                searchQuery: _searchController.text,
+                                searchResults: _controller.searchResults,
+                                currentMealType: _selectedTabIndex > 0
+                                    ? _tabs[_selectedTabIndex]
+                                    : 'Makan Siang',
+                                recentlyAddedFoodNames: _recentlyAddedFoodNames,
+                                onClear: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                                onQuickAdd: _quickAddFood,
+                              )
+                            else if (_selectedTabIndex == 0)
+                              FoodSummaryCard(
+                                controller: _controller,
+                                nutrientWarnings: _controller.warnings,
+                                onAddFood: _openAddFoodModal,
+                                onOpenMealTab: (index) =>
+                                    _controller.setSelectedTab(index),
+                              )
+                            else
+                              FoodMealTab(
+                                mealType: _tabs[_selectedTabIndex],
+                                logs: _controller.filteredLogs,
+                                totalCalories: _controller.filteredLogs.fold(
+                                  0,
+                                  (sum, item) => sum + item.calories,
+                                ),
+                                selectedDate: _controller.selectedDate,
+                                recentCatalog: _controller.recentCatalog,
+                                recentlyAddedFoodNames: _recentlyAddedFoodNames,
+                                onAddFood: _openAddFoodModal,
+                                onOpenDetail: _openDetailModal,
+                                onOpenAllCatalog: () => _openAllCatalogModal(
+                                  _tabs[_selectedTabIndex],
+                                ),
+                                onQuickAdd: _quickAddFood,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
             ),

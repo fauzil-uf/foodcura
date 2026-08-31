@@ -4,14 +4,13 @@ import '../constants/app_constants.dart';
 import '../constants/app_date_formatter.dart';
 import '../database/db_helper.dart';
 
-/// Service untuk kalkulasi streak (hari aktif berturut-turut) berbasis
-/// riwayat log makanan dan tanggal pendaftaran pengguna.
+// Service perhitungan streak harian user
 class StreakService {
   final DBHelper _db;
 
   StreakService({DBHelper? db}) : _db = db ?? DBHelper();
 
-  /// Menghitung streak hari berturut-turut secara deterministik dan menyimpannya di SharedPreferences.
+  // Hitung & simpan streak hari berturut-turut
   Future<int> computeAndSaveStreak({int? userId}) async {
     final targetUserId = userId ?? await _db.getActiveUserId();
     if (targetUserId == null) return 0;
@@ -33,7 +32,9 @@ class StreakService {
     if (userRes.isNotEmpty) {
       final rawCreatedAt = userRes.first['created_at'] as String?;
       if (rawCreatedAt != null && rawCreatedAt.isNotEmpty) {
-        joinDate = DateTime.tryParse(rawCreatedAt) ?? AppDateFormatter.parseDate(rawCreatedAt);
+        joinDate =
+            DateTime.tryParse(rawCreatedAt) ??
+            AppDateFormatter.parseDate(rawCreatedAt);
       }
     }
 
@@ -92,7 +93,8 @@ class StreakService {
     }
     if (dateSet.isNotEmpty) {
       final earliestLogDate = dateSet.reduce((a, b) => a.isBefore(b) ? a : b);
-      if (effectiveJoinDay == null || earliestLogDate.isBefore(effectiveJoinDay)) {
+      if (effectiveJoinDay == null ||
+          earliestLogDate.isBefore(effectiveJoinDay)) {
         effectiveJoinDay = earliestLogDate;
       }
     }
@@ -109,7 +111,7 @@ class StreakService {
     return currentStreak;
   }
 
-  /// Mengambil nilai streak tersimpan secara cepat dari SharedPreferences.
+  // Ambil streak tersimpan di SharedPreferences
   Future<int> getSavedStreak({int? userId}) async {
     final targetUserId = userId ?? await _db.getActiveUserId();
     if (targetUserId == null) return 0;

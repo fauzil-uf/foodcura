@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -8,9 +9,12 @@ import '../../controllers/auth_controller.dart';
 import '../../services/preference_handler.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
+import '../profile/widgets/privacy_security_modal.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 import 'login_screen.dart';
 
+// Layar registrasi akun baru
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -24,15 +28,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final _authController = AuthController();
+  late final TapGestureRecognizer _privacyRecognizer;
+  bool _agreedToPrivacy = false;
 
   @override
   void initState() {
     super.initState();
     _authController.addListener(_onAuthStateChanged);
+    _privacyRecognizer = TapGestureRecognizer()..onTap = _openPrivacyPolicy;
   }
 
   @override
   void dispose() {
+    _privacyRecognizer.dispose();
     _authController.removeListener(_onAuthStateChanged);
     _authController.dispose();
     nameController.dispose();
@@ -42,19 +50,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // Buka modal interaktif Kebijakan Privasi & Keamanan Data
+  void _openPrivacyPolicy() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PrivacySecurityModal(
+        onAccept: () {
+          setState(() {
+            _agreedToPrivacy = true;
+          });
+        },
+      ),
+    );
+  }
+
+  // Update UI saat state berubah
   void _onAuthStateChanged() {
     if (mounted) setState(() {});
   }
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {bool isError = true}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    if (isError) {
+      AppSnackBar.showError(context, message);
+    } else {
+      AppSnackBar.showSuccess(context, message);
+    }
   }
 
-  /// Mendaftarkan akun pengguna baru via AuthController dan mereset status onboarding.
+  // Validasi persetujuan privasi dan daftarkan akun baru ke SQLite
   Future<void> _register() async {
+    if (!_agreedToPrivacy) {
+      _showSnackBar(
+        'Harap baca dan centang persetujuan Kebijakan Privasi terlebih dahulu.',
+      );
+      return;
+    }
+
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final pass = passwordController.text;
@@ -68,11 +102,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Set status onboarding ke false agar pengguna baru mendapatkan tur panduan aplikasi saat pertama kali login.
       await PreferenceHandler.setHasSeenOnboarding(false);
       if (!mounted) return;
 
-      _showSnackBar('Registrasi berhasil! Silakan masuk dengan akun Anda.');
+      _showSnackBar(
+        'Registrasi berhasil! Silakan masuk dengan akun Anda.',
+        isError: false,
+      );
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -83,7 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  /// Masuk / Daftar langsung dengan akun Google via Firebase Auth
+  // Proses registrasi/login cepat via Google Sign-In
   Future<void> _handleGoogleSignIn() async {
     final success = await _authController.signInWithGoogle();
 
@@ -104,7 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           (route) => false,
         );
       }
-     } else if (_authController.errorMessage != null) {
+    } else if (_authController.errorMessage != null) {
       _showSnackBar(_authController.errorMessage!);
     }
   }
@@ -240,7 +276,87 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   radius: 15,
                                   textStyle: AppTextStyles.inputTextSmall,
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _agreedToPrivacy = !_agreedToPrivacy;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 2,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: Checkbox(
+                                            value: _agreedToPrivacy,
+                                            activeColor: AppColors.primary,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            side: const BorderSide(
+                                              color: AppColors.border,
+                                              width: 1.5,
+                                            ),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _agreedToPrivacy = val ?? false;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: AppTextStyles.caption
+                                                  .copyWith(
+                                                    color: AppColors.deepForest,
+                                                    fontSize: 11.5,
+                                                    height: 1.35,
+                                                  ),
+                                              children: [
+                                                const TextSpan(
+                                                  text:
+                                                      'Saya telah membaca dan menyetujui ',
+                                                ),
+                                                TextSpan(
+                                                  text: 'Kebijakan Privasi',
+                                                  style: AppTextStyles.caption
+                                                      .copyWith(
+                                                        color:
+                                                            AppColors.primary,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .underline,
+                                                        fontSize: 11.5,
+                                                      ),
+                                                  recognizer:
+                                                      _privacyRecognizer,
+                                                ),
+                                                const TextSpan(
+                                                  text: ' FoodCura.',
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
                                 SizedBox(
                                   height: 51,
                                   child: ElevatedButton(

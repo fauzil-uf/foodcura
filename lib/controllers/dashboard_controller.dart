@@ -6,21 +6,26 @@ import '../models/food_log_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
 import '../services/gemini_service.dart';
+import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 
-/// Controller untuk mengelola data dan kalkulasi ringkasan harian pada layar Dashboard/Home.
+// Controller dashboard / home (ringkasan kalori, nutrisi, radar pantry, & saran AI)
 class DashboardController extends ChangeNotifier {
   final DBHelper _db;
   final GeminiService _gemini;
   final StreakService _streakService;
+  final ReminderService _reminderService;
 
   DashboardController({
     DBHelper? db,
     GeminiService? gemini,
     StreakService? streakService,
-  })  : _db = db ?? DBHelper(),
-        _gemini = gemini ?? GeminiService.instance,
-        _streakService = streakService ?? StreakService(db: db ?? DBHelper());
+    ReminderService? reminderService,
+  }) : _db = db ?? DBHelper(),
+       _gemini = gemini ?? GeminiService.instance,
+       _streakService = streakService ?? StreakService(db: db ?? DBHelper()),
+       _reminderService =
+           reminderService ?? ReminderService(db: db ?? DBHelper());
 
   static const int defaultTargetCalories = 2000;
   static const double defaultProteinMax = 65.0;
@@ -49,7 +54,8 @@ class DashboardController extends ChangeNotifier {
   int get streak => _streak;
   int get totalCalories => _totalCalories;
   int get targetCalories => defaultTargetCalories;
-  double get caloriesRatio => (_totalCalories / defaultTargetCalories).clamp(0.0, 1.0);
+  double get caloriesRatio =>
+      (_totalCalories / defaultTargetCalories).clamp(0.0, 1.0);
 
   double get proteinGrams => _proteinGrams;
   double get proteinMax => defaultProteinMax;
@@ -102,6 +108,11 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Sinkronisasi otomatis notifikasi kedaluwarsa dan pengingat jam makan harian
+      await _reminderService.checkExpiryAndCreateNotifications();
+      await _reminderService.checkMealRemindersAndCreateNotifications();
+      await _db.cleanDuplicateNotifications();
+
       final todayStr = AppDateFormatter.formatToday();
 
       // Eksekusi seluruh query SQLite metrik dashboard secara paralel untuk memangkas waktu inisialisasi UI.
@@ -120,7 +131,10 @@ class DashboardController extends ChangeNotifier {
       _unreadNotifications = results[4] as int;
 
       _urgentPantryItems = allPantry
-          .where((item) => item.expiryStatus == 'expired' || item.expiryStatus == 'urgent')
+          .where(
+            (item) =>
+                item.expiryStatus == 'expired' || item.expiryStatus == 'urgent',
+          )
           .toList();
       _segeraPantryItems = allPantry
           .where((item) => item.expiryStatus == 'segera')
@@ -138,5 +152,11 @@ class DashboardController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Memperbarui badge hitungan notifikasi belum terbaca secara efisien
+  Future<void> refreshUnreadCount() async {
+    _unreadNotifications = await _db.getUnreadNotificationCount();
+    notifyListeners();
   }
 }

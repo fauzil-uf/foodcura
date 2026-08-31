@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
+import '../../widgets/app_filter_chip_row.dart';
 
-/// Widget bilah navigasi tanggal kalender, kolom pencarian makanan & barcode scanner, serta tab bar jenis waktu makan.
+// Header tracker (navigasi tanggal, pencarian, scanner, & tab makan)
 class FoodTrackerHeader extends StatelessWidget {
   const FoodTrackerHeader({
     super.key,
@@ -99,56 +100,16 @@ class FoodTrackerHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 40,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: tabs.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final tabName = tabs[index];
-              final isSelected = selectedTabIndex == index;
-              return GestureDetector(
-                onTap: () => onTabChanged(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Text(
-                    tabName,
-                    style: AppTextStyles.bodyMd.copyWith(
-                      fontSize: 13,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textGray,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+        AppFilterChipRow(
+          filters: tabs,
+          selectedIndex: selectedTabIndex,
+          onChanged: onTabChanged,
         ),
       ],
     );
   }
 
+  // Bar navigasi pemilih tanggal (hari kemarin, hari ini, hari esok, & kalender)
   Widget _buildDateNavigator(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),

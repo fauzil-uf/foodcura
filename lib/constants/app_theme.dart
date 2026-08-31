@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
-/// Menyatukan warna & tipografi ke ThemeData global Flutter.
-/// Dipasang sekali di main.dart -> MaterialApp(theme: AppTheme.light).
+// Tema visual aplikasi (ThemeData)
 class AppTheme {
   AppTheme._();
 

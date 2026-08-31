@@ -4,19 +4,21 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_log_model.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/app_food_image.dart';
+import '../../widgets/app_snack_bar.dart';
 
-/// Modal rincian lengkap makronutrisi makanan tercatat dengan fitur edit catatan dan hapus riwayat log.
+// Modal detail nutrisi & edit catatan makanan
 class FoodDetailModal extends StatefulWidget {
   final FoodLogModel log;
   final FoodTrackerController? controller;
-  final VoidCallback onLogDeleted;
+  final VoidCallback? onLogDeleted;
 
   const FoodDetailModal({
     super.key,
     required this.log,
     this.controller,
-    required this.onLogDeleted,
+    this.onLogDeleted,
   });
 
   @override
@@ -41,117 +43,36 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     super.dispose();
   }
 
-  /// Menampilkan dialog konfirmasi sebelum menghapus log makanan dari database SQLite.
+  // Tampilkan dialog konfirmasi dan hapus catatan makanan dari database
   Future<void> _deleteFood() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.showConfirmDialog(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.errorContainer.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.error,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Hapus Catatan',
-                style: AppTextStyles.heading2,
-              ),
-            ],
-          ),
-          content: Text(
-            'Apakah kamu yakin ingin menghapus "${widget.log.foodName}" dari catatan makanan?',
-            style: AppTextStyles.bodyMd.copyWith(
-              color: AppColors.textGray,
-            ),
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.border),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(
-                      'Batal',
-                      style: AppTextStyles.buttonSmall.copyWith(
-                        color: AppColors.textGray,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(
-                      'Hapus',
-                      style: AppTextStyles.buttonSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
+      title: 'Hapus Catatan Makanan',
+      message: 'Apakah kamu yakin ingin menghapus',
+      highlightedItem: widget.log.foodName,
+      confirmLabel: 'Hapus',
+      cancelLabel: 'Batal',
     );
 
     if (confirm == true && widget.log.id != null) {
       await _controller.deleteFoodLog(widget.log.id!);
-      widget.onLogDeleted();
+      widget.onLogDeleted?.call();
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${widget.log.foodName} berhasil dihapus'),
-            duration: const Duration(seconds: 2),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          '${widget.log.foodName} berhasil dihapus',
         );
       }
     }
   }
 
-  /// Menyimpan atau memperbarui catatan kustom pengguna terkait menu makanan yang disantap.
+  // Simpan perubahan catatan kustom pada log makanan ke database
   Future<void> _saveNote() async {
     if (widget.log.id != null) {
-      final updatedLog = widget.log.copyWith(
-        note: _noteController.text.trim(),
-      );
+      final updatedLog = widget.log.copyWith(note: _noteController.text.trim());
       await _controller.updateFoodLog(updatedLog);
-      widget.onLogDeleted();
+      widget.onLogDeleted?.call();
       setState(() {
         _isEditingNote = false;
       });
@@ -479,6 +400,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     );
   }
 
+  // Kartu metrik ringkas nilai nutrisi per porsi
   Widget _buildMetricCard(String val, String label, Color valColor) {
     return Expanded(
       child: Container(

@@ -4,7 +4,7 @@ import '../models/pantry_ingredient_model.dart';
 /// Berisi gambar visual online HD, perkiraan masa simpan standar, dan lokasi simpan.
 class PantryGroceryCatalog {
   static const List<PantryIngredientModel> ingredients = [
-    // ─── 1. SUSU, TELUR & OLAHAN DAIRY ──────────────────────────────────────
+    // Susu, Telur & Olahan Dairy
     PantryIngredientModel(
       name: 'Susu UHT Plain',
       category: 'Susu & Olahan',
@@ -123,7 +123,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1584278860047-22db9ff82bed?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 2. MAKANAN KALENG, FROZEN & SIAP MASAK ─────────────────────────────
+    // Makanan Kaleng, Frozen & Siap Masak
     PantryIngredientModel(
       name: 'Sarden Saus Tomat Kaleng',
       category: 'Kaleng & Olahan',
@@ -188,7 +188,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 3. SAYURAN & JAMUR ──────────────────────────────────────────────────
+    // Sayuran & Jamur
     PantryIngredientModel(
       name: 'Bayam Segar',
       category: 'Sayuran',
@@ -289,7 +289,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 4. BUAH-BUAHAN ──────────────────────────────────────────────────────
+    // Buah-buahan
     PantryIngredientModel(
       name: 'Apel Fuji',
       category: 'Buah',
@@ -354,7 +354,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 5. DAGING, UNGGAS & SEAFOOD ─────────────────────────────────────────
+    // Daging, Unggas & Seafood
     PantryIngredientModel(
       name: 'Dada Ayam Fillet',
       category: 'Daging & Ikan',
@@ -401,7 +401,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 6. BAHAN POKOK, PASTA & SEREAL ──────────────────────────────────────
+    // Bahan Pokok, Pasta & Sereal
     PantryIngredientModel(
       name: 'Beras Putih Pandan Wangi',
       category: 'Bahan Pokok',
@@ -466,7 +466,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 7. BUMBU, SAUS & MINYAK ─────────────────────────────────────────────
+    // Bumbu, Saus & Minyak
     PantryIngredientModel(
       name: 'Bawang Merah',
       category: 'Bumbu & Saus',
@@ -558,7 +558,7 @@ class PantryGroceryCatalog {
           'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=500&auto=format&fit=crop&q=80',
     ),
 
-    // ─── 8. SELAI, MADU & MINUMAN PANTRY ─────────────────────────────────────
+    // Selai, Madu & Minuman Pantry
     PantryIngredientModel(
       name: 'Madu Murni Asli',
       category: 'Selai & Minuman',
@@ -606,7 +606,7 @@ class PantryGroceryCatalog {
     ),
   ];
 
-  /// Cari bahan dapur mentah berdasarkan kata kunci
+  // Cari bahan dapur mentah berdasarkan nama atau kategori
   static List<PantryIngredientModel> search(String query) {
     if (query.trim().isEmpty) return [];
     final cleanQuery = query.trim().toLowerCase();
@@ -619,7 +619,7 @@ class PantryGroceryCatalog {
         .toList();
   }
 
-  /// Dapatkan gambar otomatis berdasarkan nama bahan (pencocokan parsial)
+  // Dapatkan URL gambar bahan secara otomatis berdasarkan nama
   static String? getImageFor(String itemName) {
     if (itemName.trim().isEmpty) return null;
     final cleanName = itemName.trim().toLowerCase();

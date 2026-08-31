@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import '../database/db_helper.dart';
 import '../models/notification_model.dart';
+import '../services/app_notifiers.dart';
 
-/// Controller untuk mengelola data notifikasi, filter kategori,
-/// pengelompokan waktu, dan status baca/unread.
+// Controller daftar notifikasi & filter status baca
 class NotificationController extends ChangeNotifier {
   final DBHelper _db;
 
@@ -22,7 +22,12 @@ class NotificationController extends ChangeNotifier {
     'Info & Tips',
   ];
 
-  static const List<String?> _filterArgs = [null, 'unread', 'expiry', 'foodcura'];
+  static const List<String?> _filterArgs = [
+    null,
+    'unread',
+    'expiry',
+    'foodcura',
+  ];
 
   // Getters
   List<NotificationModel> get notifications => _notifications;
@@ -33,7 +38,10 @@ class NotificationController extends ChangeNotifier {
 
   /// Mengelompokkan notifikasi ke dalam section 'Hari Ini' dan 'Sebelumnya'
   Map<String, List<NotificationModel>> get groupedNotifications {
-    final Map<String, List<NotificationModel>> grouped = {'Hari Ini': [], 'Sebelumnya': []};
+    final Map<String, List<NotificationModel>> grouped = {
+      'Hari Ini': [],
+      'Sebelumnya': [],
+    };
     for (final notif in _notifications) {
       grouped[notif.isToday ? 'Hari Ini' : 'Sebelumnya']!.add(notif);
     }
@@ -46,9 +54,12 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final filterArg = _filterArgs[_selectedFilterIndex.clamp(0, _filterArgs.length - 1)];
+      await _db.cleanDuplicateNotifications();
+      final filterArg =
+          _filterArgs[_selectedFilterIndex.clamp(0, _filterArgs.length - 1)];
       _notifications = await _db.getNotifications(filter: filterArg);
       _unreadCount = await _db.getUnreadNotificationCount();
+      await NotificationNotifier.instance.refresh();
     } catch (e) {
       debugPrint('Error loading notifications: $e');
     } finally {

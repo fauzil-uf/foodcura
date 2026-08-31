@@ -13,6 +13,7 @@ import '../models/user_model.dart';
 import '../services/app_notifiers.dart';
 import '../utils/security_helper.dart';
 
+// Helper database SQLite lokal (CRUD user, makanan, pantry, & notifikasi)
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
   factory DBHelper() => _instance;
@@ -140,58 +141,194 @@ class DBHelper {
   /// Menyiapkan stok bahan awal untuk akun pengguna baru
   Future<void> seedInitialPantryForUser(int userId, {Database? db}) async {
     final dbInst = db ?? await database;
-    final existing = await dbInst.query(tablePantryItems, where: 'user_id = ?', whereArgs: [userId], limit: 1);
+    final existing = await dbInst.query(
+      tablePantryItems,
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
     if (existing.isNotEmpty) return;
 
     final now = DateTime.now();
     final items = [
-      PantryItemModel(userId: userId, name: 'Bayam Segar', quantity: 250, unit: 'g', storage: 'Kulkas', expiryDate: now.add(const Duration(days: 1)), imageUrl: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500', createdAt: now.subtract(const Duration(days: 3))),
-      PantryItemModel(userId: userId, name: 'Susu UHT', quantity: 1, unit: 'L', storage: 'Kulkas', expiryDate: now.add(const Duration(days: 3)), imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500', createdAt: now.subtract(const Duration(days: 5))),
-      PantryItemModel(userId: userId, name: 'Brokoli', quantity: 500, unit: 'g', storage: 'Kulkas', expiryDate: now.add(const Duration(days: 4)), imageUrl: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=500', createdAt: now.subtract(const Duration(days: 2))),
-      PantryItemModel(userId: userId, name: 'Tomat', quantity: 300, unit: 'g', storage: 'Kulkas', expiryDate: now.add(const Duration(days: 6)), imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500', createdAt: now.subtract(const Duration(days: 1))),
+      PantryItemModel(
+        userId: userId,
+        name: 'Bayam Segar',
+        quantity: 250,
+        unit: 'g',
+        storage: 'Kulkas',
+        expiryDate: now.add(const Duration(days: 1)),
+        imageUrl:
+            'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500',
+        createdAt: now.subtract(const Duration(days: 3)),
+      ),
+      PantryItemModel(
+        userId: userId,
+        name: 'Susu UHT',
+        quantity: 1,
+        unit: 'L',
+        storage: 'Kulkas',
+        expiryDate: now.add(const Duration(days: 3)),
+        imageUrl:
+            'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500',
+        createdAt: now.subtract(const Duration(days: 5)),
+      ),
+      PantryItemModel(
+        userId: userId,
+        name: 'Brokoli',
+        quantity: 500,
+        unit: 'g',
+        storage: 'Kulkas',
+        expiryDate: now.add(const Duration(days: 4)),
+        imageUrl:
+            'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=500',
+        createdAt: now.subtract(const Duration(days: 2)),
+      ),
+      PantryItemModel(
+        userId: userId,
+        name: 'Tomat',
+        quantity: 300,
+        unit: 'g',
+        storage: 'Kulkas',
+        expiryDate: now.add(const Duration(days: 6)),
+        imageUrl:
+            'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500',
+        createdAt: now.subtract(const Duration(days: 1)),
+      ),
     ];
     for (var it in items) {
-      await dbInst.insert(tablePantryItems, it.toMap()..remove('id'), conflictAlgorithm: ConflictAlgorithm.replace);
+      await dbInst.insert(
+        tablePantryItems,
+        it.toMap()..remove('id'),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
   }
 
   /// Menyiapkan data awal Food Tracker untuk akun pengguna baru
   Future<void> seedInitialFoodLogsForUser(int userId, {Database? db}) async {
     final dbInst = db ?? await database;
-    final existing = await dbInst.query(tableFoodLogs, where: 'user_id = ?', whereArgs: [userId], limit: 1);
+    final existing = await dbInst.query(
+      tableFoodLogs,
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
     if (existing.isNotEmpty) return;
 
     final todayStr = AppDateFormatter.formatToday();
     final logs = [
-      FoodLogModel(userId: userId, foodName: 'Roti Gandum Panggang', mealType: 'Sarapan', calories: 260, protein: 9.0, carbs: 44.0, fat: 5.0, cholesterol: 0.0, imagePath: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500', time: '07:30', date: todayStr, note: 'Menu sarapan praktis kaya serat dan energi.'),
-      FoodLogModel(userId: userId, foodName: 'Dada Ayam Panggang', mealType: 'Makan Siang', calories: 284, protein: 31.0, carbs: 0.0, fat: 15.0, cholesterol: 85.0, imagePath: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=500', time: '12:30', date: todayStr, note: 'Tinggi protein untuk energi.'),
-      FoodLogModel(userId: userId, foodName: 'Rujak Buah', mealType: 'Camilan', calories: 200, protein: 1.0, carbs: 24.0, fat: 11.0, cholesterol: 0.0, imagePath: 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500', time: '16:00', date: todayStr, note: 'Camilan buah segar kaya serat & vitamin C.'),
-      FoodLogModel(userId: userId, foodName: 'Ikan Bandeng Bakar', mealType: 'Makan Malam', calories: 250, protein: 26.0, carbs: 2.0, fat: 15.0, cholesterol: 60.0, imagePath: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500', time: '19:30', date: todayStr, note: 'Menu makan malam kaya omega-3.'),
+      FoodLogModel(
+        userId: userId,
+        foodName: 'Roti Gandum Panggang',
+        mealType: 'Sarapan',
+        calories: 260,
+        protein: 9.0,
+        carbs: 44.0,
+        fat: 5.0,
+        cholesterol: 0.0,
+        imagePath:
+            'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500',
+        time: '07:30',
+        date: todayStr,
+        note: 'Menu sarapan praktis kaya serat dan energi.',
+      ),
+      FoodLogModel(
+        userId: userId,
+        foodName: 'Dada Ayam Panggang',
+        mealType: 'Makan Siang',
+        calories: 284,
+        protein: 31.0,
+        carbs: 0.0,
+        fat: 15.0,
+        cholesterol: 85.0,
+        imagePath:
+            'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=500',
+        time: '12:30',
+        date: todayStr,
+        note: 'Tinggi protein untuk energi.',
+      ),
+      FoodLogModel(
+        userId: userId,
+        foodName: 'Rujak Buah',
+        mealType: 'Camilan',
+        calories: 200,
+        protein: 1.0,
+        carbs: 24.0,
+        fat: 11.0,
+        cholesterol: 0.0,
+        imagePath:
+            'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500',
+        time: '16:00',
+        date: todayStr,
+        note: 'Camilan buah segar kaya serat & vitamin C.',
+      ),
+      FoodLogModel(
+        userId: userId,
+        foodName: 'Ikan Bandeng Bakar',
+        mealType: 'Makan Malam',
+        calories: 250,
+        protein: 26.0,
+        carbs: 2.0,
+        fat: 15.0,
+        cholesterol: 60.0,
+        imagePath:
+            'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500',
+        time: '19:30',
+        date: todayStr,
+        note: 'Menu makan malam kaya omega-3.',
+      ),
     ];
     for (var l in logs) {
-      await dbInst.insert(tableFoodLogs, l.toMap()..remove('id'), conflictAlgorithm: ConflictAlgorithm.replace);
+      await dbInst.insert(
+        tableFoodLogs,
+        l.toMap()..remove('id'),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
   }
 
   Future<void> _seedNotifications(Database db, {required int userId}) async {
     final now = DateTime.now();
     final notifs = [
-      NotificationModel(userId: userId, title: 'Bayam Segar mendekati masa kedaluwarsa', message: 'Bayam Segar di kulkas sebaiknya diolah dalam 1 hari.', type: 'expiry_warning', iconType: 'warning', relatedPantryId: 1, createdAt: now.subtract(const Duration(minutes: 25))),
-      NotificationModel(userId: userId, title: 'Tips Food Rescue', message: 'Gunakan bahan yang paling dekat tanggal kadaluwarsanya terlebih dahulu untuk mengurangi sampah makanan.', type: 'tips', iconType: 'lightbulb', createdAt: now.subtract(const Duration(hours: 3))),
-      NotificationModel(userId: userId, title: 'Selamat Datang di FoodCura!', message: 'Mulai catat makanan harian dan pantau stok kulkas Anda untuk gaya hidup lebih sehat.', type: 'system', iconType: 'eco', isRead: false, createdAt: now.subtract(const Duration(hours: 12))),
+      NotificationModel(
+        userId: userId,
+        title: 'Tips Food Rescue',
+        message:
+            'Gunakan bahan yang paling dekat tanggal kadaluwarsanya terlebih dahulu untuk mengurangi sampah makanan.',
+        type: 'tips',
+        iconType: 'lightbulb',
+        createdAt: now.subtract(const Duration(hours: 3)),
+      ),
+      NotificationModel(
+        userId: userId,
+        title: 'Selamat Datang di FoodCura!',
+        message:
+            'Mulai catat makanan harian dan pantau stok kulkas Anda untuk gaya hidup lebih sehat.',
+        type: 'system',
+        iconType: 'eco',
+        isRead: false,
+        createdAt: now.subtract(const Duration(hours: 12)),
+      ),
     ];
     for (var n in notifs) {
-      await db.insert(tableNotifications, n.toMap()..remove('id'), conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.insert(
+        tableNotifications,
+        n.toMap()..remove('id'),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
   }
 
   // --- USER AUTH CRUD ---
 
+  // Ambil user ID yang sedang login dari SharedPreferences
   Future<int?> getActiveUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(AppConstants.keyLoggedInUserId);
   }
 
+  // Registrasi user baru + seeding data awal (pantry, food logs, notifikasi)
   Future<bool> registerUser(UserModelSQL pengguna) async {
     final db = await database;
     try {
@@ -199,9 +336,14 @@ class DBHelper {
       userMap['email'] = pengguna.email.trim().toLowerCase();
       userMap['name'] = pengguna.name.trim();
       userMap['password'] = SecurityHelper.hashPassword(pengguna.password);
-      userMap['created_at'] = pengguna.createdAt ?? DateTime.now().toIso8601String();
+      userMap['created_at'] =
+          pengguna.createdAt ?? DateTime.now().toIso8601String();
 
-      final id = await db.insert(AppConstants.tableUsers, userMap, conflictAlgorithm: ConflictAlgorithm.abort);
+      final id = await db.insert(
+        AppConstants.tableUsers,
+        userMap,
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
       if (id > 0) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt(AppConstants.keyLoggedInUserId, id);
@@ -219,6 +361,7 @@ class DBHelper {
     }
   }
 
+  // Login user dengan verifikasi password hash SHA-256 (support legacy auto-upgrade)
   Future<UserModelSQL?> loginUser(String email, String password) async {
     final db = await database;
     final cleanEmail = email.trim().toLowerCase();
@@ -258,18 +401,30 @@ class DBHelper {
     return null;
   }
 
+  // Ambil data profil user yang sedang login
   Future<UserModelSQL?> getLoggedInUser() async {
     final userId = await getActiveUserId();
     if (userId == null) return null;
     final db = await database;
-    final results = await db.query(AppConstants.tableUsers, where: 'id = ?', whereArgs: [userId], limit: 1);
+    final results = await db.query(
+      AppConstants.tableUsers,
+      where: 'id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
     return results.isNotEmpty ? UserModelSQL.fromMap(results.first) : null;
   }
 
-  Future<UserModelSQL?> findOrCreateGoogleUser(String email, String name) async {
+  // Cari atau buat akun user baru dari Google Sign-In
+  Future<UserModelSQL?> findOrCreateGoogleUser(
+    String email,
+    String name,
+  ) async {
     final db = await database;
     final cleanEmail = email.trim().toLowerCase();
-    final cleanName = name.trim().isNotEmpty ? name.trim() : 'Pengguna FoodCura';
+    final cleanName = name.trim().isNotEmpty
+        ? name.trim()
+        : 'Pengguna FoodCura';
 
     final results = await db.query(
       AppConstants.tableUsers,
@@ -312,6 +467,7 @@ class DBHelper {
     return user;
   }
 
+  // Logout user dan bersihkan session SharedPreferences
   Future<void> logoutUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.keyLoggedInUserId);
@@ -320,6 +476,7 @@ class DBHelper {
     PantryUpdateNotifier.instance.notifyPantryChanged();
   }
 
+  // Update informasi profil user (nama & email)
   Future<bool> updateUser(UserModelSQL user) async {
     if (user.id == null) return false;
     final db = await database;
@@ -327,30 +484,46 @@ class DBHelper {
     userMap['email'] = user.email.trim().toLowerCase();
     userMap['name'] = user.name.trim();
 
-    final count = await db.update(AppConstants.tableUsers, userMap, where: 'id = ?', whereArgs: [user.id]);
+    final count = await db.update(
+      AppConstants.tableUsers,
+      userMap,
+      where: 'id = ?',
+      whereArgs: [user.id],
+    );
     return count > 0;
   }
 
-  /// Mengambil semua user terdaftar (sesuai kurikulum Local Storage II Slide Hal 12)
+  // Ambil semua daftar pengguna
   Future<List<UserModelSQL>> getAllUsers() async {
     final db = await database;
     final results = await db.query(AppConstants.tableUsers);
     return results.map((map) => UserModelSQL.fromMap(map)).toList();
   }
 
-  /// Menghapus user berdasarkan id (sesuai kurikulum Local Storage II Slide Hal 12)
+  // Hapus akun user berdasarkan ID
   Future<void> deleteUser(int id) async {
     final db = await database;
     await db.delete(AppConstants.tableUsers, where: 'id = ?', whereArgs: [id]);
   }
 
+  // Cek ketersediaan/duplikasi email
   Future<bool> isEmailRegistered(String email) async {
     final db = await database;
-    final res = await db.query(AppConstants.tableUsers, where: 'LOWER(TRIM(email)) = ?', whereArgs: [email.trim().toLowerCase()], limit: 1);
+    final res = await db.query(
+      AppConstants.tableUsers,
+      where: 'LOWER(TRIM(email)) = ?',
+      whereArgs: [email.trim().toLowerCase()],
+      limit: 1,
+    );
     return res.isNotEmpty;
   }
 
-  Future<bool> changePassword({required int userId, required String oldPassword, required String newPassword}) async {
+  // Ganti password user dengan validasi password lama
+  Future<bool> changePassword({
+    required int userId,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
     final db = await database;
     final userResults = await db.query(
       AppConstants.tableUsers,
@@ -377,13 +550,20 @@ class DBHelper {
 
   // --- FOOD CATALOG & LOGS CRUD ---
 
+  // Ambil semua daftar katalog makanan
   Future<List<FoodItemModel>> getFoodCatalog() async {
     final db = await database;
-    final results = await db.rawQuery('SELECT * FROM $tableFoods GROUP BY LOWER(TRIM(name))');
+    final results = await db.rawQuery(
+      'SELECT * FROM $tableFoods GROUP BY LOWER(TRIM(name))',
+    );
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
   }
 
-  Future<List<FoodItemModel>> searchFoodCatalog(String query, {int? limit}) async {
+  // Cari makanan di katalog berdasarkan nama atau kategori
+  Future<List<FoodItemModel>> searchFoodCatalog(
+    String query, {
+    int? limit,
+  }) async {
     final db = await database;
     final results = await db.rawQuery(
       'SELECT * FROM $tableFoods WHERE (name LIKE ? OR category LIKE ?) GROUP BY LOWER(TRIM(name))'
@@ -393,12 +573,22 @@ class DBHelper {
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
   }
 
-  Future<List<FoodItemModel>> getRecentAddedFoods({int limit = 10, int? userId}) async {
+  // Ambil riwayat makanan yang baru dicatat user
+  Future<List<FoodItemModel>> getRecentAddedFoods({
+    int limit = 10,
+    int? userId,
+  }) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
 
     final db = await database;
-    final rawLogs = await db.query(tableFoodLogs, where: 'user_id = ?', whereArgs: [targetUserId], orderBy: 'id DESC', limit: limit * 2);
+    final rawLogs = await db.query(
+      tableFoodLogs,
+      where: 'user_id = ?',
+      whereArgs: [targetUserId],
+      orderBy: 'id DESC',
+      limit: limit * 2,
+    );
     final seen = <String>{};
     final uniqueItems = <FoodItemModel>[];
 
@@ -406,7 +596,12 @@ class DBHelper {
       final name = (log['food_name'] as String?)?.trim() ?? '';
       if (name.isEmpty || !seen.add(name.toLowerCase())) continue;
 
-      final matches = await db.query(tableFoods, where: 'LOWER(TRIM(name)) = ?', whereArgs: [name.toLowerCase()], limit: 1);
+      final matches = await db.query(
+        tableFoods,
+        where: 'LOWER(TRIM(name)) = ?',
+        whereArgs: [name.toLowerCase()],
+        limit: 1,
+      );
       uniqueItems.add(
         matches.isNotEmpty
             ? FoodItemModel.fromMap(matches.first)
@@ -418,7 +613,9 @@ class DBHelper {
                 fat: (log['fat'] as num?)?.toDouble() ?? 0.0,
                 cholesterol: ((log['cholesterol'] as num?) ?? 0.0).toDouble(),
                 category: log['meal_type'] as String? ?? 'Camilan',
-                imagePath: (log['image_path'] as String?)?.isNotEmpty == true ? log['image_path'] as String : 'assets/images/food/default_food.png',
+                imagePath: (log['image_path'] as String?)?.isNotEmpty == true
+                    ? log['image_path'] as String
+                    : 'assets/images/food/default_food.png',
               ),
       );
       if (uniqueItems.length >= limit) break;
@@ -426,6 +623,7 @@ class DBHelper {
     return uniqueItems;
   }
 
+  // Ambil log makanan user per tanggal
   Future<List<FoodLogModel>> getFoodLogs({String? date, int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
@@ -434,51 +632,74 @@ class DBHelper {
     final where = ['user_id = ?', if (date != null) 'date = ?'].join(' AND ');
     final args = [targetUserId, ?date];
 
-    final results = await db.query(tableFoodLogs, where: where, whereArgs: args, orderBy: 'time ASC');
+    final results = await db.query(
+      tableFoodLogs,
+      where: where,
+      whereArgs: args,
+      orderBy: 'time ASC',
+    );
     return results.map((map) => FoodLogModel.fromMap(map)).toList();
   }
 
-  /// Memasukkan data log makanan baru secara murni (DAO)
+  // Simpan catatan makanan baru
   Future<int> insertFoodLog(FoodLogModel log) async {
     final db = await database;
     final targetUserId = log.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    // Hapus 'id' dari map agar mesin AUTOINCREMENT SQLite menghasilkan ID unik otomatis.
     final logMap = log.copyWith(userId: targetUserId).toMap()..remove('id');
-    return await db.insert(tableFoodLogs, logMap, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert(
+      tableFoodLogs,
+      logMap,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
+  // Update catatan makanan
   Future<int> updateFoodLog(FoodLogModel log) async {
     if (log.id == null) return 0;
     final db = await database;
     final targetUserId = log.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    return await db.update(tableFoodLogs, log.copyWith(userId: targetUserId).toMap(), where: 'id = ? AND user_id = ?', whereArgs: [log.id, targetUserId]);
+    return await db.update(
+      tableFoodLogs,
+      log.copyWith(userId: targetUserId).toMap(),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [log.id, targetUserId],
+    );
   }
 
+  // Hapus catatan makanan berdasarkan ID
   Future<int> deleteFoodLog(int id) async {
     final db = await database;
     final targetUserId = await getActiveUserId();
     if (targetUserId == null) return 0;
-    return await db.delete(tableFoodLogs, where: 'id = ? AND user_id = ?', whereArgs: [id, targetUserId]);
+    return await db.delete(
+      tableFoodLogs,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, targetUserId],
+    );
   }
 
   // --- PANTRY CRUD ---
 
+  // Tambah bahan baru ke inventaris pantry
   Future<int> addPantryItem(PantryItemModel item) async {
     final db = await database;
     final targetUserId = item.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.insert(tablePantryItems, item.copyWith(userId: targetUserId).toMap()..remove('id'), conflictAlgorithm: ConflictAlgorithm.replace);
+    final res = await db.insert(
+      tablePantryItems,
+      item.copyWith(userId: targetUserId).toMap()..remove('id'),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
     PantryUpdateNotifier.instance.notifyPantryChanged();
     return res;
   }
 
-  /// Mengambil semua bahan aktif (belum digunakan) milik user, diurutkan berdasarkan tanggal kedaluwarsa.
-  /// Logika filter status/penyimpanan ditangani oleh PantryController (Separation of Concerns).
+  // Ambil daftar bahan pantry yang belum habis/dipakai
   Future<List<PantryItemModel>> getPantryItems({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
@@ -493,46 +714,74 @@ class DBHelper {
     return results.map((map) => PantryItemModel.fromMap(map)).toList();
   }
 
-  Future<List<PantryItemModel>> searchPantryItems(String query, {int? userId}) async {
+  // Cari bahan pantry berdasarkan nama
+  Future<List<PantryItemModel>> searchPantryItems(
+    String query, {
+    int? userId,
+  }) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
 
     final db = await database;
-    final results = await db.query(tablePantryItems, where: 'is_used = 0 AND name LIKE ? AND user_id = ?', whereArgs: ['%$query%', targetUserId], orderBy: 'expiry_date ASC');
+    final results = await db.query(
+      tablePantryItems,
+      where: 'is_used = 0 AND name LIKE ? AND user_id = ?',
+      whereArgs: ['%$query%', targetUserId],
+      orderBy: 'expiry_date ASC',
+    );
     return results.map((map) => PantryItemModel.fromMap(map)).toList();
   }
 
+  // Tandai bahan pantry sudah digunakan/habis (+5 Eco Points)
   Future<int> markPantryItemUsed(int id) async {
     final db = await database;
     final targetUserId = await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.update(tablePantryItems, {'is_used': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, targetUserId]);
+    final res = await db.update(
+      tablePantryItems,
+      {'is_used': 1},
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, targetUserId],
+    );
+    await EcoPointsNotifier.instance.addPoints(5);
     PantryUpdateNotifier.instance.notifyPantryChanged();
     return res;
   }
 
+  // Hapus item bahan dari pantry
   Future<int> deletePantryItem(int id) async {
     final db = await database;
     final targetUserId = await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.delete(tablePantryItems, where: 'id = ? AND user_id = ?', whereArgs: [id, targetUserId]);
+    final res = await db.delete(
+      tablePantryItems,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, targetUserId],
+    );
     PantryUpdateNotifier.instance.notifyPantryChanged();
     return res;
   }
 
+  // Update data bahan makanan di pantry
   Future<int> updatePantryItem(PantryItemModel item) async {
     if (item.id == null) return 0;
     final db = await database;
     final targetUserId = item.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.update(tablePantryItems, item.copyWith(userId: targetUserId).toMap(), where: 'id = ? AND user_id = ?', whereArgs: [item.id, targetUserId]);
+    final res = await db.update(
+      tablePantryItems,
+      item.copyWith(userId: targetUserId).toMap(),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [item.id, targetUserId],
+    );
     PantryUpdateNotifier.instance.notifyPantryChanged();
     return res;
   }
 
+  // Hitung jumlah bahan berdasarkan status kedaluwarsa
   Future<Map<String, int>> getPantryStatusCounts({int? userId}) async {
     final items = await getPantryItems(userId: userId);
     int safe = 0, warning = 0, danger = 0, expired = 0;
@@ -562,65 +811,122 @@ class DBHelper {
 
   // --- NOTIFICATIONS CRUD ---
 
+  // Simpan notifikasi baru
   Future<int> addNotification(NotificationModel notif) async {
     final db = await database;
     final targetUserId = notif.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.insert(tableNotifications, notif.copyWith(userId: targetUserId).toMap()..remove('id'), conflictAlgorithm: ConflictAlgorithm.replace);
+    final res = await db.insert(
+      tableNotifications,
+      notif.copyWith(userId: targetUserId).toMap()..remove('id'),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  Future<List<NotificationModel>> getNotifications({String? filter, int? userId}) async {
+  // Ambil daftar notifikasi user dengan opsi filter kategori
+  Future<List<NotificationModel>> getNotifications({
+    String? filter,
+    int? userId,
+  }) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
 
     final db = await database;
     String? typeClause;
-    if (filter != null && filter != 'Semua') {
-      if (filter == 'Kadaluwarsa') {
+    if (filter != null && filter != 'Semua' && filter.isNotEmpty) {
+      if (filter == 'Kadaluwarsa' ||
+          filter == 'expiry' ||
+          filter == 'expiry_warning') {
         typeClause = "type = 'expiry_warning'";
-      } else if (filter == 'Pengingat Makan') {
+      } else if (filter == 'unread' || filter == 'Belum Dibaca') {
+        typeClause = "is_read = 0";
+      } else if (filter == 'Pengingat Makan' || filter == 'meal_reminder') {
         typeClause = "type = 'meal_reminder'";
-      } else if (filter == 'Alert Gizi') {
+      } else if (filter == 'Alert Gizi' || filter == 'nutrition_excess') {
         typeClause = "type = 'nutrition_excess'";
-      } else if (filter == 'Sistem') {
+      } else if (filter == 'Sistem' ||
+          filter == 'foodcura' ||
+          filter == 'tips' ||
+          filter == 'Info & Tips') {
         typeClause = "type IN ('system', 'tips')";
       }
     }
 
     final where = ['user_id = ?', ?typeClause].join(' AND ');
-    final results = await db.query(tableNotifications, where: where, whereArgs: [targetUserId], orderBy: 'created_at DESC');
+    final results = await db.query(
+      tableNotifications,
+      where: where,
+      whereArgs: [targetUserId],
+      orderBy: 'created_at DESC',
+    );
     return results.map((map) => NotificationModel.fromMap(map)).toList();
   }
 
+  // Tandai notifikasi tertentu sudah dibaca
   Future<int> markNotificationRead(int id) async {
     final db = await database;
     final targetUserId = await getActiveUserId();
     if (targetUserId == null) return 0;
 
-    final res = await db.update(tableNotifications, {'is_read': 1}, where: 'id = ? AND user_id = ?', whereArgs: [id, targetUserId]);
+    final res = await db.update(
+      tableNotifications,
+      {'is_read': 1},
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, targetUserId],
+    );
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
+  // Tandai semua notifikasi sudah dibaca
   Future<int> markAllNotificationsRead({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
     final db = await database;
-    final res = await db.update(tableNotifications, {'is_read': 1}, where: 'is_read = 0 AND user_id = ?', whereArgs: [targetUserId]);
+    final res = await db.update(
+      tableNotifications,
+      {'is_read': 1},
+      where: 'is_read = 0 AND user_id = ?',
+      whereArgs: [targetUserId],
+    );
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
+  // Hitung jumlah notifikasi yang belum dibaca
   Future<int> getUnreadNotificationCount({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
     final db = await database;
-    final result = await db.rawQuery('SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND user_id = ?', [targetUserId]);
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND user_id = ?',
+      [targetUserId],
+    );
     return (result.first['count'] as int?) ?? 0;
+  }
+
+  // Bersihkan notifikasi duplikat di database
+  Future<void> cleanDuplicateNotifications({int? userId}) async {
+    final targetUserId = userId ?? await getActiveUserId();
+    if (targetUserId == null) return;
+
+    final db = await database;
+    await db.rawDelete(
+      '''
+      DELETE FROM $tableNotifications
+      WHERE id NOT IN (
+        SELECT MAX(id)
+        FROM $tableNotifications
+        WHERE user_id = ?
+        GROUP BY title, substr(created_at, 1, 10), IFNULL(related_pantry_id, 0)
+      ) AND user_id = ?
+    ''',
+      [targetUserId, targetUserId],
+    );
   }
 }

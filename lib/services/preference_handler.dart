@@ -2,48 +2,47 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_constants.dart';
 
-/// Pengelola SharedPreferences terpusat sesuai standar kurikulum Local Storage.
-///
-/// Digunakan untuk menyimpan data kecil seperti status login, user id aktif,
-/// dan preferensi aplikasi antar sesi.
+// Helper SharedPreferences untuk session login & preferensi lokal
 class PreferenceHandler {
   PreferenceHandler._();
 
   static late SharedPreferences _prefs;
 
-  /// Inisialisasi SharedPreferences sekali di main.dart sebelum runApp()
+  // Inisialisasi SharedPreferences saat start aplikasi
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
   // --- AUTH & LOGIN SESSION ---
 
-  /// Menyimpan ID pengguna yang sedang login
+  // Simpan user ID yang sedang login
   static Future<void> setLoggedInUserId(int id) async {
     await _prefs.setInt(AppConstants.keyLoggedInUserId, id);
   }
 
-  /// Mengambil ID pengguna yang sedang aktif (null jika belum login)
-  static int? get loggedInUserId => _prefs.getInt(AppConstants.keyLoggedInUserId);
+  // Ambil user ID yang sedang aktif
+  static int? get loggedInUserId =>
+      _prefs.getInt(AppConstants.keyLoggedInUserId);
 
-  /// Status apakah ada user yang sedang login
-  static bool get isLogin => _prefs.getInt(AppConstants.keyLoggedInUserId) != null;
+  // Cek apakah user sudah login
+  static bool get isLogin =>
+      _prefs.getInt(AppConstants.keyLoggedInUserId) != null;
 
-  /// Menghapus sesi login saat pengguna logout
+  // Hapus session login (logout)
   static Future<void> logout() async {
     await _prefs.remove(AppConstants.keyLoggedInUserId);
   }
 
   // --- ONBOARDING PREFERENCE ---
 
-  /// Menyimpan status apakah user sudah melihat onboarding
+  // Simpan status onboarding sudah dilihat
   static Future<void> setHasSeenOnboarding(bool value) async {
     await _prefs.setBool('hasSeenOnboarding', value);
   }
 
-  /// Mengecek apakah onboarding sudah pernah dilihat
-  static bool get hasSeenOnboarding => _prefs.getBool('hasSeenOnboarding') ?? false;
-
+  // Cek apakah onboarding sudah dilihat
+  static bool get hasSeenOnboarding =>
+      _prefs.getBool('hasSeenOnboarding') ?? false;
 
   static SharedPreferences get prefs => _prefs;
 }

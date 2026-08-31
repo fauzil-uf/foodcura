@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_constants.dart';
 import '../../../constants/app_images.dart';
 import '../../../constants/app_typography.dart';
 
-/// Dialog informasi versi aplikasi, arsitektur MVC, dan teknologi cerdas Google Gemini AI.
+// Dialog tentang aplikasi FoodCura
 class AboutFoodCuraDialog extends StatelessWidget {
   const AboutFoodCuraDialog({super.key});
 
@@ -51,7 +52,7 @@ class AboutFoodCuraDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'FoodCura v2.1.0',
+            'FoodCura ${AppConstants.appVersionDisplay}',
             style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
@@ -76,16 +77,81 @@ class AboutFoodCuraDialog extends StatelessWidget {
           ),
         ],
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  showLicensePage(
+                    context: context,
+                    applicationName: AppConstants.appName,
+                    applicationVersion: AppConstants.appVersionDisplay,
+                    applicationIcon: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          AppImages.logo,
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    applicationLegalese:
+                        '© 2026 FoodCura • Lisensi MIT (Open Source)',
+                  );
+                },
+                icon: const Icon(Icons.description_outlined, size: 16),
+                label: Text(
+                  'Lihat Lisensi Open Source',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             ),
-          ),
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Tutup'),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Tutup',
+                  style: AppTextStyles.buttonSmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

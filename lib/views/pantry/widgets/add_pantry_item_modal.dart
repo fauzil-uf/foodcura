@@ -8,16 +8,17 @@ import '../../../database/pantry_grocery_catalog.dart';
 import '../../../models/pantry_ingredient_model.dart';
 import '../../../models/pantry_item_model.dart';
 import '../../widgets/app_food_image.dart';
+import '../../widgets/app_snack_bar.dart';
 
-/// Modal untuk menambah dan mengedit bahan makanan mentah di dalam inventaris dapur (Pantry).
+// Modal tambah / edit stok bahan pantry
 class AddPantryItemModal extends StatefulWidget {
-  final VoidCallback onItemAdded;
+  final VoidCallback? onItemAdded;
   final PantryItemModel? itemToEdit;
   final PantryController? controller;
 
   const AddPantryItemModal({
     super.key,
-    required this.onItemAdded,
+    this.onItemAdded,
     this.itemToEdit,
     this.controller,
   });
@@ -105,7 +106,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     super.dispose();
   }
 
-  /// Mencari saran bahan makanan mentah dari katalog lokal berdasarkan input teks.
+  // Cari saran bahan otomatis dari database katalog pantry lokal
   void _searchIngredients(String query) {
     if (query.trim().length < 2) {
       setState(() {
@@ -122,7 +123,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     });
   }
 
-  /// Mengisi form otomatis (unit, lokasi simpan, umur simpan) saat bahan dipilih dari katalog.
+  // Isi form otomatis saat user memilih salah satu saran bahan
   void _selectIngredient(PantryIngredientModel ing) {
     setState(() {
       _nameController.text = ing.name;
@@ -143,7 +144,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     });
   }
 
-  /// Membuka pemilih tanggal (date picker) untuk menentukan batas tanggal kedaluwarsa bahan.
+  // Buka dialog pemilih tanggal kedaluwarsa
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -170,7 +171,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     }
   }
 
-  /// Memvalidasi input form dan menyimpan bahan baru atau perubahan ke database SQLite.
+  // Validasi input dan simpan item bahan baru atau perubahan data ke database
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final quantityText = _quantityController.text.trim();
@@ -222,37 +223,32 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     setState(() => _saving = false);
 
     if (mounted) {
-      widget.onItemAdded();
+      widget.onItemAdded?.call();
       Navigator.pop(context);
 
       if (widget.itemToEdit != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$name berhasil diperbarui')));
+        AppSnackBar.showSuccess(context, '$name berhasil diperbarui');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$name berhasil ditambahkan ke inventaris Pantry!'),
-            backgroundColor: AppColors.primary,
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          '$name berhasil ditambahkan!',
+          subtitle: 'Tersimpan di $_selectedStorage',
         );
       }
     }
   }
 
-  /// Menampilkan snackbar merah untuk pesan kesalahan validasi input form.
+  // Tampilkan notifikasi error validasi formulir
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.urgent),
-    );
+    AppSnackBar.showError(context, message);
   }
 
-  /// Membangun lembar modal bawah dengan input nama bahan, auto-suggest cerdas, kuantitas, satuan, lokasi penyimpanan, dan pemilih tanggal kedaluwarsa.
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final quantityVal = double.tryParse(_quantityController.text.trim());
-    final isQtyInvalid = _quantityController.text.trim().isNotEmpty &&
+    final isQtyInvalid =
+        _quantityController.text.trim().isNotEmpty &&
         (quantityVal == null || quantityVal <= 0);
     final isQtyValid = quantityVal != null && quantityVal > 0;
     final isNameValid = _nameController.text.trim().isNotEmpty;
@@ -670,8 +666,9 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
                   backgroundColor: isFormValid
                       ? AppColors.primary
                       : AppColors.surfaceDim,
-                  foregroundColor:
-                      isFormValid ? Colors.white : AppColors.textGray,
+                  foregroundColor: isFormValid
+                      ? Colors.white
+                      : AppColors.textGray,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
                   ),
@@ -693,8 +690,9 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
                             : 'Simpan ke Pantry',
                         style: AppTextStyles.button.copyWith(
                           fontSize: 15,
-                          color:
-                              isFormValid ? Colors.white : AppColors.textGray,
+                          color: isFormValid
+                              ? Colors.white
+                              : AppColors.textGray,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

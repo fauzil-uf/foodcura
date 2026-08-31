@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Palet warna terpusat FoodCura.
-/// Diambil dari 3 desain HTML (Login #1a4328, Register #123e29/#145c38,
-/// Forgot Password #1b4d2e) — disatukan jadi satu sumber kebenaran (single
-/// source of truth) sesuai prinsip di Flutter Fondasi Project.
+/// Palet warna dan token tema desain aplikasi FoodCura.
 class AppColors {
   AppColors._();
 
@@ -59,6 +56,12 @@ class AppColors {
   static const nutriCalorieBg = Color(0xFFFFF8F0);
   static const nutriCarbBg = Color(0xFFFBE9E7);
   static const nutriFatBg = Color(0xFFE3F2FD);
+
+  // Top Bar & Navigation UI
+  static const topBarSurface = Color(0xFFF7F5EE);
+  static const topBarBorder = Color(0xFFE5DFC9);
+  static const topBarButtonBg = Color(0xFFEBE6D8);
+  static const topBarButtonBorder = Color(0xFFDFD7C2);
 
   // Misc UI
   static const indicatorInactive = Color(0xFFD9D9D9);

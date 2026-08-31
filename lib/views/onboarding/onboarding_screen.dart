@@ -8,22 +8,9 @@ import '../../services/preference_handler.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
-class OnboardingItem {
-  final String image;
-  final String eyebrow;
-  final String title;
-  final String description;
-  final IconData icon;
+import '../../models/onboarding_model.dart';
 
-  const OnboardingItem({
-    required this.image,
-    required this.eyebrow,
-    required this.title,
-    required this.description,
-    required this.icon,
-  });
-}
-
+// Layar pengenalan fitur awal (onboarding carousel)
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -38,6 +25,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late final Animation<double> _bounceAnimation;
   int _currentPage = 0;
 
+  // Daftar konten slide onboarding
   static const List<OnboardingItem> _items = [
     OnboardingItem(
       image: AppImages.onboarding1,
@@ -85,9 +73,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.dispose();
   }
 
-  /// Menyimpan flag telah melihat onboarding ke SharedPreferences dan mengarahkan ke layar utama atau login.
   Future<void> _navigateToNext() async {
-    // Simpan status bahwa onboarding sudah diselesaikan agar tidak muncul lagi pada sesi berikutnya.
     await PreferenceHandler.setHasSeenOnboarding(true);
     final authController = AuthController();
     await authController.loadCurrentUser();

@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../controllers/profile_controller.dart';
 import '../../../models/user_model.dart';
 
-/// Modal lembar bawah untuk mengedit nama lengkap dan alamat email akun profil pengguna.
+// Modal lembar bawah untuk mengedit nama lengkap dan alamat email akun profil pengguna.
 class EditProfileModal extends StatefulWidget {
   final UserModelSQL? user;
   final ProfileController controller;
@@ -41,7 +41,9 @@ class _EditProfileModalState extends State<EditProfileModal> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: AppColors.white,

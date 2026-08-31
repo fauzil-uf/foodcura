@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-/// Layanan untuk mengelola integrasi Firebase Authentication dan Google Sign-In.
+// Service integrasi Firebase Auth & Google Sign-In
 class AuthService {
   static final AuthService instance = AuthService._internal();
   factory AuthService() => instance;
@@ -16,16 +16,18 @@ class AuthService {
   }
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '767149958522-7spce6nk3sl942m4d3c0506rimaqh1ui.apps.googleusercontent.com',
+    serverClientId:
+        '767149958522-7spce6nk3sl942m4d3c0506rimaqh1ui.apps.googleusercontent.com',
   );
 
-  /// Pengguna Firebase yang saat ini sedang aktif
+  // User Firebase yang sedang login
   User? get currentUser => _auth?.currentUser;
 
   /// Stream untuk memantau perubahan status autentikasi pengguna
-  Stream<User?> get authStateChanges => _auth?.authStateChanges() ?? const Stream.empty();
+  Stream<User?> get authStateChanges =>
+      _auth?.authStateChanges() ?? const Stream.empty();
 
-  /// Mengirimkan tautan reset kata sandi ke email pengguna via Firebase Auth
+  // Kirim link reset password ke email user
   Future<void> sendPasswordReset(String email) async {
     final cleanEmail = email.trim();
     if (cleanEmail.isEmpty) {
@@ -55,7 +57,7 @@ class AuthService {
     }
   }
 
-  /// Menjalankan alur autentikasi Google Sign-In dan menghubungkannya dengan Firebase
+  // Login menggunakan akun Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
       // 1. Memulai dialog interaktif Google Sign-In
@@ -97,7 +99,7 @@ class AuthService {
     }
   }
 
-  /// Melakukan sign-out dari Firebase dan akun Google serta memutus cache akun
+  // Sign out dari Firebase & Google
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();

@@ -231,60 +231,63 @@ void main() {
   });
 
   group('Multi-User Data Isolation model tests', () {
-    test('PantryItemModel, NotificationModel, and FoodLogModel serialize userId correctly', () {
-      final now = DateTime.now();
-      final pantryItem = PantryItemModel(
-        id: 1,
-        userId: 42,
-        name: 'Apel Fuji',
-        quantity: 2,
-        unit: 'kg',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 4)),
-        createdAt: now,
-      );
+    test(
+      'PantryItemModel, NotificationModel, and FoodLogModel serialize userId correctly',
+      () {
+        final now = DateTime.now();
+        final pantryItem = PantryItemModel(
+          id: 1,
+          userId: 42,
+          name: 'Apel Fuji',
+          quantity: 2,
+          unit: 'kg',
+          storage: 'Kulkas',
+          expiryDate: now.add(const Duration(days: 4)),
+          createdAt: now,
+        );
 
-      final pantryMap = pantryItem.toMap();
-      expect(pantryMap['user_id'], equals(42));
-      final parsedPantry = PantryItemModel.fromMap(pantryMap);
-      expect(parsedPantry.userId, equals(42));
-      expect(parsedPantry.name, equals('Apel Fuji'));
+        final pantryMap = pantryItem.toMap();
+        expect(pantryMap['user_id'], equals(42));
+        final parsedPantry = PantryItemModel.fromMap(pantryMap);
+        expect(parsedPantry.userId, equals(42));
+        expect(parsedPantry.name, equals('Apel Fuji'));
 
-      final notif = NotificationModel(
-        id: 1,
-        userId: 42,
-        title: 'Pengingat Sarapan',
-        message: 'Jangan lupa sarapan!',
-        type: 'meal_reminder',
-        iconType: 'restaurant',
-        createdAt: now,
-      );
-      final notifMap = notif.toMap();
-      expect(notifMap['user_id'], equals(42));
-      final parsedNotif = NotificationModel.fromMap(notifMap);
-      expect(parsedNotif.userId, equals(42));
+        final notif = NotificationModel(
+          id: 1,
+          userId: 42,
+          title: 'Pengingat Sarapan',
+          message: 'Jangan lupa sarapan!',
+          type: 'meal_reminder',
+          iconType: 'restaurant',
+          createdAt: now,
+        );
+        final notifMap = notif.toMap();
+        expect(notifMap['user_id'], equals(42));
+        final parsedNotif = NotificationModel.fromMap(notifMap);
+        expect(parsedNotif.userId, equals(42));
 
-      const log = FoodLogModel(
-        id: 1,
-        userId: 42,
-        foodName: 'Nasi Uduk',
-        mealType: 'Sarapan',
-        calories: 350,
-        protein: 10,
-        carbs: 55,
-        fat: 8,
-        cholesterol: 0.0,
-        imagePath: '',
-        time: '07:30',
-        date: '2026-08-20',
-      );
-      final logMap = log.toMap();
-      expect(logMap['user_id'], equals(42));
-      expect(logMap['cholesterol'], equals(0.0));
-      final parsedLog = FoodLogModel.fromMap(logMap);
-      expect(parsedLog.userId, equals(42));
-      expect(parsedLog.cholesterol, equals(0.0));
-    });
+        const log = FoodLogModel(
+          id: 1,
+          userId: 42,
+          foodName: 'Nasi Uduk',
+          mealType: 'Sarapan',
+          calories: 350,
+          protein: 10,
+          carbs: 55,
+          fat: 8,
+          cholesterol: 0.0,
+          imagePath: '',
+          time: '07:30',
+          date: '2026-08-20',
+        );
+        final logMap = log.toMap();
+        expect(logMap['user_id'], equals(42));
+        expect(logMap['cholesterol'], equals(0.0));
+        final parsedLog = FoodLogModel.fromMap(logMap);
+        expect(parsedLog.userId, equals(42));
+        expect(parsedLog.cholesterol, equals(0.0));
+      },
+    );
 
     test('FoodItemModel handles TKPI cholesterol parsing correctly', () {
       const plantItem = FoodItemModel(

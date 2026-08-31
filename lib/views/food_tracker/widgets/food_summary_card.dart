@@ -7,6 +7,7 @@ import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_circular_progress.dart';
 
+// Kartu ringkasan kalori & makronutrien harian
 class FoodSummaryCard extends StatelessWidget {
   const FoodSummaryCard({
     super.key,
@@ -93,7 +94,9 @@ class FoodSummaryCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              AppDateFormatter.formatToday(controller.selectedDate),
+                              AppDateFormatter.formatToday(
+                                controller.selectedDate,
+                              ),
                               style: AppTextStyles.subtitleSmall.copyWith(
                                 fontSize: 11,
                               ),
@@ -144,58 +147,47 @@ class FoodSummaryCard extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 110,
-                        height: 110,
-                        child: Stack(
-                          alignment: Alignment.center,
+                      AppCircularProgress(
+                        size: 110,
+                        progress: (totalCals / 2000).clamp(0.0, 1.0),
+                        color: totalCals > 2000
+                            ? AppColors.error
+                            : AppColors.primary,
+                        bgColor: AppColors.surfaceContainerHigh,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CustomPaint(
-                              size: const Size(110, 110),
-                              painter: AppCircularProgressPainter(
-                                progress: (totalCals / 2000).clamp(0.0, 1.0),
+                            Text(
+                              '$totalCals',
+                              style: AppTextStyles.heading1.copyWith(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
                                 color: totalCals > 2000
                                     ? AppColors.error
-                                    : AppColors.primary,
-                                bgColor: AppColors.surfaceContainerHigh,
+                                    : AppColors.deepForest,
                               ),
                             ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '$totalCals',
-                                  style: AppTextStyles.heading1.copyWith(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: totalCals > 2000
-                                        ? AppColors.error
-                                        : AppColors.deepForest,
-                                  ),
-                                ),
-                                Text(
-                                  'kcal tercatat',
-                                  style: AppTextStyles.subtitleSmall.copyWith(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textGray,
-                                    height: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  totalCals >= 2000
-                                      ? 'Tercapai'
-                                      : 'Sisa ${(2000 - totalCals).clamp(0, 2000)}',
-                                  style: TextStyle(
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: totalCals > 2000
-                                        ? AppColors.error
-                                        : AppColors.ecoGreen,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              'kcal tercatat',
+                              style: AppTextStyles.subtitleSmall.copyWith(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textGray,
+                                height: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              totalCals >= 2000
+                                  ? 'Tercapai'
+                                  : 'Sisa ${(2000 - totalCals).clamp(0, 2000)}',
+                              style: TextStyle(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w700,
+                                color: totalCals > 2000
+                                    ? AppColors.error
+                                    : AppColors.ecoGreen,
+                              ),
                             ),
                           ],
                         ),
@@ -243,7 +235,9 @@ class FoodSummaryCard extends StatelessWidget {
                           color: totalProtein > 65.0
                               ? AppColors.secondaryContainer
                               : AppColors.seaGreen,
-                          iconBgColor: AppColors.seaGreen.withValues(alpha: 0.12),
+                          iconBgColor: AppColors.seaGreen.withValues(
+                            alpha: 0.12,
+                          ),
                           isWarning: totalProtein > 65.0,
                         ),
                         _buildNutrientBar(
@@ -254,7 +248,9 @@ class FoodSummaryCard extends StatelessWidget {
                           color: totalCarbs > 300
                               ? AppColors.secondaryContainer
                               : AppColors.infoBlue,
-                          iconBgColor: AppColors.infoBlue.withValues(alpha: 0.12),
+                          iconBgColor: AppColors.infoBlue.withValues(
+                            alpha: 0.12,
+                          ),
                           isWarning: totalCarbs > 300,
                         ),
                         _buildNutrientBar(
@@ -265,10 +261,11 @@ class FoodSummaryCard extends StatelessWidget {
                           color: totalFat >= 67.0
                               ? AppColors.error
                               : const Color(0xFFE65100),
-                          iconBgColor: (totalFat >= 67.0
-                                  ? AppColors.error
-                                  : const Color(0xFFE65100))
-                              .withValues(alpha: 0.12),
+                          iconBgColor:
+                              (totalFat >= 67.0
+                                      ? AppColors.error
+                                      : const Color(0xFFE65100))
+                                  .withValues(alpha: 0.12),
                           isWarning: totalFat >= 67.0,
                         ),
                         _buildNutrientBar(
@@ -279,9 +276,9 @@ class FoodSummaryCard extends StatelessWidget {
                           color: totalCholesterol > 300
                               ? AppColors.error
                               : const Color(0xFFD97706),
-                          iconBgColor: const Color(0xFFD97706).withValues(
-                            alpha: 0.12,
-                          ),
+                          iconBgColor: const Color(
+                            0xFFD97706,
+                          ).withValues(alpha: 0.12),
                           isWarning: totalCholesterol > 300,
                         ),
                       ],

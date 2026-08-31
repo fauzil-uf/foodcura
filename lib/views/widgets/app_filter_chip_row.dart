@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-/// Widget baris filter chip horizontal yang dapat digunakan ulang.
-/// Dipakai di PantryScreen, NotificationScreen, dan layar lain yang memiliki filter kategori.
+// Baris filter chip horizontal
 class AppFilterChipRow extends StatelessWidget {
   const AppFilterChipRow({
     super.key,
@@ -44,8 +43,7 @@ class AppFilterChipRow extends StatelessWidget {
                   filters[index],
                   style: AppTextStyles.chipText.copyWith(
                     fontSize: 13,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected ? Colors.white : AppColors.textGray,
                   ),
                 ),

@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodcura/constants/app_colors.dart';
+import 'package:foodcura/constants/app_constants.dart';
 import 'package:foodcura/constants/app_date_formatter.dart';
 import 'package:foodcura/constants/app_typography.dart';
-import 'package:foodcura/constants/app_colors.dart';
 
 void main() {
   group('AppDateFormatter tests', () {
@@ -78,6 +79,13 @@ void main() {
       expect(AppColors.surfaceContainerHigh, isNotNull);
       expect(AppColors.ecoGreen, isNotNull);
       expect(AppColors.deepForest, isNotNull);
+    });
+
+    test('AppConstants version is synchronized with v2.1.0 release', () {
+      expect(AppConstants.appName, equals('FoodCura'));
+      expect(AppConstants.appVersion, equals('2.1.0'));
+      expect(AppConstants.appBuildNumber, equals('3'));
+      expect(AppConstants.appVersionDisplay, equals('v2.1.0'));
     });
   });
 }

@@ -8,10 +8,12 @@ import '../../controllers/auth_controller.dart';
 import '../../services/preference_handler.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
+// Layar login akun
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -39,18 +41,22 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // Update UI saat status loading atau auth berubah
   void _onAuthStateChanged() {
     if (mounted) setState(() {});
   }
 
-  void _showSnackBar(String message) {
+  // Helper menampilkan pesan feedback
+  void _showSnackBar(String message, {bool isError = true}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    if (isError) {
+      AppSnackBar.showError(context, message);
+    } else {
+      AppSnackBar.showSuccess(context, message);
+    }
   }
 
-  /// Melakukan otentikasi login pengguna via AuthController dan mengarahkan ke layar tujuan.
+  // Proses autentikasi login lokal
   Future<void> _login() async {
     final success = await _authController.login(
       emailController.text,
@@ -60,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Periksa status SharedPreferences: arahkan ke onboarding untuk pengguna baru, atau langsung ke Dashboard jika sudah pernah melihat panduan.
       final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
 
       if (!mounted) return;
@@ -83,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// Masuk dengan akun Google via Firebase Auth
+  // Proses login menggunakan akun Google
   Future<void> _handleGoogleSignIn() async {
     final success = await _authController.signInWithGoogle();
 
@@ -192,7 +197,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const ForgotPasswordScreen(),
+                                    builder: (_) =>
+                                        const ForgotPasswordScreen(),
                                   ),
                                 );
                               },
@@ -226,27 +232,24 @@ class _LoginScreenState extends State<LoginScreen> {
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                  : const Text('Masuk', style: AppTextStyles.button),
+                                  : const Text(
+                                      'Masuk',
+                                      style: AppTextStyles.button,
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 24),
                           const Row(
                             children: [
-                              Expanded(
-                                child: Divider(color: AppColors.border),
-                              ),
+                              Expanded(child: Divider(color: AppColors.border)),
                               Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 12),
                                 child: Text(
                                   'Atau lanjutkan dengan',
                                   style: AppTextStyles.subtitleSmall,
                                 ),
                               ),
-                              Expanded(
-                                child: Divider(color: AppColors.border),
-                              ),
+                              Expanded(child: Divider(color: AppColors.border)),
                             ],
                           ),
                           const SizedBox(height: 18),

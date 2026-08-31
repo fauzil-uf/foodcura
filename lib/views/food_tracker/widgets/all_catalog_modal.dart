@@ -7,20 +7,21 @@ import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
+import '../../widgets/app_snack_bar.dart';
 
-/// Modal katalog lengkap seluruh bahan dan hidangan siap santap berdasarkan data standar TKPI Kemenkes.
+// Modal katalog makanan lengkap
 class AllCatalogModal extends StatefulWidget {
   final String currentMealType;
   final DateTime? targetDate;
   final FoodTrackerController? controller;
-  final VoidCallback onFoodAdded;
+  final VoidCallback? onFoodAdded;
 
   const AllCatalogModal({
     super.key,
     required this.currentMealType,
     this.targetDate,
     this.controller,
-    required this.onFoodAdded,
+    this.onFoodAdded,
   });
 
   @override
@@ -42,7 +43,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     _loadCatalog();
   }
 
-  /// Memuat seluruh entri katalog makanan dari database SQLite saat inisialisasi modal.
+  // Muat seluruh daftar katalog makanan dari database lokal
   Future<void> _loadCatalog() async {
     final list = await _controller.getFoodCatalog();
     if (mounted) {
@@ -54,7 +55,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     }
   }
 
-  /// Memfilter daftar makanan berdasarkan kecocokan nama makanan atau kategori secara in-memory.
+  // Filter katalog berdasarkan pencarian nama atau kategori
   void _onSearchChanged(String query) {
     setState(() {
       if (query.trim().isEmpty) {
@@ -71,7 +72,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     });
   }
 
-  /// Menambahkan item makanan ke log waktu makan aktif dan mencatat data makronutrisinya ke SQLite.
+  // Tambahkan item makanan dari katalog ke catatan log harian
   Future<void> _addFoodToLog(FoodItemModel food) async {
     if (_recentlyAddedFoods.contains(food.name)) return;
 
@@ -93,57 +94,13 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     );
 
     await _controller.addFoodLog(newLog);
-    widget.onFoodAdded();
+    widget.onFoodAdded?.call();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          backgroundColor: AppColors.deepForest,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(5),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${food.name} Ditambahkan!',
-                      style: AppTextStyles.buttonSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '${food.calories} kcal dicatat ke ${widget.currentMealType}',
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        '${food.name} Ditambahkan!',
+        subtitle: '${food.calories} kcal dicatat ke ${widget.currentMealType}',
       );
     }
 

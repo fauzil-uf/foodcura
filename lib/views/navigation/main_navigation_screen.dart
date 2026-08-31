@@ -9,7 +9,7 @@ import '../food_tracker/food_tracker_screen.dart';
 import '../pantry/pantry_screen.dart';
 import '../profile/profile_screen.dart';
 
-/// Kerangka utama navigasi aplikasi (Root Scaffold) yang membungkus 5 layar utama dengan IndexedStack dan Floating Glassmorphic Bottom Navigation Bar.
+// Kerangka navigasi utama (bottom navigation bar)
 class MainNavigationScreen extends StatefulWidget {
   final int initialTab;
 
@@ -28,19 +28,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _currentIndex = widget.initialTab;
   }
 
-  /// Menangani perpindahan tab aktif dan menyiarkan sinyal sinkronisasi state instan antar-layar.
+  // Tangani perpindahan tab aktif dan sinkronkan refresh badge notifikasi
   void _onTabTapped(int index) {
     if (_currentIndex != index) {
       setState(() {
         _currentIndex = index;
       });
-      // Sinkronisasi state instan antar layar saat pengguna berpindah tab navigasi.
-      PantryUpdateNotifier.instance.notifyPantryChanged();
       NotificationNotifier.instance.refresh();
     }
   }
 
-  /// Membangun antarmuka navigasi utama dengan IndexedStack (5 layar utama) dan floating glassmorphic bar.
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -125,7 +122,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  /// Membangun tombol navigasi individual dengan indikator aktif berupa lingkaran mengambang berlatar warna primer.
   Widget _buildNavItem(
     int index,
     IconData iconInactive,

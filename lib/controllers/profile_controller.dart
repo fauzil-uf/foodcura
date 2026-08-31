@@ -4,17 +4,19 @@ import '../database/db_helper.dart';
 import '../models/user_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/auth_service.dart';
+import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 
-/// Controller untuk mengelola data profil, statistik bento (Eco Points, Streak),
-/// pengaturan keamanan/password, dan unread notifikasi pengguna.
+// Controller profil user, statistik (Eco Points, streak), & pengaturan akun
 class ProfileController extends ChangeNotifier {
   final DBHelper _db;
   final StreakService _streakService;
 
   ProfileController({DBHelper? db, StreakService? streakService})
-      : _db = db ?? DBHelper(),
-        _streakService = streakService ?? StreakService(db: db ?? DBHelper());
+    : _db = db ?? DBHelper(),
+      _streakService = streakService ?? StreakService(db: db ?? DBHelper()) {
+    initListeners();
+  }
 
   UserModelSQL? _user;
   int _streak = 0;
@@ -36,13 +38,14 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Inisialisasi listener real-time Eco Points
+  /// Pasang listener perubahan Eco Points real-time
   void initListeners() {
+    EcoPointsNotifier.instance.removeListener(_onEcoPointsChanged);
     EcoPointsNotifier.instance.addListener(_onEcoPointsChanged);
     _ecoPoints = EcoPointsNotifier.instance.value;
   }
 
-  /// Membersihkan listener saat controller di-dispose
+  /// Lepas listener Eco Points saat controller selesai digunakan
   void removeListeners() {
     EcoPointsNotifier.instance.removeListener(_onEcoPointsChanged);
   }
@@ -61,7 +64,9 @@ class ProfileController extends ChangeNotifier {
 
     try {
       final user = await _db.getLoggedInUser();
-      final streakCount = await _streakService.computeAndSaveStreak(userId: user?.id);
+      final streakCount = await _streakService.computeAndSaveStreak(
+        userId: user?.id,
+      );
       final unread = await _db.getUnreadNotificationCount(userId: user?.id);
       await EcoPointsNotifier.instance.refresh();
 
@@ -79,7 +84,10 @@ class ProfileController extends ChangeNotifier {
   }
 
   /// Memperbarui nama dan email pengguna
-  Future<bool> updateProfile({required String name, required String email}) async {
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+  }) async {
     final cleanName = name.trim();
     final cleanEmail = email.trim();
 
@@ -159,8 +167,42 @@ class ProfileController extends ChangeNotifier {
   /// Menyegarkan hitungan notifikasi belum dibaca
   Future<void> refreshNotifications() async {
     if (_user?.id != null) {
-      _unreadNotifications = await _db.getUnreadNotificationCount(userId: _user!.id);
+      _unreadNotifications = await _db.getUnreadNotificationCount(
+        userId: _user!.id,
+      );
       notifyListeners();
     }
+  }
+
+  /// Memuat konfigurasi preferensi notifikasi dari SharedPreferences
+  Future<Map<String, dynamic>> loadNotificationSettings() async {
+    return await ReminderService().loadNotificationSettings();
+  }
+
+  /// Menyimpan preferensi notifikasi dan jadwal pengingat makan
+  Future<void> saveNotificationSettings({
+    required bool expiryAlert,
+    required bool nutritionExcess,
+    required bool dailyMealLog,
+    required bool ecoTips,
+    required bool breakfastEnabled,
+    required String breakfastTime,
+    required bool lunchEnabled,
+    required String lunchTime,
+    required bool dinnerEnabled,
+    required String dinnerTime,
+  }) async {
+    await ReminderService().saveNotificationSettings(
+      expiryAlert: expiryAlert,
+      nutritionExcess: nutritionExcess,
+      dailyMealLog: dailyMealLog,
+      ecoTips: ecoTips,
+      breakfastEnabled: breakfastEnabled,
+      breakfastTime: breakfastTime,
+      lunchEnabled: lunchEnabled,
+      lunchTime: lunchTime,
+      dinnerEnabled: dinnerEnabled,
+      dinnerTime: dinnerTime,
+    );
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 
+// Layar pemulihan kata sandi (reset link)
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -24,12 +26,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  // Kirim link reset password ke email yang diinput
   Future<void> _sendResetLink() async {
     final email = emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Masukkan email terdaftar!')),
-      );
+      AppSnackBar.showError(context, 'Masukkan email terdaftar!');
       return;
     }
 
@@ -40,22 +41,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.ecoGreen,
-          content: Text(
-            'Tautan reset password telah dikirim ke email kamu. Periksa folder Inbox atau Spam.',
-          ),
-          duration: Duration(seconds: 4),
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        'Tautan reset terkirim!',
+        subtitle: 'Periksa folder Inbox atau Spam email kamu.',
+        duration: const Duration(seconds: 4),
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.error,
-          content: Text(_authController.errorMessage ?? 'Gagal mengirim email reset password.'),
-        ),
+      AppSnackBar.showError(
+        context,
+        _authController.errorMessage ?? 'Gagal mengirim email reset password.',
       );
     }
   }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-/// TextField & TextFormField terpusat dengan icon kiri, opsional toggle password,
-/// dan dukungan validator FormState sesuai standar kurikulum Validasi Form.
+// Komponen input teks standar aplikasi dengan dukungan validasi dan toggle password
 class AppTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
@@ -41,7 +40,6 @@ class AppTextField extends StatefulWidget {
 class _AppTextFieldState extends State<AppTextField> {
   bool _obscure = true;
 
-  /// Membangun bidang input teks dengan ikon di kiri, border membulat, dan tombol toggle visibilitas sandi opsional.
   @override
   Widget build(BuildContext context) {
     return Column(

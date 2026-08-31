@@ -1,5 +1,4 @@
-/// Path aset gambar terpusat — hindari menulis string path berulang
-/// di banyak file, cukup panggil AppImages.logo, dst.
+// Path aset gambar dan ikon aplikasi
 class AppImages {
   AppImages._();
 
