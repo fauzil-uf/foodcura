@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
@@ -35,6 +37,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
   List<FoodItemModel> _filteredCatalog = [];
   bool _loading = true;
   final Set<String> _recentlyAddedFoods = {};
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -55,20 +58,25 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     }
   }
 
-  // Filter katalog berdasarkan pencarian nama atau kategori
+  // Filter katalog berdasarkan pencarian nama atau kategori (debounced 150ms)
   void _onSearchChanged(String query) {
-    setState(() {
-      if (query.trim().isEmpty) {
-        _filteredCatalog = _allCatalog;
-      } else {
-        _filteredCatalog = _allCatalog
-            .where(
-              (item) =>
-                  item.name.toLowerCase().contains(query.toLowerCase()) ||
-                  item.category.toLowerCase().contains(query.toLowerCase()),
-            )
-            .toList();
-      }
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+      setState(() {
+        final q = query.trim().toLowerCase();
+        if (q.isEmpty) {
+          _filteredCatalog = _allCatalog;
+        } else {
+          _filteredCatalog = _allCatalog
+              .where(
+                (item) =>
+                    item.name.toLowerCase().contains(q) ||
+                    item.category.toLowerCase().contains(q),
+              )
+              .toList();
+        }
+      });
     });
   }
 
@@ -93,15 +101,23 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
       date: AppDateFormatter.formatToday(widget.targetDate ?? DateTime.now()),
     );
 
-    await _controller.addFoodLog(newLog);
+    final notif = await _controller.addFoodLog(newLog);
     widget.onFoodAdded?.call();
 
     if (mounted) {
-      AppSnackBar.showSuccess(
-        context,
-        '${food.name} Ditambahkan!',
-        subtitle: '${food.calories} kcal dicatat ke ${widget.currentMealType}',
-      );
+      if (notif != null) {
+        AppSnackBar.showWarning(
+          context,
+          title: notif.title,
+          message: notif.message,
+        );
+      } else {
+        AppSnackBar.showSuccess(
+          context,
+          '${food.name} Ditambahkan!',
+          subtitle: '${food.calories} kcal dicatat ke ${widget.currentMealType}',
+        );
+      }
     }
 
     await Future.delayed(const Duration(milliseconds: 1600));
@@ -114,6 +130,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }

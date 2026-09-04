@@ -1,14 +1,16 @@
-import 'package:flutter/material.dart';
-
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
 import 'firebase_options.dart';
+import 'services/connectivity_service.dart';
 import 'services/notification_service.dart';
 import 'services/preference_handler.dart';
+import 'services/reminder_service.dart';
 import 'views/onboarding/splash_screen.dart';
+import 'views/widgets/app_connectivity_banner.dart';
 
 // Entry point aplikasi FoodCura
 void main() async {
@@ -18,9 +20,17 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (_) {}
+  await initializeDateFormatting('id', null);
   await initializeDateFormatting('id_ID', null);
   await PreferenceHandler.init();
   await NotificationService.instance.init();
+  try {
+    await ConnectivityService.instance.init();
+  } catch (_) {}
+  try {
+    await ReminderService().syncMealAlarms();
+    await ReminderService().syncPantryExpiryAlarms();
+  } catch (_) {}
   runApp(const FoodCuraApp());
 }
 
@@ -35,6 +45,9 @@ class FoodCuraApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: const SplashScreen(),
+      builder: (context, child) {
+        return AppConnectivityBanner(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }

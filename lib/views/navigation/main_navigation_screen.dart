@@ -9,6 +9,9 @@ import '../food_tracker/food_tracker_screen.dart';
 import '../pantry/pantry_screen.dart';
 import '../profile/profile_screen.dart';
 
+import '../../services/app_update_service.dart';
+import '../../services/reminder_service.dart';
+
 // Kerangka navigasi utama (bottom navigation bar)
 class MainNavigationScreen extends StatefulWidget {
   final int initialTab;
@@ -19,13 +22,45 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with WidgetsBindingObserver {
   late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialTab;
+    _syncNotificationState();
+
+    // Periksa apakah versi ini baru bagi pengguna (In-App Update Notification)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.checkAndShowWhatsNew(context);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncNotificationState();
+    }
+  }
+
+  Future<void> _syncNotificationState() async {
+    final reminderService = ReminderService();
+    await reminderService.checkExpiryAndCreateNotifications();
+    await reminderService.checkMealRemindersAndCreateNotifications();
+    await reminderService.syncMealAlarms();
+    await reminderService.syncPantryExpiryAlarms();
+    await NotificationNotifier.instance.refresh();
   }
 
   // Tangani perpindahan tab aktif dan sinkronkan refresh badge notifikasi

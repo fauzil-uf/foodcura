@@ -56,6 +56,8 @@ class AppColors {
   static const nutriCalorieBg = Color(0xFFFFF8F0);
   static const nutriCarbBg = Color(0xFFFBE9E7);
   static const nutriFatBg = Color(0xFFE3F2FD);
+  static const nutritionViolet = Color(0xFF7C3AED); // Deep Violet / Health
+  static const nutritionVioletBg = Color(0xFFF5F3FF); // Soft Lavender Tint
 
   // Top Bar & Navigation UI
   static const topBarSurface = Color(0xFFF7F5EE);

@@ -6,12 +6,14 @@ import '../../constants/app_images.dart';
 import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../../services/app_notifiers.dart';
+import '../../services/app_update_service.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_dialog.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/about_foodcura_dialog.dart';
+import 'widgets/change_password_modal.dart';
 import 'widgets/edit_profile_modal.dart';
 import 'widgets/notification_settings_modal.dart';
 import 'widgets/privacy_security_modal.dart';
@@ -161,6 +163,19 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // Buka modal ganti kata sandi akun
+  void _showChangePasswordModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ChangePasswordModal(
+        user: _user,
+        controller: _profileController,
+      ),
+    );
+  }
+
   // Buka modal kebijakan privasi dan keamanan data
   void _showPrivacyModal() {
     showModalBottomSheet(
@@ -174,6 +189,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   // Tampilkan dialog informasi rilis dan versi aplikasi FoodCura
   void _showAboutAppDialog() {
     showDialog(context: context, builder: (_) => const AboutFoodCuraDialog());
+  }
+
+  // Periksa pembaruan langsung ke Google Play Store via In-App Update API
+  void _showCheckUpdates() {
+    AppUpdateService.checkForPlayStoreUpdate(context);
   }
 
   // Tampilkan halaman lisensi open source pustaka pihak ketiga
@@ -271,10 +291,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   onEditProfile: _showEditProfileModal,
                                   onNotificationSettings:
                                       _showNotificationSettings,
+                                  onChangePassword: _showChangePasswordModal,
                                   onPrivacyPolicy: _showPrivacyModal,
                                   onAboutApp: _showAboutAppDialog,
                                   onOpenSourceLicenses:
                                       _showOpenSourceLicenses,
+                                  onCheckUpdates: _showCheckUpdates,
                                   onLogout: _logout,
                                 ),
                               ],

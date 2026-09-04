@@ -63,40 +63,220 @@ class _NotificationScreenState extends State<NotificationScreen> {
     await _controller.markRead(notif);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundWarm,
-      body: SafeArea(
-        child: Column(
-          children: [
-            AppTopBar(
-              title: 'Notifikasi',
-              showBackButton: true,
-              onBack: () => Navigator.pop(context),
-              actions: [
-                GestureDetector(
-                  onTap: _markAllRead,
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: AppColors.topBarButtonBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.topBarButtonBorder,
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.done_all_rounded,
-                      color: AppColors.deepForest,
-                      size: 22,
+  // Hapus satu notifikasi saat di-swipe
+  Future<void> _deleteNotification(NotificationModel notif) async {
+    await _controller.deleteNotification(notif);
+    if (mounted) {
+      AppSnackBar.showSuccess(context, 'Notifikasi dihapus');
+    }
+  }
+
+  // Dialog konfirmasi hapus notifikasi terpilih
+  Future<void> _confirmDeleteSelected() async {
+    final count = _controller.selectedCount;
+    if (count == 0) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Hapus $count Notifikasi?',
+          style: AppTextStyles.heading2.copyWith(fontSize: 18),
+        ),
+        content: Text(
+          'Sebanyak $count notifikasi yang dipilih akan dihapus secara permanen.',
+          style: AppTextStyles.body,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textGray)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.urgent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _controller.deleteSelectedNotifications();
+      if (mounted) {
+        AppSnackBar.showSuccess(context, '$count notifikasi telah dihapus');
+      }
+    }
+  }
+
+  // Header kontekstual saat masuk mode multi-seleksi
+  Widget _buildSelectionTopBar() {
+    final visibleCount = _controller.notifications
+        .where((n) => n.id != null)
+        .length;
+    final isAllSelected = _controller.selectedCount > 0 &&
+        _controller.selectedCount == visibleCount;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: AppColors.backgroundWarm,
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderSoft, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => _controller.clearSelection(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.topBarButtonBg,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.topBarButtonBorder,
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: AppColors.deepForest,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              '${_controller.selectedCount} Dipilih',
+              style: AppTextStyles.heading2.copyWith(
+                fontSize: 18,
+                color: AppColors.deepForest,
+              ),
+            ),
+          ),
+          // Tombol Pilih Semua / Batal Semua
+          GestureDetector(
+            onTap: () => _controller.selectAll(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: isAllSelected
+                    ? AppColors.primary.withValues(alpha: 0.12)
+                    : AppColors.topBarButtonBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isAllSelected
+                      ? AppColors.primary
+                      : AppColors.topBarButtonBorder,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isAllSelected
+                        ? Icons.check_box_rounded
+                        : Icons.select_all_rounded,
+                    size: 18,
+                    color: isAllSelected
+                        ? AppColors.primary
+                        : AppColors.deepForest,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isAllSelected ? 'Batal Semua' : 'Pilih Semua',
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isAllSelected
+                          ? AppColors.primary
+                          : AppColors.deepForest,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+          ),
+          // Tombol Hapus Terpilih
+          GestureDetector(
+            onTap: _confirmDeleteSelected,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.urgent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.urgent.withValues(alpha: 0.25),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.urgent,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_controller.isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _controller.isSelectionMode) {
+          _controller.clearSelection();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundWarm,
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (_controller.isSelectionMode)
+                _buildSelectionTopBar()
+              else
+                AppTopBar(
+                  title: 'Notifikasi',
+                  showBackButton: true,
+                  onBack: () => Navigator.pop(context),
+                  actions: [
+                    GestureDetector(
+                      onTap: _markAllRead,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.topBarButtonBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.topBarButtonBorder,
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.done_all_rounded,
+                          color: AppColors.deepForest,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -143,10 +323,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                     ..._controller
                                         .groupedNotifications['Hari Ini']!
                                         .map(
-                                          (n) => NotificationCard(
-                                            notif: n,
+                                          (n) => _buildDismissibleItem(
+                                            n,
                                             isEarlier: false,
-                                            onTap: () => _markRead(n),
                                           ),
                                         ),
                                     const SizedBox(height: 16),
@@ -160,10 +339,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                     ..._controller
                                         .groupedNotifications['Sebelumnya']!
                                         .map(
-                                          (n) => NotificationCard(
-                                            notif: n,
+                                          (n) => _buildDismissibleItem(
+                                            n,
                                             isEarlier: true,
-                                            onTap: () => _markRead(n),
                                           ),
                                         ),
                                     const SizedBox(height: 16),
@@ -178,6 +356,72 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+  // Item notifikasi yang bisa di-swipe ke kiri untuk menghapus atau dipilih lewat multi-select
+  Widget _buildDismissibleItem(
+    NotificationModel notif, {
+    required bool isEarlier,
+  }) {
+    final isSelected = notif.id != null &&
+        _controller.selectedNotificationIds.contains(notif.id);
+
+    return Dismissible(
+      key: ValueKey('notif_${notif.id ?? notif.createdAt}'),
+      direction: _controller.isSelectionMode
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: AppColors.urgent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.centerRight,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Hapus',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+      onDismissed: (_) => _deleteNotification(notif),
+      child: NotificationCard(
+        notif: notif,
+        isEarlier: isEarlier,
+        isSelectionMode: _controller.isSelectionMode,
+        isSelected: isSelected,
+        onTap: () {
+          if (_controller.isSelectionMode) {
+            if (notif.id != null) {
+              _controller.toggleSelection(notif.id!);
+            }
+          } else {
+            _markRead(notif);
+          }
+        },
+        onLongPress: () {
+          if (notif.id != null) {
+            _controller.startSelection(notif.id!);
+          }
+        },
       ),
     );
   }

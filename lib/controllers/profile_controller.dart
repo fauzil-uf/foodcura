@@ -4,6 +4,7 @@ import '../database/db_helper.dart';
 import '../models/user_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 
@@ -97,10 +98,25 @@ class ProfileController extends ChangeNotifier {
       return false;
     }
 
+    if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(cleanEmail)) {
+      _errorMessage = 'Format email tidak valid!';
+      notifyListeners();
+      return false;
+    }
+
     if (_user == null) {
       _errorMessage = 'Sesi pengguna tidak ditemukan!';
       notifyListeners();
       return false;
+    }
+
+    if (cleanEmail.toLowerCase() != _user!.email.toLowerCase()) {
+      final isRegistered = await _db.isEmailRegistered(cleanEmail);
+      if (isRegistered) {
+        _errorMessage = 'Email sudah digunakan oleh akun lain!';
+        notifyListeners();
+        return false;
+      }
     }
 
     try {
@@ -108,6 +124,10 @@ class ProfileController extends ChangeNotifier {
       final success = await _db.updateUser(updated);
       if (success) {
         _user = updated;
+        _errorMessage = null;
+        notifyListeners();
+      } else {
+        _errorMessage = 'Gagal memperbarui profil ke database.';
         notifyListeners();
       }
       return success;
@@ -184,7 +204,7 @@ class ProfileController extends ChangeNotifier {
     required bool expiryAlert,
     required bool nutritionExcess,
     required bool dailyMealLog,
-    required bool ecoTips,
+    bool ecoTips = false,
     required bool breakfastEnabled,
     required String breakfastTime,
     required bool lunchEnabled,
@@ -192,7 +212,8 @@ class ProfileController extends ChangeNotifier {
     required bool dinnerEnabled,
     required String dinnerTime,
   }) async {
-    await ReminderService().saveNotificationSettings(
+    final reminderService = ReminderService();
+    await reminderService.saveNotificationSettings(
       expiryAlert: expiryAlert,
       nutritionExcess: nutritionExcess,
       dailyMealLog: dailyMealLog,
@@ -204,5 +225,40 @@ class ProfileController extends ChangeNotifier {
       dinnerEnabled: dinnerEnabled,
       dinnerTime: dinnerTime,
     );
+  }
+
+  /// Memeriksa status izin notifikasi sistem Android OS
+  Future<bool> areNotificationsEnabled() async {
+    return await NotificationService.instance.areNotificationsEnabled();
+  }
+
+  /// Meminta izin notifikasi sistem Android OS
+  Future<bool> requestNotificationPermissions() async {
+    return await NotificationService.instance.requestPermissions();
+  }
+
+  /// Membuka pengaturan notifikasi aplikasi di level OS Android
+  Future<void> openNotificationSettings() async {
+    await NotificationService.instance.openNotificationSettings();
+  }
+
+  /// Memeriksa apakah sistem mengizinkan penjadwalan alarm tepat waktu (Android 12+)
+  Future<bool> canScheduleExactAlarms() async {
+    return await NotificationService.instance.canScheduleExactAlarms();
+  }
+
+  /// Membuka pengaturan izin exact alarm di OS Android
+  Future<void> openExactAlarmSettings() async {
+    await NotificationService.instance.openExactAlarmSettings();
+  }
+
+  /// Cek apakah FoodCura dikecualikan dari battery optimization
+  Future<bool> isBatteryOptimizationIgnored() async {
+    return await NotificationService.instance.isBatteryOptimizationIgnored();
+  }
+
+  /// Buka halaman battery optimization (user bisa set FoodCura ke Unrestricted)
+  Future<void> openBatteryOptimizationSettings() async {
+    await NotificationService.instance.openBatteryOptimizationSettings();
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
+import '../services/preference_handler.dart';
 
 // Controller state autentikasi (login, register, logout, session user)
 class AuthController extends ChangeNotifier {
@@ -41,6 +43,11 @@ class AuthController extends ChangeNotifier {
     final cleanEmail = email.trim();
     if (cleanEmail.isEmpty || password.isEmpty) {
       _setLoading(false, 'Isi semua field!');
+      return false;
+    }
+
+    if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(cleanEmail)) {
+      _setLoading(false, 'Format email tidak valid!');
       return false;
     }
 
@@ -126,6 +133,19 @@ class AuthController extends ChangeNotifier {
       return false;
     }
 
+    if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$').hasMatch(cleanEmail)) {
+      _setLoading(false, 'Format email tidak valid!');
+      return false;
+    }
+
+    if (cleanEmail.toLowerCase() != _currentUser!.email.toLowerCase()) {
+      final isRegistered = await _db.isEmailRegistered(cleanEmail);
+      if (isRegistered) {
+        _setLoading(false, 'Email sudah digunakan oleh akun lain!');
+        return false;
+      }
+    }
+
     _setLoading(true);
     try {
       final updated = _currentUser!.copyWith(
@@ -176,6 +196,7 @@ class AuthController extends ChangeNotifier {
   Future<void> logout() async {
     await _db.logoutUser();
     await AuthService.instance.signOut();
+    await NotificationService.instance.cancelAllNotifications();
     _currentUser = null;
     notifyListeners();
   }
@@ -201,7 +222,11 @@ class AuthController extends ChangeNotifier {
         return false;
       }
 
-      final user = await _db.findOrCreateGoogleUser(email, name);
+      final user = await _db.findOrCreateGoogleUser(
+        email,
+        name,
+        creationTime: fbUser.metadata.creationTime,
+      );
       if (user != null) {
         _currentUser = user;
         _setLoading(false);
@@ -238,4 +263,17 @@ class AuthController extends ChangeNotifier {
   /// Mengecek apakah email terdaftar
   Future<bool> isEmailRegistered(String email) =>
       _db.isEmailRegistered(email.trim());
+
+  /// Menandai bahwa pengguna telah menyelesaikan alur orientasi (onboarding)
+  Future<void> completeOnboarding() async {
+    await PreferenceHandler.setHasSeenOnboarding(true);
+  }
+
+  /// Status apakah pengguna telah melewati orientasi awal
+  bool get hasSeenOnboarding => PreferenceHandler.hasSeenOnboarding;
+
+  /// Mereset status orientasi awal (misal untuk pendaftaran baru)
+  Future<void> resetOnboarding() async {
+    await PreferenceHandler.setHasSeenOnboarding(false);
+  }
 }

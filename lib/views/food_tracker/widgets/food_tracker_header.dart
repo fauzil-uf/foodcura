@@ -18,6 +18,7 @@ class FoodTrackerHeader extends StatelessWidget {
     required this.onDateTap,
     required this.onPreviousDay,
     required this.onNextDay,
+    this.canGoNextDay = true,
     required this.onSearchChanged,
     required this.onFoodScannerTap,
     required this.onTabChanged,
@@ -33,6 +34,7 @@ class FoodTrackerHeader extends StatelessWidget {
   final Future<void> Function() onDateTap;
   final VoidCallback onPreviousDay;
   final VoidCallback onNextDay;
+  final bool canGoNextDay;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onFoodScannerTap;
   final ValueChanged<int> onTabChanged;
@@ -201,14 +203,16 @@ class FoodTrackerHeader extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: onNextDay,
-              child: const SizedBox(
+              onTap: canGoNextDay ? onNextDay : null,
+              child: SizedBox(
                 width: 38,
                 height: 38,
                 child: Icon(
                   Icons.chevron_right_rounded,
                   size: 26,
-                  color: AppColors.deepForest,
+                  color: canGoNextDay
+                      ? AppColors.deepForest
+                      : AppColors.textGray.withValues(alpha: 0.3),
                 ),
               ),
             ),

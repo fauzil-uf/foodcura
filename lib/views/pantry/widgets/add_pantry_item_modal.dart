@@ -189,7 +189,8 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
       return;
     }
 
-    final quantity = double.tryParse(quantityText);
+    final cleanQuantityText = quantityText.replaceAll(',', '.');
+    final quantity = double.tryParse(cleanQuantityText);
     if (quantity == null || quantity <= 0) {
       _showError('Jumlah kuantitas tidak valid');
       return;
@@ -554,8 +555,8 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
                   ],
                   const SizedBox(height: 16),
 
-                  // Tanggal kadaluwarsa
-                  _buildLabel('Tanggal Kadaluwarsa (Estimasi Basi)'),
+                  // Tanggal kedaluwarsa
+                  _buildLabel('Tanggal Kedaluwarsa (Batas Masa Simpan)'),
                   const SizedBox(height: 6),
                   GestureDetector(
                     onTap: _pickDate,

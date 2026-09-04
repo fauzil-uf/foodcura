@@ -48,7 +48,7 @@ class PantrySummaryAlert extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Gunakan sebelum kadaluwarsa untuk mengurangi food waste.',
+                  'Gunakan sebelum kedaluwarsa untuk mengurangi food waste.',
                   style: AppTextStyles.caption.copyWith(
                     fontSize: 12,
                     color: AppColors.textGray,

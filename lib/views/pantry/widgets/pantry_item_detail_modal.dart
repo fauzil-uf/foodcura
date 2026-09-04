@@ -47,10 +47,15 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
       if (mounted) {
         widget.onItemUpdated?.call();
         Navigator.pop(context);
+        final isExpired = savedItem.daysUntilExpiry < 0;
         AppSnackBar.showSuccess(
           context,
-          '${savedItem.name} ditandai telah dimasak!',
-          subtitle: '+5 Eco Points telah ditambahkan ke akunmu',
+          isExpired
+              ? '${savedItem.name} ditandai telah habis'
+              : '${savedItem.name} ditandai telah dimasak!',
+          subtitle: isExpired
+              ? 'Bahan berhasil dihapus dari inventaris dapur'
+              : '+5 Eco Points telah ditambahkan ke akunmu',
         );
       }
     }
@@ -108,7 +113,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
       case 'expired':
         statusColor = AppColors.urgent;
         statusBgColor = AppColors.warningBg;
-        statusLabel = 'KADALUWARSA';
+        statusLabel = 'KEDALUWARSA';
         break;
       case 'urgent':
         statusColor = AppColors.urgent;
@@ -290,9 +295,9 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
                                 const SizedBox(width: 8),
                                 Text(
                                   days < 0
-                                      ? 'Telah Kadaluwarsa'
+                                      ? 'Telah Kedaluwarsa'
                                       : days == 0
-                                      ? 'Kadaluwarsa Hari Ini'
+                                      ? 'Kedaluwarsa Hari Ini'
                                       : 'Sisa $days Hari Lagi',
                                   style: AppTextStyles.badgeText.copyWith(
                                     fontSize: 14,
@@ -369,7 +374,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
                         const Divider(height: 20, color: AppColors.surfaceDim),
                         _buildInfoRow(
                           icon: Icons.event_busy_outlined,
-                          label: 'Tanggal Kadaluwarsa',
+                          label: 'Tanggal Kedaluwarsa',
                           value: formattedExpiry,
                         ),
                       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_date_formatter.dart';
+import '../../constants/app_food_formatter.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/dashboard_controller.dart';
 import '../../models/pantry_item_model.dart';
@@ -52,6 +53,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     // Inisialisasi controller dan listener real-time
     _controller.addListener(_onControllerChanged);
     _controller.loadDashboardData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.requestNotificationPermissionsIfFirstTime();
+    });
     NotificationNotifier.instance.addListener(_onNotifChanged);
     NotificationNotifier.instance.refresh();
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
@@ -963,7 +967,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Tidak ada bahan yang mendekati masa kadaluwarsa (<5 hari).',
+                          'Tidak ada bahan yang mendekati masa kedaluwarsa (<5 hari).',
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textGray,
@@ -1242,7 +1246,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            log.foodName,
+                            AppFoodFormatter.cleanDisplayName(log.foodName),
                             style: AppTextStyles.body.copyWith(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -1253,9 +1257,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${log.mealType} · ${log.time} · Kol ${log.cholesterol.toInt()} mg',
+                            '${log.mealType} · ${log.time}',
                             style: AppTextStyles.caption.copyWith(
-                              fontSize: 11,
+                              fontSize: 11.5,
                               color: AppColors.textGray,
                             ),
                           ),
@@ -1268,8 +1272,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.mintTint.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${log.calories} kcal',
@@ -1287,14 +1291,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: FilledButton.tonalIcon(
                 onPressed: () => _openAddFoodModal(),
-                icon: const Icon(Icons.add_rounded, size: 16),
+                icon: const Icon(Icons.add_rounded, size: 17),
                 label: const Text('Tambah Makanan'),
-                style: OutlinedButton.styleFrom(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.mintTint.withValues(alpha: 0.55),
                   foregroundColor: AppColors.primary,
-                  backgroundColor: AppColors.mintTint.withValues(alpha: 0.4),
-                  side: const BorderSide(color: AppColors.borderSoft),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),

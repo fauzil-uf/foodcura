@@ -71,7 +71,7 @@ Dengan mengintegrasikan tabel komposisi pangan Indonesia (TKPI), pelacak masa ke
 ### 4. 🤖 Asisten Cerdas Google Gemini AI
 * **AI Daily Nutrition Coach**: Analisis otomatis asupan harian dengan rekomendasi menu sehat berikutnya yang dipersonalisasi.
 * **AI Interactive Mini Quiz**: Generator 5 soal kuis pilihan ganda edukatif seputar gizi dan pencegahan *food waste* dengan mode JSON terstruktur (*Structured Output*), bobot panjang opsi seimbang, dan reward +10 Eco Points per jawaban benar.
-* **Multi-Model Fallback Chain**: Rangkaian fallback model cerdas (`gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`, `gemini-flash-latest`) serta *Curated Offline Pool* sehingga aplikasi tetap berfungsi normal tanpa koneksi internet.
+* **Multi-Model Fallback Chain**: Rangkaian fallback model cerdas (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-flash-latest`) serta *Curated Offline Pool* sehingga aplikasi tetap berfungsi normal tanpa koneksi internet.
 
 ### 5. 📚 Food Info & Edukasi Gizi
 * **Artikel & Panduan Praktis**: Kumpulan artikel edukasi gizi seimbang, tips penyimpanan bahan makanan di kulkas, dan panduan *meal prep* hemat.
@@ -100,7 +100,7 @@ Dengan mengintegrasikan tabel komposisi pangan Indonesia (TKPI), pelacak masa ke
 | **Cloud & Autentikasi** | [`firebase_core`](https://pub.dev/packages/firebase_core), [`firebase_auth`](https://pub.dev/packages/firebase_auth) | `^3.12.0` / `^5.5.0` | Inisialisasi Firebase & manajemen akun cloud |
 | **Google Sign-In** | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | `^6.2.2` | Otentikasi OAuth 2.0 via Google Account |
 | **Kriptografi & Keamanan** | [`crypto`](https://pub.dev/packages/crypto) | `^3.0.6` | Hashing SHA-256 + Salt pada kata sandi SQLite lokal |
-| **Kecerdasan Buatan** | [Google Gemini REST API](https://ai.google.dev) | Multi-Model | Model `gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite` |
+| **Kecerdasan Buatan** | [Google Gemini REST API](https://ai.google.dev) | Multi-Model | Model `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-flash-latest` |
 | **Local Storage** | [`shared_preferences`](https://pub.dev/packages/shared_preferences) | `^2.3.4` | Penyimpanan sesi aktif dan user preferences |
 | **Local Notifications** | [`flutter_local_notifications`](https://pub.dev/packages/flutter_local_notifications) | `^18.0.1` | Pengingat jadwal makan, peringatan kedaluwarsa & nutrisi |
 | **UI & Vector** | [`flutter_svg`](https://pub.dev/packages/flutter_svg), `cupertino_icons` | `^2.0.9` / `^1.0.8` | Rendering ikon SVG dan aset desain modern |
@@ -206,7 +206,7 @@ FoodCura memanfaatkan **Google Gemini AI Service** ([gemini_service.dart](lib/se
 2. **AI Interactive Quiz** ([quiz_modal.dart](lib/views/dashboard/widgets/quiz_modal.dart)):
    - Generator kuis dinamis 5 soal pilihan ganda interaktif dengan Structured JSON mode, panjang opsi pilihan seimbang, serta reward Eco Points.
 3. **Multi-Model Fallback Chain**:
-   - Mendukung rangkaian model: `gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`, dan `gemini-flash-latest`.
+   - Mendukung rangkaian model: `gemini-3.7-flash`, `gemini-3.6-flash`, dan `gemini-flash-latest`.
    - Dilengkapi *Curated Offline Pool Fallback* sehingga fitur evaluasi dan kuis tetap dapat dimainkan tanpa koneksi internet atau saat kuota API habis.
 
 ---
@@ -327,7 +327,7 @@ Kontribusi dari komunitas sangat terbuka! Jika Anda ingin berkontribusi:
 * **Fitur AI Gemini & Edukasi Interaktif**:
   - **AI Mini Quiz** ([food_info_screen.dart](lib/views/food_info/food_info_screen.dart) & [quiz_modal.dart](lib/views/dashboard/widgets/quiz_modal.dart)): Kuis edukasi gizi dan food waste berbasis AI Structured JSON mode.
   - **AI Nutrition Coach**: Analisis asupan makronutrisi dan saran menu di Dashboard.
-  - Integrasi **Google Gemini AI Service** ([gemini_service.dart](lib/services/gemini_service.dart)) dengan multi-model chain (`gemini-3.5-flash`, `gemini-3.7-flash`, `gemini-3.1-flash-lite`, `gemini-flash-latest`) & Structured JSON mode.
+  - Integrasi **Google Gemini AI Service** ([gemini_service.dart](lib/services/gemini_service.dart)) dengan multi-model chain (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-flash-latest`) & Structured JSON mode.
 * **Fitur Profil Pengguna & Eco Points** ([profile_screen.dart](lib/views/profile/profile_screen.dart)):
   - Avatar dinamis Google Account-style berbasis inisial huruf dengan color palette modulo.
   - Tracking Eco Points, Streak harian, form edit profil, dan manajemen sesi login/logout.

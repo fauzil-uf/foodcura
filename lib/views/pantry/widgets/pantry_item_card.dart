@@ -36,7 +36,7 @@ class PantryItemCard extends StatelessWidget {
     }
 
     final expiryLabel = days < 0
-        ? 'Kadaluwarsa'
+        ? 'Kedaluwarsa'
         : days == 0
         ? 'Hari ini'
         : '$days hari lagi';

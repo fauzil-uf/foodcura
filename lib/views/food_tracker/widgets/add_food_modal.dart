@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
+import '../../../constants/app_food_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_item_model.dart';
@@ -41,6 +42,8 @@ class _AddFoodModalState extends State<AddFoodModal> {
   FoodItemModel? _selectedFood;
   bool _loading = true;
   bool _isSearching = false;
+  bool _isSubmitting = false;
+  double _portion = 1.0;
 
   final List<Map<String, dynamic>> _mealTypes = [
     {
@@ -113,50 +116,70 @@ class _AddFoodModalState extends State<AddFoodModal> {
             .take(25)
             .toList();
       }
-      if (_displayedFoods.isNotEmpty &&
-          (_selectedFood == null || !_displayedFoods.contains(_selectedFood))) {
-        _selectedFood = _displayedFoods.first;
+      if (_displayedFoods.isNotEmpty) {
+        if (_selectedFood == null || !_displayedFoods.contains(_selectedFood)) {
+          _selectedFood = _displayedFoods.first;
+        }
+      } else {
+        _selectedFood = null;
       }
     });
   }
 
   // Simpan log makanan baru ke database SQLite
   Future<void> _saveFoodLog() async {
-    if (_selectedFood == null) return;
+    if (_selectedFood == null || _isSubmitting) return;
 
-    final now = DateTime.now();
+    setState(() => _isSubmitting = true);
 
-    final log = FoodLogModel(
-      foodName: _selectedFood!.name,
-      mealType: _selectedMeal,
-      calories: _selectedFood!.calories,
-      protein: _selectedFood!.protein,
-      carbs: _selectedFood!.carbs,
-      fat: _selectedFood!.fat,
-      cholesterol: _selectedFood!.cholesterol,
-      imagePath: _selectedFood!.imagePath,
-      time: AppDateFormatter.formatTime(),
-      date: AppDateFormatter.formatToday(widget.targetDate ?? now),
-      note: _noteController.text.trim(),
-    );
+    try {
+      final now = DateTime.now();
+      final cal = (_selectedFood!.calories * _portion).round();
+      final prot = double.parse((_selectedFood!.protein * _portion).toStringAsFixed(1));
+      final carbs = double.parse((_selectedFood!.carbs * _portion).toStringAsFixed(1));
+      final fat = double.parse((_selectedFood!.fat * _portion).toStringAsFixed(1));
+      final chol = double.parse((_selectedFood!.cholesterol * _portion).toStringAsFixed(1));
+      final foodDisplayName = AppFoodFormatter.formatFoodWithPortion(
+        _selectedFood!.name,
+        _portion,
+      );
 
-    final notif = await _controller.addFoodLog(log);
-    widget.onFoodAdded?.call();
-    if (mounted) {
-      Navigator.pop(context);
+      final log = FoodLogModel(
+        foodName: foodDisplayName,
+        mealType: _selectedMeal,
+        calories: cal,
+        protein: prot,
+        carbs: carbs,
+        fat: fat,
+        cholesterol: chol,
+        imagePath: _selectedFood!.imagePath,
+        time: AppDateFormatter.formatTime(),
+        date: AppDateFormatter.formatToday(widget.targetDate ?? now),
+        note: _noteController.text.trim(),
+      );
 
-      if (notif != null) {
-        AppSnackBar.showWarning(
-          context,
-          title: notif.title,
-          message: notif.message,
-        );
-      } else {
-        AppSnackBar.showSuccess(
-          context,
-          '${_selectedFood!.name} Ditambahkan!',
-          subtitle: '${_selectedFood!.calories} kcal dicatat ke $_selectedMeal',
-        );
+      final notif = await _controller.addFoodLog(log);
+      widget.onFoodAdded?.call();
+      if (mounted) {
+        Navigator.pop(context);
+
+        if (notif != null) {
+          AppSnackBar.showWarning(
+            context,
+            title: notif.title,
+            message: notif.message,
+          );
+        } else {
+          AppSnackBar.showSuccess(
+            context,
+            '$foodDisplayName Ditambahkan!',
+            subtitle: '$cal kcal dicatat ke $_selectedMeal',
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
       }
     }
   }
@@ -171,282 +194,444 @@ class _AddFoodModalState extends State<AddFoodModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 48,
-                  height: 6,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const SizedBox(width: 24),
-                  Text(
-                    'Tambah Makanan',
-                    style: AppTextStyles.heading2.copyWith(
-                      fontSize: 18,
-                      color: AppColors.textPrimary,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header Statis (Handle + Judul + Tombol Tutup)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+            child: Column(
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textGray),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
                 ),
-                child: Row(
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.search, color: AppColors.textGray),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _filterFoods,
-                        style: AppTextStyles.body.copyWith(fontSize: 14),
-                        decoration: const InputDecoration(
-                          hintText: 'Cari makanan...',
-                          border: InputBorder.none,
-                        ),
+                    const SizedBox(width: 32),
+                    Text(
+                      'Tambah Makanan',
+                      style: AppTextStyles.heading2.copyWith(
+                        fontSize: 17,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        AppSnackBar.showInfo(
-                          context,
-                          'Fitur Scan Barcode & Foto Makanan segera hadir!',
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.mintTint,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.qr_code_scanner_rounded,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close, color: AppColors.textGray, size: 22),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
+              ],
+            ),
+          ),
 
-              Text(
-                _isSearching
-                    ? 'Hasil Pencarian (${_displayedFoods.length})'
-                    : 'Terakhir Ditambahkan',
-                style: AppTextStyles.label.copyWith(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
+          // Konten Scrollable
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                4,
+                20,
+                MediaQuery.of(context).viewInsets.bottom + 24,
               ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 90,
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _displayedFoods.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Makanan "${_searchController.text}" tidak ditemukan',
-                          style: AppTextStyles.subtitleSmall,
-                        ),
-                      )
-                    : ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _displayedFoods.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 14),
-                        itemBuilder: (context, index) {
-                          final food = _displayedFoods[index];
-                          final isSelected = _selectedFood?.name == food.name;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedFood = food;
-                              });
-                            },
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.transparent,
-                                      width: 2.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        blurRadius: 6,
-                                      ),
-                                    ],
-                                  ),
-                                  child: AppFoodImage(
-                                    imagePath: food.imagePath,
-                                    width: 60,
-                                    height: 60,
-                                    borderRadius: 30,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                SizedBox(
-                                  width: 64,
-                                  child: Text(
-                                    food.name,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.subtitleSmall.copyWith(
-                                      fontSize: 11,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Search Bar
+                  Container(
+                    height: 46,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, color: AppColors.textGray, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _filterFoods,
+                            style: AppTextStyles.body.copyWith(fontSize: 14),
+                            decoration: const InputDecoration(
+                              hintText: 'Cari makanan...',
+                              border: InputBorder.none,
+                              isDense: true,
                             ),
-                          );
-                        },
-                      ),
-              ),
-              const SizedBox(height: 16),
-
-              Text(
-                'Pilih Waktu Makan',
-                style: AppTextStyles.label.copyWith(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Pilih waktu saat kamu mengonsumsi makanan ini.',
-                style: AppTextStyles.subtitleSmall,
-              ),
-              const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 2.2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: _mealTypes.length,
-                itemBuilder: (context, index) {
-                  final meal = _mealTypes[index];
-                  final isSelected = _selectedMeal == meal['name'];
-                  final color = meal['color'] as Color;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedMeal = meal['name'] as String;
-                      });
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (meal['bg'] as Color)
-                            : AppColors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected ? color : AppColors.border,
-                          width: isSelected ? 2 : 1,
+                          ),
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          if (isSelected)
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
+                        GestureDetector(
+                          onTap: () {
+                            AppSnackBar.showInfo(
+                              context,
+                              'Fitur Scan Barcode & Foto Makanan segera hadir!',
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: AppColors.mintTint,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 2. Terakhir Ditambahkan / Hasil Pencarian
+                  Text(
+                    _isSearching
+                        ? 'Hasil Pencarian (${_displayedFoods.length})'
+                        : 'Terakhir Ditambahkan',
+                    style: AppTextStyles.label.copyWith(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 86,
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _displayedFoods.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Makanan "${_searchController.text}" tidak ditemukan',
+                              style: AppTextStyles.subtitleSmall,
+                            ),
+                          )
+                        : ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _displayedFoods.length,
+                            separatorBuilder: (_, _) => const SizedBox(width: 14),
+                            itemBuilder: (context, index) {
+                              final food = _displayedFoods[index];
+                              final isSelected = _selectedFood?.name == food.name;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedFood = food;
+                                  });
+                                },
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : Colors.transparent,
+                                          width: 2.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                            blurRadius: 5,
+                                          ),
+                                        ],
+                                      ),
+                                      child: AppFoodImage(
+                                        imagePath: food.imagePath,
+                                        width: 56,
+                                        height: 56,
+                                        borderRadius: 28,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    SizedBox(
+                                      width: 62,
+                                      child: Text(
+                                        food.name,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTextStyles.subtitleSmall.copyWith(
+                                          fontSize: 11,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                child: const Icon(
-                                  Icons.check,
-                                  size: 12,
-                                  color: Colors.white,
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 3. Pilih Waktu Makan
+                  Text(
+                    'Pilih Waktu Makan',
+                    style: AppTextStyles.label.copyWith(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 2.7,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: _mealTypes.length,
+                    itemBuilder: (context, index) {
+                      final meal = _mealTypes[index];
+                      final isSelected = _selectedMeal == meal['name'];
+                      final color = meal['color'] as Color;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedMeal = meal['name'] as String;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? (meal['bg'] as Color)
+                                : AppColors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected ? color : AppColors.border,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Stack(
+                            children: [
+                              if (isSelected)
+                                Positioned(
+                                  top: 5,
+                                  right: 5,
+                                  child: Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.check,
+                                      size: 11,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: (meal['bg'] as Color),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        meal['icon'] as IconData,
+                                        size: 16,
+                                        color: color,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      meal['name'] as String,
+                                      style: AppTextStyles.body.copyWith(
+                                        fontSize: 13,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? color
+                                            : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 4. Kartu Makanan Terpilih & Pengaturan Porsi (Desain Rapi Menyatu)
+                  if (_selectedFood != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              AppFoodImage(
+                                imagePath: _selectedFood!.imagePath,
+                                width: 44,
+                                height: 44,
+                                borderRadius: 12,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedFood!.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.body.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'P ${(_selectedFood!.protein * _portion).toStringAsFixed(1)}g · K ${(_selectedFood!.carbs * _portion).toStringAsFixed(1)}g · L ${(_selectedFood!.fat * _portion).toStringAsFixed(1)}g',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.subtitleSmall.copyWith(
+                                        fontSize: 11,
+                                        color: AppColors.textGray,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Stepper Porsi Elegan
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: _portion > 0.5
+                                          ? () => setState(() => _portion = _portion - 0.5)
+                                          : null,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.remove,
+                                          size: 16,
+                                          color: _portion > 0.5
+                                              ? AppColors.textPrimary
+                                              : AppColors.textGray.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: Text(
+                                        '${_portion % 1 == 0 ? _portion.toInt() : _portion}',
+                                        style: AppTextStyles.bodySmall.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: _portion < 10.0
+                                          ? () => setState(() => _portion = _portion + 0.5)
+                                          : null,
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.add,
+                                          size: 16,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.mintTint,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          Center(
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  width: 34,
-                                  height: 34,
-                                  decoration: BoxDecoration(
-                                    color: (meal['bg'] as Color),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    meal['icon'] as IconData,
-                                    size: 18,
-                                    color: color,
+                                Text(
+                                  'Total Energi (${_portion % 1 == 0 ? _portion.toInt() : _portion} porsi)',
+                                  style: AppTextStyles.subtitleSmall.copyWith(
+                                    fontSize: 11,
+                                    color: AppColors.ecoGreen,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
                                 Text(
-                                  meal['name'] as String,
-                                  style: AppTextStyles.body.copyWith(
+                                  '${(_selectedFood!.calories * _portion).round()} kcal',
+                                  style: AppTextStyles.label.copyWith(
                                     fontSize: 13,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w600,
-                                    color: isSelected
-                                        ? color
-                                        : AppColors.textPrimary,
+                                    color: AppColors.ecoGreen,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ],
@@ -455,117 +640,98 @@ class _AddFoodModalState extends State<AddFoodModal> {
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-              if (_selectedFood != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.infoContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
+                  // 5. Catatan (opsional)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      AppFoodImage(
-                        imagePath: _selectedFood!.imagePath,
-                        width: 44,
-                        height: 44,
-                        borderRadius: 12,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedFood!.name,
-                              style: AppTextStyles.body.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              'Protein ${_selectedFood!.protein}g · Karbo ${_selectedFood!.carbs}g · Lemak ${_selectedFood!.fat}g · Kol ${_selectedFood!.cholesterol.toInt()}mg',
-                              style: AppTextStyles.subtitleSmall.copyWith(
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        'Catatan (opsional)',
+                        style: AppTextStyles.label.copyWith(
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
-                        '${_selectedFood!.calories} kcal',
-                        style: AppTextStyles.label.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        '${_noteController.text.length}/100',
+                        style: AppTextStyles.subtitleSmall.copyWith(fontSize: 11),
                       ),
                     ],
                   ),
-                ),
-              const SizedBox(height: 16),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Catatan (opsional)',
-                    style: AppTextStyles.label.copyWith(
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _noteController,
+                    maxLength: 100,
+                    maxLines: 1,
+                    onChanged: (_) => setState(() {}),
+                    style: AppTextStyles.body.copyWith(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Tambahkan catatan...',
+                      counterText: '',
+                      filled: true,
+                      fillColor: AppColors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
                     ),
                   ),
-                  Text(
-                    '${_noteController.text.length}/100',
-                    style: AppTextStyles.subtitleSmall,
+                  const SizedBox(height: 16),
+
+                  // 6. Tombol Lanjutkan
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: (_selectedFood == null || _isSubmitting)
+                            ? AppColors.surfaceContainerHigh
+                            : AppColors.primary,
+                        foregroundColor: (_selectedFood == null || _isSubmitting)
+                            ? AppColors.textGray
+                            : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        elevation: (_selectedFood == null || _isSubmitting) ? 0 : 1,
+                      ),
+                      onPressed: (_selectedFood == null || _isSubmitting)
+                          ? null
+                          : _saveFoodLog,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              _selectedFood == null
+                                  ? 'Pilih Makanan'
+                                  : 'Lanjutkan',
+                              style: AppTextStyles.button.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _noteController,
-                maxLength: 100,
-                maxLines: 2,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: 'Tambahkan catatan...',
-                  counterText: '',
-                  filled: true,
-                  fillColor: AppColors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 2,
-                  ),
-                  onPressed: _saveFoodLog,
-                  child: Text(
-                    'Lanjutkan',
-                    style: AppTextStyles.button.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

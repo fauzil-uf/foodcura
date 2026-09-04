@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
 import '../models/quiz_model.dart';
+import 'connectivity_service.dart';
 
 // Service integrasi Gemini AI (kuis nutrisi & saran gizi harian)
 class GeminiService {
@@ -184,8 +185,8 @@ class GeminiService {
   Future<List<QuizQuestion>> generateQuiz() async {
     final apiKey = ApiConstants.geminiApiKey.trim();
 
-    // Prioritaskan generate online jika API key tersedia
-    if (apiKey.isNotEmpty) {
+    // Prioritaskan generate online jika API key tersedia dan perangkat sedang terhubung ke internet
+    if (apiKey.isNotEmpty && ConnectivityService.instance.isOnline) {
       final topics = [
         'pencegahan food waste dan cara menyimpan bahan makanan di kulkas',
         'nutrisi harian (protein, karbohidrat, lemak, dan kalori)',
@@ -218,9 +219,8 @@ Kembalikan HANYA array JSON murni:
 ''';
 
       final models = [
-        'gemini-3.5-flash',
         'gemini-3.7-flash',
-        'gemini-3.1-flash-lite',
+        'gemini-3.6-flash',
         'gemini-flash-latest',
       ];
 
@@ -291,7 +291,9 @@ Kembalikan HANYA array JSON murni:
     final effectiveFat = fat > 0 ? fat : saturatedFat;
     final apiKey = ApiConstants.geminiApiKey.trim();
 
-    if (apiKey.isNotEmpty && calories > 0) {
+    if (apiKey.isNotEmpty &&
+        calories > 0 &&
+        ConnectivityService.instance.isOnline) {
       final prompt =
           '''
 Sebagai Nutrition Coach cerdas di aplikasi FoodCura, berikan analisis singkat dan saran pola makan personal (maksimal 2-3 kalimat ramah dan solutif) berdasarkan data asupan harian berikut:
@@ -305,9 +307,8 @@ Tuliskan evaluasi dalam Bahasa Indonesia yang santai, edukatif, dan langsung mem
 ''';
 
       final models = [
-        'gemini-3.5-flash',
         'gemini-3.7-flash',
-        'gemini-3.1-flash-lite',
+        'gemini-3.6-flash',
         'gemini-flash-latest',
       ];
 

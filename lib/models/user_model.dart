@@ -14,6 +14,9 @@ class UserModelSQL {
     this.createdAt,
   });
 
+  /// Menandakan apakah pengguna terdaftar dan masuk melalui Google OAuth
+  bool get isGoogleAccount => password == 'google_oauth_user';
+
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,

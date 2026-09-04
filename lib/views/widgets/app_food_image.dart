@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
+import 'app_shimmer.dart';
 
-// Widget gambar makanan dengan dukungan URL online, aset lokal, dan fallback
+// Widget gambar makanan efisien dengan dukungan disk/memory caching (CachedNetworkImage), aset lokal, dan fallback aman
 class AppFoodImage extends StatelessWidget {
   final String? imagePath;
   final double width;
@@ -36,30 +39,38 @@ class AppFoodImage extends StatelessWidget {
     }
 
     final path = imagePath!.trim();
-    final isNetwork = path.startsWith('http://') || path.startsWith('https://');
+    final uri = Uri.tryParse(path);
+    final isNetwork =
+        (path.startsWith('http://') || path.startsWith('https://')) &&
+            uri != null &&
+            uri.hasAuthority;
+
+    final int? cacheW = (width > 0 && width.isFinite)
+        ? (width * 2.5).clamp(40, 600).round()
+        : null;
+    final int? cacheH = (height > 0 && height.isFinite)
+        ? (height * 2.5).clamp(40, 600).round()
+        : null;
 
     Widget imageWidget;
     if (isNetwork) {
-      imageWidget = Image.network(
-        path,
+      // Menggunakan CachedNetworkImage untuk efisiensi penyimpanan lokal permanen (disk cache)
+      // dan pembatasan konsumsi RAM (memCache) untuk menangani ribuan gambar makanan
+      imageWidget = CachedNetworkImage(
+        imageUrl: path,
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            width: width,
-            height: height,
-            color: Colors.grey.shade100,
-            child: const Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
+        memCacheWidth: cacheW,
+        maxWidthDiskCache: cacheW != null ? cacheW * 2 : null,
+        fadeInDuration: const Duration(milliseconds: 250),
+        fadeOutDuration: const Duration(milliseconds: 150),
+        placeholder: (context, url) => _buildPlaceholder(),
+        errorWidget: (context, url, error) {
+          if (kDebugMode) {
+            debugPrint('AppFoodImage error loading $url: $error');
+          }
+          return _buildFallback();
         },
       );
     } else {
@@ -68,11 +79,23 @@ class AppFoodImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        cacheWidth: cacheW,
+        cacheHeight: cacheH,
         errorBuilder: (context, error, stackTrace) => _buildFallback(),
       );
     }
 
     return ClipRRect(borderRadius: effectiveBorderRadius, child: imageWidget);
+  }
+
+  Widget _buildPlaceholder() {
+    return AppShimmer(
+      child: Container(
+        width: width,
+        height: height,
+        color: const Color(0xFFF0EBE0),
+      ),
+    );
   }
 
   Widget _buildFallback() {

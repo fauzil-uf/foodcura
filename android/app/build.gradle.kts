@@ -1,3 +1,12 @@
+import java.util.Properties
+
+val keystoreProperties = Properties().apply {
+ val f = rootProject.file("key.properties")
+ if (f.exists()) {
+ load(f.inputStream())
+ }
+}
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -27,11 +36,39 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            val keyAliasProp = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordProp = keystoreProperties.getProperty("keyPassword")
+            val storeFileProp = keystoreProperties.getProperty("storeFile")
+            val storePasswordProp = keystoreProperties.getProperty("storePassword")
+
+            if (storeFileProp != null) {
+                val candidate1 = file(storeFileProp)
+                val candidate2 = rootProject.file(storeFileProp)
+                val candidate3 = file("release-key.jks")
+                storeFile = when {
+                    candidate1.exists() -> candidate1
+                    candidate2.exists() -> candidate2
+                    candidate3.exists() -> candidate3
+                    else -> candidate1
+                }
+            }
+            if (keyAliasProp != null) keyAlias = keyAliasProp
+            if (keyPasswordProp != null) keyPassword = keyPasswordProp
+            if (storePasswordProp != null) storePassword = storePasswordProp
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

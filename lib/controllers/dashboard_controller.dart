@@ -5,7 +5,9 @@ import '../database/db_helper.dart';
 import '../models/food_log_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
+import '../services/app_notifiers.dart';
 import '../services/gemini_service.dart';
+import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 
@@ -99,6 +101,10 @@ class DashboardController extends ChangeNotifier {
   /// Menandai bahan makanan di pantry sudah digunakan langsung dari Dashboard
   Future<void> markPantryItemUsed(int id) async {
     await _db.markPantryItemUsed(id);
+    await _db.deleteNotificationsByPantryId(id);
+    await NotificationService.instance.cancelPantryNotifications(id);
+    await _reminderService.syncPantryExpiryAlarms();
+    await NotificationNotifier.instance.refresh();
     await loadDashboardData();
   }
 
@@ -108,14 +114,15 @@ class DashboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Sinkronisasi otomatis notifikasi kedaluwarsa dan pengingat jam makan harian
-      await _reminderService.checkExpiryAndCreateNotifications();
-      await _reminderService.checkMealRemindersAndCreateNotifications();
-      await _db.cleanDuplicateNotifications();
-
       final todayStr = AppDateFormatter.formatToday();
 
-      // Eksekusi seluruh query SQLite metrik dashboard secara paralel untuk memangkas waktu inisialisasi UI.
+      // Jalankan sinkronisasi pengingat terlebih dahulu agar notifikasi baru sudah terdata di database
+      await _reminderService.checkExpiryAndCreateNotifications();
+      await _reminderService.checkMealRemindersAndCreateNotifications();
+      await _reminderService.syncMealAlarms();
+      await _reminderService.syncPantryExpiryAlarms();
+
+      // Eksekusi query data dashboard beserta jumlah notifikasi yang sudah mutakhir
       final results = await Future.wait([
         _db.getLoggedInUser(),
         _streakService.computeAndSaveStreak(),
@@ -141,7 +148,7 @@ class DashboardController extends ChangeNotifier {
           .toList();
 
       // Hitung total akumulasi makronutrisi harian secara in-memory untuk efisiensi render UI tinggi.
-      _totalCalories = _todayLogs.fold(0, (s, l) => s + l.calories);
+      _totalCalories = _todayLogs.fold(0, (sum, log) => sum + log.calories);
       _proteinGrams = _todayLogs.fold(0.0, (s, l) => s + l.protein);
       _carbsGrams = _todayLogs.fold(0.0, (s, l) => s + l.carbs);
       _lemakGrams = _todayLogs.fold(0.0, (s, l) => s + l.fat);
@@ -151,6 +158,19 @@ class DashboardController extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Meminta izin notifikasi sistem jika pengguna belum mengaktifkannya
+  Future<void> requestNotificationPermissionsIfFirstTime() async {
+    try {
+      final allowed =
+          await NotificationService.instance.areNotificationsEnabled();
+      if (!allowed) {
+        await NotificationService.instance.requestPermissions();
+      }
+    } catch (e) {
+      debugPrint('Error requesting notification permission on dashboard: $e');
     }
   }
 

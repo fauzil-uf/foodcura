@@ -3,9 +3,9 @@ class AppConstants {
   AppConstants._();
 
   static const appName = 'FoodCura';
-  static const appVersion = '2.1.0';
-  static const appBuildNumber = '3';
-  static const appVersionDisplay = 'v2.1.0';
+  static const appVersion = '2.2.6';
+  static const appBuildNumber = '12';
+  static const appVersionDisplay = 'v2.2.6';
 
   // Database (SQFLite)
   static const dbName = 'foodcura.db';

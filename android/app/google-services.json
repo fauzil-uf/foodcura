@@ -14,11 +14,35 @@
       },
       "oauth_client": [
         {
+          "client_id": "767149958522-842rb1jma5i4qn0mot7gsndvoubttodp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fauzil.foodcura",
+            "certificate_hash": "da715d29d865520fe800dc38edb5008f21cc0db2"
+          }
+        },
+        {
+          "client_id": "767149958522-bgc2gft0r7csgafo5esrblpmt0ekl2ja.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fauzil.foodcura",
+            "certificate_hash": "c4849fce0daaaf5d8f27a5ebbc03b92692b336a1"
+          }
+        },
+        {
           "client_id": "767149958522-fade5kfuv54vttjj6agi6ed9frujutsi.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.fauzil.foodcura",
             "certificate_hash": "1d94d23daef0aef342e6d8bac9d6e98af7d62a65"
+          }
+        },
+        {
+          "client_id": "767149958522-pvso7hte1eatq29rdr6rtnm70almn7k0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fauzil.foodcura",
+            "certificate_hash": "1a64d24ad44500d48fbecfa42b5bab279a6f5fcd"
           }
         },
         {

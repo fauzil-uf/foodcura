@@ -24,7 +24,17 @@ void main() {
       final controller = ProfileController();
       final result = await controller.updateProfile(name: '', email: '');
       expect(result, isFalse);
-      expect(controller.errorMessage, isNotNull);
+      expect(controller.errorMessage, contains('tidak boleh kosong'));
+    });
+
+    test('Validation on invalid email format in updateProfile returns false', () async {
+      final controller = ProfileController();
+      final result = await controller.updateProfile(
+        name: 'Fauzil',
+        email: 'invalid-email-format',
+      );
+      expect(result, isFalse);
+      expect(controller.errorMessage, contains('Format email tidak valid'));
     });
 
     test('Validation on short password change returns false', () async {

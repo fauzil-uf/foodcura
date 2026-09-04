@@ -43,19 +43,44 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+*.apk
+*.aab
 
 # Environment & Secrets
 env.json
 secrets.json
 *.env
 
+# Keystores & Signing Secrets (DO NOT COMMIT)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.der
+*.cer
+*.crt
+*.mobileprovision
+key.properties
+local.properties
+/android/key.properties
+/android/local.properties
+/android/app/key.properties
+android/app/release-key.jks
+
+# Backup Files
+*.bak
+*.bak.*
+*.backup
+
 # Presentation & Generated Slides
 *.pptx
 *.ppt
-*.key
 *.odp
 *presentation*
 *Presentation*
 *deck*
 *Deck*
 foodcura_presentation_deck.html
+

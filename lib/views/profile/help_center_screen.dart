@@ -59,7 +59,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         HelpFaqItem(
           question: 'Bagaimana cara mengatur tanggal kedaluwarsa?',
           answer:
-              'Saat menambahkan atau mengedit bahan di Pantry, ketuk kolom **Tanggal kadaluwarsa** untuk memilih tanggal dari kalender. FoodCura akan otomatis menghitung sisa hari dan mengelompokkan bahan ke dalam status:\n\n'
+              'Saat menambahkan atau mengedit bahan di Pantry, ketuk kolom **Tanggal kedaluwarsa** untuk memilih tanggal dari kalender. FoodCura akan otomatis menghitung sisa hari dan mengelompokkan bahan ke dalam status:\n\n'
               '• 🔴 **Harus Segera**: Kurang dari 2 hari.\n'
               '• 🟠 **Segera**: 3 sampai 5 hari.\n'
               '• 🟢 **Aman**: Lebih dari 5 hari.',

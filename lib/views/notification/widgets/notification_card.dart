@@ -8,13 +8,19 @@ import '../../../models/notification_model.dart';
 class NotificationCard extends StatelessWidget {
   final NotificationModel notif;
   final bool isEarlier;
+  final bool isSelectionMode;
+  final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const NotificationCard({
     super.key,
     required this.notif,
     this.isEarlier = false,
+    this.isSelectionMode = false,
+    this.isSelected = false,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -26,25 +32,50 @@ class NotificationCard extends StatelessWidget {
 
     switch (notif.type) {
       case 'meal_reminder':
-        categoryTag = 'Pengingat Waktu Makan';
+        categoryTag = 'Pengingat Makan';
         accentColor = AppColors.primary;
         iconData = Icons.restaurant_rounded;
         iconBgColor = AppColors.mintTint;
         break;
       case 'expiry_warning':
-        categoryTag = 'Pantry & Expiry';
-        accentColor = AppColors.urgent;
-        iconData = Icons.warning_amber_rounded;
-        iconBgColor = AppColors.warningBg;
+        final lowerTitle = notif.title.toLowerCase();
+        final lowerMsg = notif.message.toLowerCase();
+        final isUrgent = lowerTitle.contains('hari ini') ||
+            lowerTitle.contains('besok') ||
+            lowerTitle.contains('telah') ||
+            lowerTitle.contains('lewat') ||
+            lowerMsg.contains('1 hari') ||
+            lowerTitle.contains('urgent');
+        final isWarning = lowerTitle.contains('mendekati') ||
+            lowerMsg.contains('2 hari') ||
+            lowerMsg.contains('3 hari') ||
+            lowerMsg.contains('4 hari');
+
+        if (isUrgent) {
+          categoryTag = 'Kedaluwarsa';
+          accentColor = AppColors.urgent;
+          iconData = Icons.warning_amber_rounded;
+          iconBgColor = AppColors.warningBg;
+        } else if (isWarning) {
+          categoryTag = 'Mendekati Kedaluwarsa';
+          accentColor = AppColors.segera;
+          iconData = Icons.access_time_rounded;
+          iconBgColor = AppColors.warningBgLight;
+        } else {
+          categoryTag = 'Pengingat Stok';
+          accentColor = AppColors.primary;
+          iconData = Icons.kitchen_rounded;
+          iconBgColor = AppColors.mintTint;
+        }
         break;
       case 'nutrition_excess':
-        categoryTag = 'Tracker Nutrisi';
-        accentColor = AppColors.segera;
-        iconData = Icons.analytics_rounded;
-        iconBgColor = AppColors.warningBgLight;
+        categoryTag = 'Batas Nutrisi';
+        accentColor = AppColors.nutritionViolet;
+        iconData = Icons.insights_rounded;
+        iconBgColor = AppColors.nutritionVioletBg;
         break;
       case 'tips':
-        categoryTag = 'Tips Food Rescue';
+        categoryTag = 'Tips & Edukasi';
         accentColor = AppColors.ecoGreen;
         iconData = notif.iconType == 'restaurant'
             ? Icons.restaurant_rounded
@@ -53,7 +84,7 @@ class NotificationCard extends StatelessWidget {
         break;
       case 'system':
       default:
-        categoryTag = 'System & Info';
+        categoryTag = 'Info Sistem';
         accentColor = AppColors.infoBlueDark;
         iconData = notif.iconType == 'eco'
             ? Icons.eco_rounded
@@ -62,24 +93,39 @@ class NotificationCard extends StatelessWidget {
         break;
     }
 
+    final displayTitle = notif.title
+        .replaceAll('kadaluwarsa', 'kedaluwarsa')
+        .replaceAll('Kadaluwarsa', 'Kedaluwarsa')
+        .replaceAll('[URGENT] ', '');
+    final displayMessage = notif.message
+        .replaceAll('kadaluwarsa', 'kedaluwarsa')
+        .replaceAll('Kadaluwarsa', 'Kedaluwarsa');
+
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected
+              ? AppColors.mintTint.withValues(alpha: 0.35)
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: notif.isRead
+            color: isSelected
+                ? AppColors.primary
+                : notif.isRead
                 ? AppColors.surfaceDim
                 : accentColor.withValues(alpha: 0.3),
-            width: notif.isRead ? 1 : 1.5,
+            width: isSelected ? 2 : (notif.isRead ? 1 : 1.5),
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.deepForest.withValues(alpha: 0.05),
-              blurRadius: 20,
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.12)
+                  : AppColors.deepForest.withValues(alpha: 0.05),
+              blurRadius: isSelected ? 24 : 20,
               offset: const Offset(0, 6),
             ),
           ],
@@ -92,7 +138,9 @@ class NotificationCard extends StatelessWidget {
                 // Left accent border strip
                 Container(
                   width: 5,
-                  color: notif.isRead
+                  color: isSelected
+                      ? AppColors.primary
+                      : notif.isRead
                       ? accentColor.withValues(alpha: 0.4)
                       : accentColor,
                 ),
@@ -104,6 +152,33 @@ class NotificationCard extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (isSelectionMode) ...[
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 24,
+                              height: 24,
+                              margin: const EdgeInsets.only(top: 10, right: 10),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.white,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textGray.withValues(alpha: 0.5),
+                                  width: 2,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: Colors.white,
+                                    )
+                                  : null,
+                            ),
+                          ],
                           Container(
                             width: 44,
                             height: 44,
@@ -155,7 +230,7 @@ class NotificationCard extends StatelessWidget {
                                 const SizedBox(height: 6),
 
                                 Text(
-                                  notif.title,
+                                  displayTitle,
                                   style: AppTextStyles.bodyMd.copyWith(
                                     fontWeight: notif.isRead
                                         ? FontWeight.w600
@@ -168,7 +243,7 @@ class NotificationCard extends StatelessWidget {
                                 const SizedBox(height: 3),
 
                                 Text(
-                                  notif.message,
+                                  displayMessage,
                                   style: AppTextStyles.bodySmall.copyWith(
                                     height: 1.4,
                                   ),

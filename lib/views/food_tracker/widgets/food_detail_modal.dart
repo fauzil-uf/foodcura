@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_food_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_log_model.dart';
@@ -28,12 +29,15 @@ class FoodDetailModal extends StatefulWidget {
 class _FoodDetailModalState extends State<FoodDetailModal> {
   late final FoodTrackerController _controller;
   late TextEditingController _noteController;
+  late FoodLogModel _currentLog;
   bool _isEditingNote = false;
+  bool _isSavingNote = false;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? FoodTrackerController();
+    _currentLog = widget.log;
     _noteController = TextEditingController(text: widget.log.note ?? '');
   }
 
@@ -49,19 +53,19 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
       context: context,
       title: 'Hapus Catatan Makanan',
       message: 'Apakah kamu yakin ingin menghapus',
-      highlightedItem: widget.log.foodName,
+      highlightedItem: _currentLog.foodName,
       confirmLabel: 'Hapus',
       cancelLabel: 'Batal',
     );
 
-    if (confirm == true && widget.log.id != null) {
-      await _controller.deleteFoodLog(widget.log.id!);
+    if (confirm == true && _currentLog.id != null) {
+      await _controller.deleteFoodLog(_currentLog.id!);
       widget.onLogDeleted?.call();
       if (mounted) {
         Navigator.pop(context);
         AppSnackBar.showSuccess(
           context,
-          '${widget.log.foodName} berhasil dihapus',
+          '${_currentLog.foodName} berhasil dihapus',
         );
       }
     }
@@ -69,333 +73,335 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
 
   // Simpan perubahan catatan kustom pada log makanan ke database
   Future<void> _saveNote() async {
-    if (widget.log.id != null) {
-      final updatedLog = widget.log.copyWith(note: _noteController.text.trim());
+    if (_currentLog.id != null && !_isSavingNote) {
+      setState(() => _isSavingNote = true);
+      final updatedLog = _currentLog.copyWith(note: _noteController.text.trim());
       await _controller.updateFoodLog(updatedLog);
       widget.onLogDeleted?.call();
-      setState(() {
-        _isEditingNote = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentLog = updatedLog;
+          _isEditingNote = false;
+          _isSavingNote = false;
+        });
+        AppSnackBar.showSuccess(
+          context,
+          'Catatan berhasil disimpan',
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final log = widget.log;
+    final log = _currentLog;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.all(20),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 48,
-                height: 6,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header Statis (Drag Handle + Judul + Tombol Tutup)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+            child: Column(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textGray),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                Text(
-                  'Detail Makanan',
-                  style: AppTextStyles.heading2.copyWith(
-                    fontSize: 18,
-                    color: AppColors.textPrimary,
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 48, height: 48),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 32),
+                    Text(
+                      'Detail Makanan',
+                      style: AppTextStyles.heading2.copyWith(
+                        fontSize: 17,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close, color: AppColors.textGray, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 12),
+          ),
 
-            // Top Info Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                  ),
-                ],
+          // Konten Scrollable (Keyboard-Safe)
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                4,
+                20,
+                MediaQuery.of(context).viewInsets.bottom + 20,
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppFoodImage(
-                    imagePath: log.imagePath,
-                    width: 70,
-                    height: 70,
-                    borderRadius: 16,
+                  // Top Info Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        AppFoodImage(
+                          imagePath: log.imagePath,
+                          width: 70,
+                          height: 70,
+                          borderRadius: 16,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.mintTint,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  log.mealType,
+                                  style: AppTextStyles.subtitleSmall.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                AppFoodFormatter.cleanDisplayName(log.foodName),
+                                style: AppTextStyles.heading2.copyWith(
+                                  fontSize: 16,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${log.time} · ${log.calories} kcal',
+                                style: AppTextStyles.subtitleSmall.copyWith(
+                                  color: AppColors.textGray,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
+                  const SizedBox(height: 16),
+
+                  // Nutrition Breakdown Grid (4 Metrics)
+                  Row(
+                    children: [
+                      _buildMetricCard(
+                        '${log.protein.toStringAsFixed(1)}g',
+                        'Protein',
+                        const Color(0xFF2E7D32),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildMetricCard(
+                        '${log.carbs.toStringAsFixed(1)}g',
+                        'Karbo',
+                        const Color(0xFF1976D2),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildMetricCard(
+                        '${log.fat.toStringAsFixed(1)}g',
+                        'Lemak',
+                        const Color(0xFFE65100),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildMetricCard(
+                        '${log.cholesterol.toInt()}mg',
+                        'Kolesterol',
+                        const Color(0xFF8E24AA),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Catatan Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.border),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              log.foodName,
-                              style: AppTextStyles.heading2.copyWith(
-                                fontSize: 18,
-                              ),
-                            ),
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '${log.calories} ',
-                                    style: AppTextStyles.heading1.copyWith(
-                                      fontSize: 20,
-                                      color: AppColors.primary,
-                                    ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.edit_note,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Catatan',
+                                  style: AppTextStyles.label.copyWith(
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary,
                                   ),
-                                  const TextSpan(
-                                    text: 'kcal',
-                                    style: AppTextStyles.subtitleSmall,
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
+                            if (!_isEditingNote)
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isEditingNote = true;
+                                  });
+                                },
+                                child: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${log.time} · ${log.date}',
-                          style: AppTextStyles.subtitleSmall,
-                        ),
                         const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.infoContainer,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            log.mealType,
-                            style: AppTextStyles.label.copyWith(
-                              fontSize: 12,
-                              color: AppColors.primary,
+                        if (_isEditingNote)
+                          Column(
+                            children: [
+                              TextField(
+                                controller: _noteController,
+                                maxLines: 2,
+                                decoration: InputDecoration(
+                                  hintText: 'Tulis catatan makanan...',
+                                  filled: true,
+                                  fillColor: AppColors.inputFillSoft,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: ElevatedButton(
+                                  onPressed: _saveNote,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                  child: const Text('Simpan'),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            (log.note != null && log.note!.isNotEmpty)
+                                ? log.note!
+                                : 'Tidak ada catatan.',
+                            style: AppTextStyles.subtitle.copyWith(
+                              fontSize: 13,
+                              color: (log.note != null && log.note!.isNotEmpty)
+                                  ? AppColors.textPrimary
+                                  : AppColors.textGray,
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-            // Nutritional Info Grid (5 Metric boxes)
-            Text(
-              'Informasi Gizi (per porsi)',
-              style: AppTextStyles.label.copyWith(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                _buildMetricCard('${log.calories}', 'Kkal', AppColors.primary),
-                const SizedBox(width: 6),
-                _buildMetricCard(
-                  '${log.protein}g',
-                  'Protein',
-                  const Color(0xFF2E7D32),
-                ),
-                const SizedBox(width: 6),
-                _buildMetricCard(
-                  '${log.carbs}g',
-                  'Karbo',
-                  const Color(0xFF1976D2),
-                ),
-                const SizedBox(width: 6),
-                _buildMetricCard(
-                  '${log.fat}g',
-                  'Lemak',
-                  const Color(0xFFE65100),
-                ),
-                const SizedBox(width: 6),
-                _buildMetricCard(
-                  '${log.cholesterol.toStringAsFixed(0)}mg',
-                  'Kolesterol',
-                  const Color(0xFF8E24AA),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Catatan Card
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  // Action Buttons
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.edit_note,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Catatan',
-                            style: AppTextStyles.label.copyWith(
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                        ],
-                      ),
-                      if (!_isEditingNote)
-                        GestureDetector(
-                          onTap: () {
+                          onPressed: () {
                             setState(() {
                               _isEditingNote = true;
                             });
                           },
-                          child: const Icon(
+                          icon: const Icon(
                             Icons.edit_outlined,
+                            color: Colors.white,
                             size: 18,
-                            color: AppColors.primary,
+                          ),
+                          label: Text(
+                            'Edit Catatan',
+                            style: AppTextStyles.button.copyWith(fontSize: 15),
                           ),
                         ),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          side: const BorderSide(color: AppColors.error),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        onPressed: _deleteFood,
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('Hapus'),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  if (_isEditingNote)
-                    Column(
-                      children: [
-                        TextField(
-                          controller: _noteController,
-                          maxLines: 2,
-                          decoration: InputDecoration(
-                            hintText: 'Tulis catatan makanan...',
-                            filled: true,
-                            fillColor: AppColors.inputFillSoft,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            onPressed: _saveNote,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text('Simpan'),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    Text(
-                      (log.note != null && log.note!.isNotEmpty)
-                          ? log.note!
-                          : 'Tidak ada catatan.',
-                      style: AppTextStyles.subtitle.copyWith(
-                        fontSize: 13,
-                        color: (log.note != null && log.note!.isNotEmpty)
-                            ? AppColors.textPrimary
-                            : AppColors.textGray,
-                      ),
-                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isEditingNote = true;
-                      });
-                    },
-                    icon: const Icon(
-                      Icons.edit_outlined,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    label: Text(
-                      'Edit Catatan',
-                      style: AppTextStyles.button.copyWith(fontSize: 15),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    side: const BorderSide(color: AppColors.error),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: _deleteFood,
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Hapus'),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

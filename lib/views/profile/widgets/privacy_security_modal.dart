@@ -70,13 +70,16 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                 ),
                 const SizedBox(height: 16),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(9),
+                      width: 42,
+                      height: 42,
                       decoration: BoxDecoration(
                         color: AppColors.mintTint,
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      alignment: Alignment.center,
                       child: const Icon(
                         Icons.shield_rounded,
                         color: AppColors.ecoGreen,
@@ -84,18 +87,23 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
+                          const Text(
                             'Kebijakan Privasi',
                             style: AppTextStyles.headlineMd,
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Pembaruan terakhir: 31 Agustus 2026 • Versi 2.1.0',
-                            style: AppTextStyles.subtitleSmall,
+                            'Pembaruan: 31 Agustus 2026 · Versi 2.1.0',
+                            style: AppTextStyles.subtitleSmall.copyWith(
+                              fontSize: 11.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -131,7 +139,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppColors.infoContainer,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: AppColors.primary.withValues(alpha: 0.15),
                         ),
@@ -139,10 +147,17 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.verified_user_rounded,
-                            color: AppColors.primary,
-                            size: 24,
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.verified_user_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -163,6 +178,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                                   style: AppTextStyles.caption.copyWith(
                                     color: AppColors.primaryDark,
                                     height: 1.4,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
@@ -171,7 +187,8 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
+
                     _buildSectionHeader(
                       number: '1',
                       title: 'Pendahuluan dan Kepatuhan Hukum',
@@ -483,19 +500,25 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
     required String title,
     required IconData icon,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSoft),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.borderSoft),
+              color: AppColors.mintTint,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 16, color: AppColors.primary),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 16, color: AppColors.ecoGreen),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -504,7 +527,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
               style: AppTextStyles.headlineSm.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.deepForest,
-                fontSize: 14.5,
+                fontSize: 13.5,
               ),
             ),
           ),
@@ -515,7 +538,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
 
   Widget _buildSubHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 6, left: 4),
+      padding: const EdgeInsets.only(top: 6, bottom: 6, left: 2, right: 2),
       child: Text(
         title,
         style: AppTextStyles.bodyMd.copyWith(
@@ -529,7 +552,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
 
   Widget _buildParagraph(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 4),
+      padding: const EdgeInsets.only(bottom: 10, left: 2, right: 2),
       child: Text(
         text,
         style: AppTextStyles.bodyMd.copyWith(
@@ -543,7 +566,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
 
   Widget _buildNumberedItem(int number, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 10),
+      padding: const EdgeInsets.only(bottom: 8, left: 6, right: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -552,7 +575,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
             height: 20,
             margin: const EdgeInsets.only(top: 1, right: 8),
             decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
+              color: AppColors.mintTint,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -560,7 +583,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
               '$number',
               style: AppTextStyles.caption.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.deepForest,
+                color: AppColors.ecoGreen,
                 fontSize: 11,
               ),
             ),
@@ -582,13 +605,13 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
 
   Widget _buildBulletItem(String title, String description) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 12),
+      padding: const EdgeInsets.only(bottom: 8, left: 6, right: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 6, right: 8),
-            child: Icon(Icons.circle, size: 6, color: AppColors.primary),
+            child: Icon(Icons.circle, size: 6, color: AppColors.ecoGreen),
           ),
           Expanded(
             child: RichText(
@@ -615,6 +638,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
       ),
     );
   }
+
 
   Widget _buildSecurityCard({
     required IconData icon,

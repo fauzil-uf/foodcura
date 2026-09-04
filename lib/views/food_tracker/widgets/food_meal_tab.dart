@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
+import '../../../constants/app_food_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
@@ -310,7 +311,7 @@ class FoodMealTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    log.foodName,
+                    AppFoodFormatter.cleanDisplayName(log.foodName),
                     style: AppTextStyles.body.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,

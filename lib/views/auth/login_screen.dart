@@ -5,7 +5,6 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
-import '../../services/preference_handler.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../widgets/app_snack_bar.dart';
@@ -66,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
+      final hasSeenOnboarding = _authController.hasSeenOnboarding;
 
       if (!mounted) return;
 
@@ -95,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
+      final hasSeenOnboarding = _authController.hasSeenOnboarding;
       if (!hasSeenOnboarding) {
         Navigator.pushAndRemoveUntil(
           context,

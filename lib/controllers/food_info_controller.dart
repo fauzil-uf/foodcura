@@ -218,9 +218,8 @@ const List<ArticleModel> _kArticles = [
 class FoodInfoController extends ChangeNotifier {
   static const List<String> categories = [
     'Semua',
-    'GIZI',
+    'GIZI & NUTRISI',
     'FOOD WASTE',
-    'NUTRISI',
     'STORAGE',
     'RESEP RECOVERY',
   ];
@@ -242,7 +241,13 @@ class FoodInfoController extends ChangeNotifier {
     if (_selectedCategoryIndex > 0 &&
         _selectedCategoryIndex < categories.length) {
       final selectedCat = categories[_selectedCategoryIndex];
-      list = list.where((a) => a.category == selectedCat).toList();
+      if (selectedCat == 'GIZI & NUTRISI') {
+        list = list
+            .where((a) => a.category == 'GIZI' || a.category == 'NUTRISI')
+            .toList();
+      } else {
+        list = list.where((a) => a.category == selectedCat).toList();
+      }
     }
 
     // Filter berdasarkan kecocokan judul, kategori, atau ringkasan.

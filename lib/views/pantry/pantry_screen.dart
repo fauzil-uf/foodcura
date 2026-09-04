@@ -101,10 +101,15 @@ class _PantryScreenState extends State<PantryScreen> {
     await _controller.markItemUsed(item.id!);
 
     if (mounted) {
+      final isExpired = item.daysUntilExpiry < 0;
       AppSnackBar.showSuccess(
         context,
-        '${item.name} ditandai telah dimasak!',
-        subtitle: '+5 Eco Points telah ditambahkan',
+        isExpired
+            ? '${item.name} ditandai telah habis'
+            : '${item.name} ditandai telah dimasak!',
+        subtitle: isExpired
+            ? 'Bahan dihapus dari daftar pantry'
+            : '+5 Eco Points telah ditambahkan',
       );
     }
   }
@@ -140,7 +145,7 @@ class _PantryScreenState extends State<PantryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final groupedItems = _controller.groupedItems;
+    final grouped = _controller.groupedByExpiry;
     final urgentCount = _controller.statusCounts['urgent'] ?? 0;
     final soonCount = _controller.statusCounts['segera'] ?? 0;
     final atRiskCount = urgentCount + soonCount;
@@ -149,142 +154,190 @@ class _PantryScreenState extends State<PantryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            AppTopBar(
-              title: 'Pantry Tracker',
-              unreadNotifications: _controller.unreadNotifications,
-              onNotificationTap: _openNotifications,
+            Column(
+              children: [
+                AppTopBar(
+                  title: 'Pantry Tracker',
+                  unreadNotifications: _controller.unreadNotifications,
+                  onNotificationTap: _openNotifications,
+                ),
+
+                Expanded(
+                  child: _controller.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : RefreshIndicator(
+                          color: AppColors.primary,
+                          onRefresh: () => _controller.loadPantryData(),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 18),
+
+                                AppSearchBar(
+                                  controller: _searchController,
+                                  hintText: 'Cari bahan makanan...',
+                                  onChanged: _onSearch,
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                AppFilterChipRow(
+                                  filters: _filters,
+                                  selectedIndex: _selectedFilter,
+                                  onChanged: _onFilterChanged,
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                // Peringatan bahan rawan kedaluwarsa
+                                if (atRiskCount > 0 && _selectedFilter == 0)
+                                  PantrySummaryAlert(count: atRiskCount),
+
+                                // Tampilan kosong saat tidak ada item
+                                if (totalItems == 0)
+                                  AppEmptyState(
+                                    padding: const EdgeInsets.fromLTRB(40, 40, 40, 150),
+                                    icon: _searchController.text.isNotEmpty
+                                        ? Icons.search_off_rounded
+                                        : Icons.kitchen_outlined,
+                                    title: _searchController.text.isNotEmpty
+                                        ? 'Bahan tidak ditemukan'
+                                        : 'Inventaris Dapur Kosong',
+                                    message: _searchController.text.isNotEmpty
+                                        ? 'Coba gunakan kata kunci lain untuk mencari bahan di pantry.'
+                                        : 'Catat bahan makananmu sekarang agar tidak ada yang terbuang sia-sia.',
+                                    action: _searchController.text.isEmpty
+                                        ? ElevatedButton.icon(
+                                            onPressed: _openAddModal,
+                                            icon: const Icon(Icons.add, size: 18),
+                                            label: const Text('Tambah Bahan Pertama'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.primary,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 24,
+                                                vertical: 12,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(999),
+                                              ),
+                                              elevation: 0,
+                                            ),
+                                          )
+                                        : null,
+                                  )
+                                else ...[
+                                  _buildExpirySection(
+                                    title: 'HARUS SEGERA (< 2 HARI)',
+                                    items: grouped['urgent'] ?? [],
+                                    color: AppColors.urgent,
+                                  ),
+                                  _buildExpirySection(
+                                    title: 'SEGERA (3–5 HARI)',
+                                    items: grouped['segera'] ?? [],
+                                    color: AppColors.segera,
+                                  ),
+                                  _buildExpirySection(
+                                    title: 'AMAN (> 5 HARI)',
+                                    items: grouped['aman'] ?? [],
+                                    color: AppColors.ecoGreen,
+                                  ),
+                                ],
+
+                                if (totalItems > 0) ...[
+                                  const SizedBox(height: 8),
+                                  const PantryTipsCard(),
+                                ],
+
+                                const SizedBox(height: 160),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              ],
             ),
 
-            Expanded(
-              child: _controller.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
+            // Tombol Tambah Bahan Presisi & Elegan (Floating Pill Bar)
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 92,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _openAddModal,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Ink(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          AppColors.primaryDark,
+                          AppColors.primary,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    )
-                  : RefreshIndicator(
-                      color: AppColors.primary,
-                      onRefresh: () => _controller.loadPantryData(),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 18),
-
-                            AppSearchBar(
-                              controller: _searchController,
-                              hintText: 'Cari bahan makanan...',
-                              onChanged: _onSearch,
-                            ),
-
-                            const SizedBox(height: 14),
-
-                            AppFilterChipRow(
-                              filters: _filters,
-                              selectedIndex: _selectedFilter,
-                              onChanged: _onFilterChanged,
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            // Peringatan bahan rawan kedaluwarsa
-                            if (atRiskCount > 0 && _selectedFilter == 0)
-                              PantrySummaryAlert(count: atRiskCount),
-
-                            // Tampilan kosong saat tidak ada item
-                            if (totalItems == 0)
-                              AppEmptyState(
-                                padding: const EdgeInsets.fromLTRB(40, 40, 40, 140),
-                                icon: _searchController.text.isNotEmpty
-                                    ? Icons.search_off_rounded
-                                    : Icons.kitchen_outlined,
-                                title: _searchController.text.isNotEmpty
-                                    ? 'Bahan tidak ditemukan'
-                                    : 'Inventaris Dapur Kosong',
-                                message: _searchController.text.isNotEmpty
-                                    ? 'Coba gunakan kata kunci lain untuk mencari bahan di pantry.'
-                                    : 'Catat bahan makananmu sekarang agar tidak ada yang terbuang sia-sia.',
-                                action: _searchController.text.isEmpty
-                                    ? ElevatedButton.icon(
-                                        onPressed: _openAddModal,
-                                        icon: const Icon(Icons.add, size: 18),
-                                        label: const Text('Tambah Bahan Pertama'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primary,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(999),
-                                          ),
-                                          elevation: 0,
-                                        ),
-                                      )
-                                    : null,
-                              )
-                            else ...[
-                              _buildStorageSection(
-                                title: 'Kulkas',
-                                items: groupedItems['Kulkas'] ?? [],
-                                color: const Color(0xFF0288D1),
-                              ),
-                              _buildStorageSection(
-                                title: 'Freezer',
-                                items: groupedItems['Freezer'] ?? [],
-                                color: const Color(0xFF7B1FA2),
-                              ),
-                              _buildStorageSection(
-                                title: 'Suhu Ruang / Lemari Kering',
-                                items: [
-                                  ...(groupedItems['Suhu Ruang'] ?? []),
-                                  ...(groupedItems['Lemari Kering'] ?? []),
-                                ],
-                                color: const Color(0xFFE65100),
-                              ),
-                            ],
-
-                            if (totalItems > 0) ...[
-                              const SizedBox(height: 8),
-                              const PantryTipsCard(),
-                            ],
-
-                            const SizedBox(height: 140),
-                          ],
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.deepForest.withValues(alpha: 0.28),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tambah Bahan',
+                          style: AppTextStyles.button.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 96),
-        child: FloatingActionButton.extended(
-          onPressed: _openAddModal,
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-          icon: const Icon(Icons.add_rounded, size: 22),
-          label: const Text(
-            'Tambah Bahan',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-          ),
         ),
       ),
     );
   }
 
-  // Seksi penyimpanan bahan (Kulkas, Freezer, Suhu Ruang)
-  Widget _buildStorageSection({
+  // Seksi kelompok bahan berdasarkan urgensi kedaluwarsa (Urgent, Segera, Aman)
+  Widget _buildExpirySection({
     required String title,
     required List<PantryItemModel> items,
     required Color color,

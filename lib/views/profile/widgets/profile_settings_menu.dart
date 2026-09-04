@@ -9,18 +9,22 @@ import '../help_center_screen.dart';
 class ProfileSettingsMenu extends StatelessWidget {
   final VoidCallback onEditProfile;
   final VoidCallback onNotificationSettings;
+  final VoidCallback onChangePassword;
   final VoidCallback onPrivacyPolicy;
   final VoidCallback onAboutApp;
   final VoidCallback onOpenSourceLicenses;
+  final VoidCallback? onCheckUpdates;
   final VoidCallback onLogout;
 
   const ProfileSettingsMenu({
     super.key,
     required this.onEditProfile,
     required this.onNotificationSettings,
+    required this.onChangePassword,
     required this.onPrivacyPolicy,
     required this.onAboutApp,
     required this.onOpenSourceLicenses,
+    this.onCheckUpdates,
     required this.onLogout,
   });
 
@@ -46,7 +50,7 @@ class ProfileSettingsMenu extends StatelessWidget {
             iconBg: const Color(0xFFE3F2FD),
             iconColor: const Color(0xFF1976D2),
             title: 'Pengaturan Notifikasi',
-            subtitle: 'Pengingat kadaluwarsa & log harian',
+            subtitle: 'Pengingat kedaluwarsa & log harian',
             onTap: onNotificationSettings,
           ),
         ]),
@@ -55,6 +59,15 @@ class ProfileSettingsMenu extends StatelessWidget {
         const Text('KEAMANAN & PRIVASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
+          _buildMenuTile(
+            icon: Icons.lock_reset_rounded,
+            iconBg: const Color(0xFFFFF8E1),
+            iconColor: const Color(0xFFF57F17),
+            title: 'Ganti Kata Sandi',
+            subtitle: 'Perbarui kata sandi akun untuk keamanan',
+            onTap: onChangePassword,
+          ),
+          const Divider(height: 1, color: AppColors.borderSoft),
           _buildMenuTile(
             icon: Icons.shield_outlined,
             iconBg: const Color(0xFFE8F5E9),
@@ -69,6 +82,34 @@ class ProfileSettingsMenu extends StatelessWidget {
         const Text('BANTUAN & INFORMASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
+          _buildMenuTile(
+            icon: Icons.system_update_rounded,
+            iconBg: const Color(0xFFE8F5E9),
+            iconColor: AppColors.primary,
+            title: 'Periksa Pembaruan',
+            subtitle:
+                'FoodCura ${AppConstants.appVersionDisplay} • Sistem up-to-date',
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                '${AppConstants.appVersionDisplay} Terbaru',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10.5,
+                ),
+              ),
+            ),
+            onTap: onCheckUpdates ?? () {},
+          ),
+          const Divider(height: 1, color: AppColors.borderSoft),
           _buildMenuTile(
             icon: Icons.help_outline_rounded,
             iconBg: const Color(0xFFFFF3E0),
@@ -88,8 +129,7 @@ class ProfileSettingsMenu extends StatelessWidget {
             iconBg: const Color(0xFFE0F2F1),
             iconColor: const Color(0xFF00796B),
             title: 'Tentang Aplikasi',
-            subtitle:
-                'FoodCura ${AppConstants.appVersionDisplay} (MVC Architecture)',
+            subtitle: 'Informasi versi & pengembang',
             onTap: onAboutApp,
           ),
           const Divider(height: 1, color: AppColors.borderSoft),
@@ -197,6 +237,7 @@ class ProfileSettingsMenu extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return Material(
       color: Colors.transparent,
@@ -238,11 +279,12 @@ class ProfileSettingsMenu extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.surfaceDim,
-                size: 20,
-              ),
+              trailing ??
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.surfaceDim,
+                    size: 20,
+                  ),
             ],
           ),
         ),

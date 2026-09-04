@@ -4,7 +4,6 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
-import '../../services/preference_handler.dart';
 import '../auth/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
@@ -32,7 +31,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       eyebrow: 'FOOD MANAGEMENT',
       title: 'Kelola Food\nInventory',
       description:
-          'Pantau stok makanan, tanggal kadaluwarsa, dan dapatkan pengingat sebelum makanan terbuang sia-sia',
+          'Pantau stok makanan, tanggal kedaluwarsa, dan dapatkan pengingat sebelum makanan terbuang sia-sia',
       icon: Icons.inventory_2_outlined,
     ),
     OnboardingItem(
@@ -74,8 +73,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _navigateToNext() async {
-    await PreferenceHandler.setHasSeenOnboarding(true);
     final authController = AuthController();
+    await authController.completeOnboarding();
     await authController.loadCurrentUser();
     final loggedInUser = authController.currentUser;
     authController.dispose();

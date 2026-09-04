@@ -4,6 +4,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/profile_controller.dart';
 import '../../widgets/app_snack_bar.dart';
+import '../../widgets/app_wheel_time_picker.dart';
 
 // Modal pengaturan preferensi notifikasi
 class NotificationSettingsModal extends StatefulWidget {
@@ -16,11 +17,11 @@ class NotificationSettingsModal extends StatefulWidget {
       _NotificationSettingsModalState();
 }
 
-class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
+class _NotificationSettingsModalState extends State<NotificationSettingsModal>
+    with WidgetsBindingObserver {
   bool _expiryAlert = true;
   bool _nutritionExcess = true;
   bool _dailyMealLog = true;
-  bool _ecoTips = true;
 
   bool _breakfastEnabled = true;
   String _breakfastTime = '07:30';
@@ -30,22 +31,47 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
   String _dinnerTime = '19:00';
 
   bool _isLoading = true;
+  bool _isSaving = false;
+  bool _notificationsAllowed = true;
+  bool _exactAlarmsAllowed = true;
+  bool _batteryOptimizationIgnored = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSettings();
   }
 
-  // Muat status preferensi notifikasi dari controller
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Saat pengguna kembali dari Pengaturan OS (misal aktifkan izin notifikasi/alarm),
+    // hanya periksa ulang status izin tanpa menimpa data form yang sedang diubah pengguna.
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  // Muat status preferensi notifikasi dari controller saat modal pertama dibuka
   Future<void> _loadSettings() async {
     final settings = await widget.controller.loadNotificationSettings();
+    final allowed = await widget.controller.areNotificationsEnabled();
+    final exactAllowed = await widget.controller.canScheduleExactAlarms();
+    final batteryIgnored = await widget.controller.isBatteryOptimizationIgnored();
     if (mounted) {
       setState(() {
+        _notificationsAllowed = allowed;
+        _exactAlarmsAllowed = exactAllowed;
+        _batteryOptimizationIgnored = batteryIgnored;
         _expiryAlert = settings['expiryAlert'] as bool;
         _nutritionExcess = settings['nutritionExcess'] as bool;
         _dailyMealLog = settings['dailyMealLog'] as bool;
-        _ecoTips = settings['ecoTips'] as bool;
         _breakfastEnabled = settings['breakfastEnabled'] as bool;
         _breakfastTime = settings['breakfastTime'] as String;
         _lunchEnabled = settings['lunchEnabled'] as bool;
@@ -57,39 +83,64 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
     }
   }
 
-  // Dialog pemilih jam pengingat waktu makan
+  // Periksa ulang izin sistem tanpa mereset data input form
+  // Jika exact alarm baru diaktifkan → reschedule alarm agar pakai exactAllowWhileIdle
+  Future<void> _checkPermissions() async {
+    final wasExactAllowed = _exactAlarmsAllowed;
+    final allowed = await widget.controller.areNotificationsEnabled();
+    final exactAllowed = await widget.controller.canScheduleExactAlarms();
+    final batteryIgnored = await widget.controller.isBatteryOptimizationIgnored();
+    if (mounted) {
+      setState(() {
+        _notificationsAllowed = allowed;
+        _exactAlarmsAllowed = exactAllowed;
+        _batteryOptimizationIgnored = batteryIgnored;
+      });
+      // Jika exact alarm baru saja diizinkan, reschedule dengan mode tepat waktu
+      if (!wasExactAllowed && exactAllowed) {
+        await widget.controller.saveNotificationSettings(
+          expiryAlert: _expiryAlert,
+          nutritionExcess: _nutritionExcess,
+          dailyMealLog: _dailyMealLog,
+          ecoTips: false,
+          breakfastEnabled: _breakfastEnabled,
+          breakfastTime: _breakfastTime,
+          lunchEnabled: _lunchEnabled,
+          lunchTime: _lunchTime,
+          dinnerEnabled: _dinnerEnabled,
+          dinnerTime: _dinnerTime,
+        );
+      }
+    }
+  }
+
+  // Modal dialog pemilih jam dengan roda drag / scroll interaktif terpusat (format 24 jam)
   Future<void> _pickTime({
     required String currentTime,
+    required String mealTitle,
+    required IconData mealIcon,
+    required Color iconColor,
     required Function(String) onSelected,
   }) async {
-    final parts = currentTime.split(':');
-    final initialTime = TimeOfDay(
-      hour: int.tryParse(parts[0]) ?? 7,
-      minute: int.tryParse(parts[1]) ?? 30,
+    final presets = mealTitle == 'Sarapan'
+        ? const ['06:30', '07:00', '07:30', '08:00']
+        : mealTitle == 'Makan Siang'
+            ? const ['11:30', '12:00', '12:30', '13:00']
+            : const ['18:30', '19:00', '19:30', '20:00'];
+
+    final result = await AppWheelTimePickerSheet.show(
+      context: context,
+      initialTime: currentTime,
+      title: 'Atur Waktu $mealTitle',
+      subtitle: 'Geser roda ke atas/bawah untuk atur jam & menit',
+      icon: mealIcon,
+      iconColor: iconColor,
+      presets: presets,
     );
 
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.deepForest,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
-      final formatted =
-          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    if (result != null && mounted) {
       setState(() {
-        onSelected(formatted);
+        onSelected(result);
       });
     }
   }
@@ -160,10 +211,95 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
               'Atur preferensi pengingat kedaluwarsa, nutrisi, dan jam makan.',
               style: AppTextStyles.subtitleSmall,
             ),
+            if (!_notificationsAllowed) ...[
+              const SizedBox(height: 14),
+              _buildStatusBanner(
+                icon: Icons.notifications_off_outlined,
+                color: AppColors.urgent,
+                backgroundColor: AppColors.urgent.withValues(alpha: 0.08),
+                borderColor: AppColors.urgent.withValues(alpha: 0.25),
+                title: 'Izin Notifikasi Belum Aktif',
+                subtitle:
+                    'Aktifkan izin sistem agar notifikasi pengingat jam makan & stok bahan dapat muncul di perangkat.',
+                actionLabel: 'Izinkan',
+                onAction: () async {
+                  final granted =
+                      await widget.controller.requestNotificationPermissions();
+                  if (!granted) {
+                    await widget.controller.openNotificationSettings();
+                  }
+                  final allowed =
+                      await widget.controller.areNotificationsEnabled();
+                  if (mounted) {
+                    setState(() {
+                      _notificationsAllowed = allowed;
+                    });
+                  }
+                },
+              ),
+            ],
+            if (!_exactAlarmsAllowed) ...[
+              const SizedBox(height: 10),
+              _buildStatusBanner(
+                icon: Icons.schedule_rounded,
+                color: AppColors.infoBlueDark,
+                backgroundColor: AppColors.infoBlueBg,
+                borderColor: AppColors.infoBlueDark.withValues(alpha: 0.2),
+                title: 'Presisi Pengingat (Opsional)',
+                subtitle:
+                    'Jadwal pengingat makan sudah aktif. Aktifkan izin "Alarm & Pengingat" jika ingin pengingat berdering persis di menit yang ditentukan.',
+                actionLabel: 'Atur',
+                onAction: () async {
+                  await widget.controller.openExactAlarmSettings();
+                  final wasAllowed = _exactAlarmsAllowed;
+                  final exactAllowed =
+                      await widget.controller.canScheduleExactAlarms();
+                  if (mounted) {
+                    setState(() {
+                      _exactAlarmsAllowed = exactAllowed;
+                    });
+                    // Reschedule segera dengan exactAllowWhileIdle setelah izin diberikan
+                    if (!wasAllowed && exactAllowed) {
+                      await widget.controller.saveNotificationSettings(
+                        expiryAlert: _expiryAlert,
+                        nutritionExcess: _nutritionExcess,
+                        dailyMealLog: _dailyMealLog,
+                        ecoTips: false,
+                        breakfastEnabled: _breakfastEnabled,
+                        breakfastTime: _breakfastTime,
+                        lunchEnabled: _lunchEnabled,
+                        lunchTime: _lunchTime,
+                        dinnerEnabled: _dinnerEnabled,
+                        dinnerTime: _dinnerTime,
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+
+            // Banner battery optimization — tampil jika app masih dioptimasi baterai
+            if (_exactAlarmsAllowed && !_batteryOptimizationIgnored) ...[
+              const SizedBox(height: 8),
+              _buildStatusBanner(
+                icon: Icons.battery_alert_rounded,
+                color: const Color(0xFFE65100),
+                backgroundColor: const Color(0xFFFFF8E1),
+                borderColor: const Color(0xFFFFB300).withValues(alpha: 0.4),
+                title: 'Penggunaan Baterai Dibatasi',
+                subtitle:
+                    'Notifikasi mungkin terlambat. Set FoodCura ke "Tidak terbatas" agar tepat waktu.',
+                actionLabel: 'Atur',
+                onAction: () async {
+                  await widget.controller.openBatteryOptimizationSettings();
+                },
+              ),
+            ],
             const SizedBox(height: 18),
             _buildSwitchTile(
-              title: 'Peringatan Makanan Kadaluwarsa',
-              subtitle: 'Notifikasi H-2 & H-1 sebelum stok dapur basi',
+              title: 'Peringatan Bahan Kedaluwarsa',
+              subtitle:
+                  'Notifikasi berkala sebelum bahan mencapai batas simpan',
               value: _expiryAlert,
               onChanged: (v) => setState(() => _expiryAlert = v),
             ),
@@ -171,13 +307,13 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
             _buildSwitchTile(
               title: 'Peringatan Kelebihan Nutrisi',
               subtitle:
-                  'Peringatan saat kalori, lemak, atau kolesterol melewati batas',
+                  'Peringatan saat kalori, lemak, atau kolesterol melewati batas harian',
               value: _nutritionExcess,
               onChanged: (v) => setState(() => _nutritionExcess = v),
             ),
             const Divider(height: 1, color: AppColors.borderSoft),
             _buildSwitchTile(
-              title: 'Pengingat Log Makanan Harian',
+              title: 'Pengingat Waktu Makan',
               subtitle:
                   'Pengingat otomatis untuk mencatat sarapan, makan siang, dan makan malam',
               value: _dailyMealLog,
@@ -225,6 +361,9 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                       onToggle: (v) => setState(() => _breakfastEnabled = v),
                       onPickTime: () => _pickTime(
                         currentTime: _breakfastTime,
+                        mealTitle: 'Sarapan',
+                        mealIcon: Icons.wb_twilight_rounded,
+                        iconColor: const Color(0xFF2E7D32),
                         onSelected: (t) => _breakfastTime = t,
                       ),
                     ),
@@ -239,6 +378,9 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                       onToggle: (v) => setState(() => _lunchEnabled = v),
                       onPickTime: () => _pickTime(
                         currentTime: _lunchTime,
+                        mealTitle: 'Makan Siang',
+                        mealIcon: Icons.wb_sunny_rounded,
+                        iconColor: const Color(0xFFE65100),
                         onSelected: (t) => _lunchTime = t,
                       ),
                     ),
@@ -253,6 +395,9 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                       onToggle: (v) => setState(() => _dinnerEnabled = v),
                       onPickTime: () => _pickTime(
                         currentTime: _dinnerTime,
+                        mealTitle: 'Makan Malam',
+                        mealIcon: Icons.bedtime_rounded,
+                        iconColor: const Color(0xFFC62828),
                         onSelected: (t) => _dinnerTime = t,
                       ),
                     ),
@@ -261,13 +406,6 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
               ),
             ],
 
-            const Divider(height: 1, color: AppColors.borderSoft),
-            _buildSwitchTile(
-              title: 'Tips Nutrisi & Eco Poin',
-              subtitle: 'Edukasi mingguan pencegahan food waste',
-              value: _ecoTips,
-              onChanged: (v) => setState(() => _ecoTips = v),
-            ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -280,32 +418,64 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
                   ),
                   elevation: 0,
                 ),
-                onPressed: () async {
-                  await widget.controller.saveNotificationSettings(
-                    expiryAlert: _expiryAlert,
-                    nutritionExcess: _nutritionExcess,
-                    dailyMealLog: _dailyMealLog,
-                    ecoTips: _ecoTips,
-                    breakfastEnabled: _breakfastEnabled,
-                    breakfastTime: _breakfastTime,
-                    lunchEnabled: _lunchEnabled,
-                    lunchTime: _lunchTime,
-                    dinnerEnabled: _dinnerEnabled,
-                    dinnerTime: _dinnerTime,
-                  );
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                        setState(() => _isSaving = true);
+                        try {
+                          final allowed =
+                              await widget.controller.areNotificationsEnabled();
+                          if (!allowed) {
+                            await widget.controller
+                                .requestNotificationPermissions();
+                          }
 
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    AppSnackBar.showSuccess(
-                      context,
-                      'Pengaturan notifikasi berhasil disimpan!',
-                    );
-                  }
-                },
-                child: const Text(
-                  'Simpan Pengaturan',
-                  style: AppTextStyles.buttonSmall,
-                ),
+                          await widget.controller.saveNotificationSettings(
+                            expiryAlert: _expiryAlert,
+                            nutritionExcess: _nutritionExcess,
+                            dailyMealLog: _dailyMealLog,
+                            ecoTips: false,
+                            breakfastEnabled: _breakfastEnabled,
+                            breakfastTime: _breakfastTime,
+                            lunchEnabled: _lunchEnabled,
+                            lunchTime: _lunchTime,
+                            dinnerEnabled: _dinnerEnabled,
+                            dinnerTime: _dinnerTime,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            AppSnackBar.showSuccess(
+                              context,
+                              'Pengaturan & jadwal notifikasi berhasil disimpan!',
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            AppSnackBar.showError(
+                              context,
+                              'Gagal menyimpan pengaturan: $e',
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isSaving = false);
+                          }
+                        }
+                      },
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Simpan Pengaturan',
+                        style: AppTextStyles.buttonSmall,
+                      ),
               ),
             ),
           ],
@@ -419,6 +589,74 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal> {
             value: value,
             activeTrackColor: AppColors.primary,
             onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Banner status izin sistem & pengoptimalan baterai yang terpusat dan konsisten
+  Widget _buildStatusBanner({
+    required IconData icon,
+    required Color color,
+    required Color backgroundColor,
+    required Color borderColor,
+    required String title,
+    required String subtitle,
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.bodyMd.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle, style: AppTextStyles.subtitleSmall),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: color,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8,
+              ),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: onAction,
+            child: Text(
+              actionLabel,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
           ),
         ],
       ),

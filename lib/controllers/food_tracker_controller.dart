@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_date_formatter.dart';
@@ -10,6 +11,7 @@ import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/nutrition_service.dart';
+import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 
 // Controller pencatatan makanan, tracking nutrisi, & batas AKG
@@ -17,16 +19,20 @@ class FoodTrackerController extends ChangeNotifier {
   final DBHelper _db;
   final NutritionService _nutritionService;
   final StreakService _streakService;
+  final ReminderService _reminderService;
   Timer? _searchDebounce;
 
   FoodTrackerController({
     DBHelper? db,
     NutritionService? nutritionService,
     StreakService? streakService,
+    ReminderService? reminderService,
   }) : _db = db ?? DBHelper(),
        _nutritionService =
            nutritionService ?? NutritionService(db: db ?? DBHelper()),
-       _streakService = streakService ?? StreakService(db: db ?? DBHelper());
+       _streakService = streakService ?? StreakService(db: db ?? DBHelper()),
+       _reminderService =
+           reminderService ?? ReminderService(db: db ?? DBHelper());
 
   int _selectedTabIndex = 0;
   DateTime _selectedDate = DateTime.now();
@@ -127,8 +133,19 @@ class FoodTrackerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get canGoNextDay {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final current =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    return current.isBefore(today);
+  }
+
   void setSelectedDate(DateTime date) {
-    _selectedDate = date;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    _selectedDate = target.isAfter(today) ? today : date;
     loadData();
   }
 
@@ -138,6 +155,7 @@ class FoodTrackerController extends ChangeNotifier {
   }
 
   void nextDay() {
+    if (!canGoNextDay) return;
     _selectedDate = _selectedDate.add(const Duration(days: 1));
     loadData();
   }
@@ -219,33 +237,86 @@ class FoodTrackerController extends ChangeNotifier {
 
   /// Menambahkan log makanan baru ke database dan memicu evaluasi AKG
   Future<NotificationModel?> addFoodLog(FoodLogModel log) async {
-    await _db.insertFoodLog(log);
+    final activeUserId = log.userId ?? await _db.getActiveUserId();
+    final logWithUser =
+        activeUserId != null ? log.copyWith(userId: activeUserId) : log;
+    await _db.insertFoodLog(logWithUser);
+
+    final todayStr = AppDateFormatter.formatToday();
+    if (logWithUser.date == todayStr && activeUserId != null) {
+      await _reminderService.cancelAndDismissMealReminder(
+        activeUserId,
+        logWithUser.mealType,
+      );
+    }
     final notif = await _nutritionService.checkNutritionExcess(
-      userId: log.userId,
+      userId: activeUserId,
     );
-    await _streakService.computeAndSaveStreak(userId: log.userId);
+    await _streakService.computeAndSaveStreak(userId: activeUserId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
+    await NotificationNotifier.instance.refresh();
     await loadData();
     return notif;
   }
 
   /// Memperbarui log makanan yang sudah ada
   Future<NotificationModel?> updateFoodLog(FoodLogModel log) async {
-    await _db.updateFoodLog(log);
+    final activeUserId = log.userId ?? await _db.getActiveUserId();
+    final logWithUser =
+        activeUserId != null ? log.copyWith(userId: activeUserId) : log;
+    await _db.updateFoodLog(logWithUser);
+
+    final todayStr = AppDateFormatter.formatToday();
+    if (logWithUser.date == todayStr && activeUserId != null) {
+      await _reminderService.cancelAndDismissMealReminder(
+        activeUserId,
+        logWithUser.mealType,
+      );
+    }
     final notif = await _nutritionService.checkNutritionExcess(
-      userId: log.userId,
+      userId: activeUserId,
     );
-    await _streakService.computeAndSaveStreak(userId: log.userId);
+    await _streakService.computeAndSaveStreak(userId: activeUserId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
+    await NotificationNotifier.instance.refresh();
     await loadData();
     return notif;
   }
 
   /// Menghapus log makanan berdasarkan id
   Future<void> deleteFoodLog(int id) async {
+    final activeUserId = await _db.getActiveUserId();
+    final logs = await _db.getFoodLogs(userId: activeUserId);
+    final targetLog = logs.where((l) => l.id == id).firstOrNull;
+
     await _db.deleteFoodLog(id);
-    await _streakService.computeAndSaveStreak();
+
+    if (targetLog != null && activeUserId != null) {
+      final todayStr = AppDateFormatter.formatToday();
+      if (targetLog.date == todayStr) {
+        final remainingLogs =
+            await _db.getFoodLogs(date: todayStr, userId: activeUserId);
+        final hasRemainingForMeal = remainingLogs.any(
+          (l) => l.mealType.toLowerCase() == targetLog.mealType.toLowerCase(),
+        );
+
+        if (!hasRemainingForMeal) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove(
+            'dismissed_meal_${activeUserId}_${targetLog.mealType}',
+          );
+          await prefs.remove(
+            'last_notif_meal_${activeUserId}_${targetLog.mealType}',
+          );
+          await _reminderService.syncMealAlarms();
+        }
+      }
+    }
+
+    await _nutritionService.checkNutritionExcess(userId: activeUserId);
+    await _streakService.computeAndSaveStreak(userId: activeUserId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
+    await NotificationNotifier.instance.refresh();
     await loadData();
   }
 

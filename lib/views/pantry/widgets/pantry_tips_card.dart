@@ -38,7 +38,7 @@ class PantryTipsCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Gunakan bahan yang paling dekat tanggal kadaluwarsa untuk mengurangi food waste.',
+                  'Gunakan bahan yang paling dekat tanggal kedaluwarsa untuk mengurangi food waste.',
                   style: AppTextStyles.caption.copyWith(
                     fontSize: 12,
                     height: 1.5,

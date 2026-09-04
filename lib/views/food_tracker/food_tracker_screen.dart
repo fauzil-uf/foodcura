@@ -232,13 +232,17 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                               isSearching: _controller.isSearching,
                               onBack: () => _controller.setSelectedTab(0),
                               onDateTap: () async {
+                                final now = DateTime.now();
+                                final today =
+                                    DateTime(now.year, now.month, now.day);
                                 final picked = await showDatePicker(
                                   context: context,
-                                  initialDate: _controller.selectedDate,
+                                  initialDate: _controller.selectedDate
+                                          .isAfter(today)
+                                      ? today
+                                      : _controller.selectedDate,
                                   firstDate: DateTime(2020),
-                                  lastDate: DateTime.now().add(
-                                    const Duration(days: 365),
-                                  ),
+                                  lastDate: today,
                                   builder: (context, child) {
                                     return Theme(
                                       data: Theme.of(context).copyWith(
@@ -258,6 +262,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                               },
                               onPreviousDay: () => _controller.previousDay(),
                               onNextDay: () => _controller.nextDay(),
+                              canGoNextDay: _controller.canGoNextDay,
                               onSearchChanged: _onSearchChanged,
                               onFoodScannerTap: _openFoodScanner,
                               onTabChanged: (index) =>

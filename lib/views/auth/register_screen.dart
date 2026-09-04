@@ -6,13 +6,11 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
-import '../../services/preference_handler.dart';
 import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../profile/widgets/privacy_security_modal.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
-import 'login_screen.dart';
 
 // Layar registrasi akun baru
 class RegisterScreen extends StatefulWidget {
@@ -102,16 +100,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      await PreferenceHandler.setHasSeenOnboarding(false);
       if (!mounted) return;
 
       _showSnackBar(
-        'Registrasi berhasil! Silakan masuk dengan akun Anda.',
+        'Registrasi berhasil! Selamat datang di FoodCura.',
         isError: false,
       );
+
+      final hasSeenOnboarding = _authController.hasSeenOnboarding;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(
+          builder: (_) => hasSeenOnboarding
+              ? const MainNavigationScreen()
+              : const OnboardingScreen(),
+        ),
         (route) => false,
       );
     } else if (_authController.errorMessage != null) {
@@ -126,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      final hasSeenOnboarding = PreferenceHandler.hasSeenOnboarding;
+      final hasSeenOnboarding = _authController.hasSeenOnboarding;
       if (!hasSeenOnboarding) {
         Navigator.pushAndRemoveUntil(
           context,

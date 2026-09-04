@@ -80,12 +80,14 @@ class PantryItemModel {
       quantity: (map['quantity'] as num).toDouble(),
       unit: map['unit'] as String,
       storage: map['storage'] as String,
-      expiryDate: DateTime.parse(map['expiry_date'] as String),
+      expiryDate: DateTime.tryParse(map['expiry_date']?.toString() ?? '') ??
+          DateTime.now().add(const Duration(days: 7)),
       imageUrl: (map['image_url'] as String?)?.isEmpty == true
           ? null
           : map['image_url'] as String?,
       isUsed: (map['is_used'] as int?) == 1,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 
