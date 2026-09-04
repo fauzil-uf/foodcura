@@ -10,7 +10,8 @@
 [![Firebase](https://img.shields.io/badge/Firebase-%23039BE5.svg?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com)
 [![SQLite](https://img.shields.io/badge/SQLite-%2307405E.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Google Gemini AI](https://img.shields.io/badge/Google%20Gemini%20AI-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)](https://ai.google.dev)
-[![Tests](https://img.shields.io/badge/Tests-37%20Passed-2ea44f?style=for-the-badge&logo=flutter&logoColor=white)](test/)
+[![Version](https://img.shields.io/badge/Version-v2.2.6-blue?style=for-the-badge)](pubspec.yaml)
+[![Tests](https://img.shields.io/badge/Tests-75%20Passed-2ea44f?style=for-the-badge&logo=flutter&logoColor=white)](test/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](#-kontribusi--pedoman-pengembangan)
 
@@ -84,9 +85,15 @@ Dengan mengintegrasikan tabel komposisi pangan Indonesia (TKPI), pelacak masa ke
 * **Manajemen Akun & Keamanan**: Edit profil, ganti kata sandi lokal, pengaturan preferensi notifikasi, dan fleksibilitas *Account Chooser* Google Sign-In.
 
 ### 7. 🔔 Smart Local Notifications
-* **Pengingat Jadwal Makan**: Notifikasi terencana untuk waktu sarapan, makan siang, dan makan malam.
+* **Pengingat Jadwal Makan**: Notifikasi terencana untuk waktu sarapan, makan siang, dan makan malam dengan zona waktu akurat.
 * **Peringatan Kedaluwarsa Bahan**: Notifikasi otomatis untuk bahan dapur yang mendekati batas waktu simpan kritis.
 * **Peringatan Batas Nutrisi AKG**: Notifikasi peringatan dini saat asupan harian melampaui batas aman (Lemak ≥67g, Kolesterol >300mg, Kalori >2000 kkal, Karbohidrat >300g, Protein >65g).
+
+### 8. 🌐 Real-Time Connectivity, Caching & In-App Updates
+* **Floating Connectivity Banner**: Indikator status jaringan real-time melayang (*Chrome-style floating pill*) yang memberitahu saat offline dan pulih kembali secara halus tanpa mengganggu navigasi.
+* **Smart Image Caching & Skeleton Shimmer**: Pemuatan gambar foto makanan lokal & remote dengan disk cache otomatis serta animasi skeleton loader (*shimmer effect*).
+* **In-App Update Engine**: Dukungan pemeriksaan versi pembaruan aplikasi langsung dari Google Play Store (*Flexible & Immediate updates*).
+* **Cupertino Wheel Time Picker**: Pemilih waktu jadwal pengingat makan berbasis roda putar (*wheel picker sheet*) iOS yang responsif dan elegan.
 
 ---
 
@@ -100,10 +107,13 @@ Dengan mengintegrasikan tabel komposisi pangan Indonesia (TKPI), pelacak masa ke
 | **Cloud & Autentikasi** | [`firebase_core`](https://pub.dev/packages/firebase_core), [`firebase_auth`](https://pub.dev/packages/firebase_auth) | `^3.12.0` / `^5.5.0` | Inisialisasi Firebase & manajemen akun cloud |
 | **Google Sign-In** | [`google_sign_in`](https://pub.dev/packages/google_sign_in) | `^6.2.2` | Otentikasi OAuth 2.0 via Google Account |
 | **Kriptografi & Keamanan** | [`crypto`](https://pub.dev/packages/crypto) | `^3.0.6` | Hashing SHA-256 + Salt pada kata sandi SQLite lokal |
-| **Kecerdasan Buatan** | [Google Gemini REST API](https://ai.google.dev) | Multi-Model | Model `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-flash-latest` |
+| **Kecerdasan Buatan** | [Google Gemini REST API](https://ai.google.dev) | Multi-Model | Model generasi `>= 3.6` (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-flash-latest`) |
 | **Local Storage** | [`shared_preferences`](https://pub.dev/packages/shared_preferences) | `^2.3.4` | Penyimpanan sesi aktif dan user preferences |
-| **Local Notifications** | [`flutter_local_notifications`](https://pub.dev/packages/flutter_local_notifications) | `^18.0.1` | Pengingat jadwal makan, peringatan kedaluwarsa & nutrisi |
-| **UI & Vector** | [`flutter_svg`](https://pub.dev/packages/flutter_svg), `cupertino_icons` | `^2.0.9` / `^1.0.8` | Rendering ikon SVG dan aset desain modern |
+| **Local Notifications** | [`flutter_local_notifications`](https://pub.dev/packages/flutter_local_notifications), [`timezone`](https://pub.dev/packages/timezone) | `^18.0.1` / `^0.10.1` | Pengingat jadwal makan, peringatan kedaluwarsa & nutrisi berbasis zona waktu |
+| **Network & Connectivity** | [`connectivity_plus`](https://pub.dev/packages/connectivity_plus), [`http`](https://pub.dev/packages/http) | `^7.3.1` / `^1.2.0` | Pemantauan status jaringan real-time & REST API client |
+| **Image & Media Cache** | [`cached_network_image`](https://pub.dev/packages/cached_network_image) | `^3.4.1` | Caching gambar lokal pada disk, error handling, dan optimasi memori |
+| **UI, Vector & Animation** | [`flutter_svg`](https://pub.dev/packages/flutter_svg), [`shimmer`](https://pub.dev/packages/shimmer), [`flutter_animate`](https://pub.dev/packages/flutter_animate), `cupertino_icons` | `^2.0.9` / `^3.0.0` / `^4.5.2` / `^1.0.8` | Rendering SVG, animasi skeleton loading shimmer, dan micro-animations |
+| **App Maintenance** | [`in_app_update`](https://pub.dev/packages/in_app_update) | `^5.0.0` | Pemeriksaan pembaruan aplikasi langsung via Google Play Store |
 | **Formatting** | [`intl`](https://pub.dev/packages/intl) | `^0.19.0` | Format mata uang rupiah dan tanggal multibahasa |
 
 ---
@@ -145,6 +155,7 @@ lib/
 │   ├── app_colors.dart            # Palet warna primer, netral, dan status
 │   ├── app_constants.dart         # Nama database, timeout, dan pref keys
 │   ├── app_date_formatter.dart    # Parser tanggal multibahasa (Indonesian locale)
+│   ├── app_food_formatter.dart    # Formatter takaran porsi & pembulatan gizi
 │   ├── app_images.dart            # Path aset gambar & logo
 │   ├── app_theme.dart             # ThemeData terpadu
 │   └── app_typography.dart        # Preset TextStyle Plus Jakarta Sans
@@ -164,14 +175,18 @@ lib/
 │   ├── article_model.dart            # Model artikel edukasi gizi
 │   ├── food_item_model.dart          # Model katalog makanan (TKPI)
 │   ├── food_log_model.dart           # Model log konsumsi makanan harian
+│   ├── help_faq_model.dart           # Model FAQ pusat bantuan
 │   ├── notification_model.dart       # Model notifikasi lokal & scheduler
+│   ├── onboarding_model.dart         # Model panduan onboarding
 │   ├── pantry_ingredient_model.dart  # Model bahan mentah pantry
 │   ├── pantry_item_model.dart        # Model item inventaris dapur & urgency
 │   ├── quiz_model.dart               # Model soal kuis & opsi jawaban
 │   └── user_model.dart               # Model entitas pengguna
 ├── services/           # External service integration & domain managers
 │   ├── app_notifiers.dart         # Global Reactive Notifiers (Sync State antar-tab)
+│   ├── app_update_service.dart    # In-App Update Engine Google Play Store
 │   ├── auth_service.dart          # Firebase Auth & Google Sign-In
+│   ├── connectivity_service.dart  # Real-time Network Connectivity Monitor
 │   ├── gemini_service.dart        # Google Gemini AI Service & Fallback Chain
 │   ├── notification_service.dart  # Local Push Notifications
 │   ├── nutrition_service.dart     # Standar AKG & Nutrition Thresholds
@@ -180,17 +195,17 @@ lib/
 │   └── streak_service.dart        # Dynamic Streak Calculation Engine
 ├── utils/              # Helper utilitas keamanan
 │   └── security_helper.dart       # SHA-256 + Salt Password Hasher & Verifier
-├── views/              # UI Presentation layer (Feature-Grouped)
+├── views/              # UI Presentation layer (Feature-Grouped & Modular)
 │   ├── auth/           # LoginScreen, RegisterScreen, ForgotPasswordScreen
 │   ├── dashboard/      # DashboardScreen & widgets (QuizModal)
-│   ├── food_info/      # FoodInfoScreen & widgets (ArticleDetailModal)
-│   ├── food_tracker/   # FoodTrackerScreen & widgets (AddFoodModal, AllCatalogModal, FoodDetailModal, FoodSummaryCard)
+│   ├── food_info/      # FoodInfoScreen & widgets (ArticleDetailModal, DailyTipCard, FeaturedCard, QuizCard)
+│   ├── food_tracker/   # FoodTrackerScreen & widgets (AddFoodModal, AllCatalogModal, FoodDetailModal, SummaryCard)
 │   ├── navigation/     # MainNavigationScreen (5 tabs bottom navigation bar)
-│   ├── notification/   # NotificationScreen
+│   ├── notification/   # NotificationScreen & widgets (NotificationCard, NotificationInfoTip)
 │   ├── onboarding/     # SplashScreen, OnboardingScreen
-│   ├── pantry/         # PantryScreen & widgets (AddPantryItemModal, PantryItemDetailModal)
-│   ├── profile/        # ProfileScreen, HelpCenterScreen & modals
-│   └── widgets/        # Shared Reusable Widgets (AppTextField, AppTopBar, AppFoodImage, AppFilterChipRow, AppCircularProgress)
+│   ├── pantry/         # PantryScreen & widgets (AddPantryItemModal, PantryItemCard, DetailModal, SummaryAlert)
+│   ├── profile/        # ProfileScreen, HelpCenterScreen & widgets (HeroCard, SettingsMenu, Bento, PasswordModal)
+│   └── widgets/        # Shared Reusable Widgets (AppConnectivityBanner, AppFoodImage, AppShimmer, AppWheelTimePicker)
 ├── firebase_options.dart # Konfigurasi platform Firebase
 └── main.dart           # Entry point aplikasi & inisialisasi modul
 ```
@@ -256,18 +271,19 @@ dart format .
 # 2. Analisis statis & pemeriksaan lint (0 issues)
 flutter analyze
 
-# 3. Eksekusi seluruh rangkaian Unit & Widget Test (37 Passed)
+# 3. Eksekusi seluruh rangkaian Unit & Widget Test (75 Passed)
 flutter test
 ```
 
-### Rangkuman Test Coverage (37/37 Tests Passed):
+### Rangkuman Test Coverage (75/75 Tests Passed):
 * ✅ `security_helper_test.dart`: Pengujian Hashing SHA-256, Salt Avalanche, verifikasi hash, dan backward compatibility.
 * ✅ `controllers_test.dart`: Validasi alur state `AuthController`, `DashboardController`, `FoodTrackerController`, `NotificationController`, `PantryController`, dan `QuizController`.
 * ✅ `profile_controller_test.dart`: Pengujian state profil, pembaruan data pengguna, dan validasi pergantian kata sandi.
 * ✅ `streak_test.dart`: Logika perhitungan streak hari aktif dan *boundary checking*.
-* ✅ `services_test.dart`: Verifikasi standar batas gizi AKG dan scheduler notifikasi.
+* ✅ `services_test.dart`: Verifikasi standar batas gizi AKG, scheduler reminder makan, dan sinkronisasi alarm kedaluwarsa pantry.
 * ✅ `date_formatter_test.dart`: Parser tanggal multibahasa (Indonesian locale & ISO strings).
-* ✅ `widget_test.dart`: Pengujian render UI tema, tipografi, dan interaksi layar bantuan.
+* ✅ `app_update_service_test.dart`: Pengujian in-app update service, flow status, dan penanganan platform exception.
+* ✅ `widget_test.dart`: Pengujian render UI tema, tipografi, layar bantuan, dialog versi, wheel time picker, splash screen, caching gambar `AppFoodImage`, skeleton loader `AppShimmer`, dan transisi banner konektivitas `AppConnectivityBanner`.
 
 ---
 
@@ -295,7 +311,45 @@ Kontribusi dari komunitas sangat terbuka! Jika Anda ingin berkontribusi:
 
 ## 📋 Changelog
 
-### **v2.1.0** — Security Architecture, Password Hashing & Google Account Switch *(Current)*
+### **v2.2.6** — Network Resilience, In-App Updates, UI Modularization & Gemini 3.6+ Alignment *(Current)*
+#### [Added]
+* **Pemantauan Jaringan Real-Time & Floating Connectivity Banner**:
+  - Implementasi [ConnectivityService](lib/services/connectivity_service.dart) berbasis stream [`connectivity_plus`](https://pub.dev/packages/connectivity_plus) untuk mendeteksi perubahan status koneksi internet secara real-time.
+  - Komponen antarmuka [AppConnectivityBanner](lib/views/widgets/app_connectivity_banner.dart) dengan gaya *floating pill* (mirip Google Chrome), transisi animasi mulus (*slide & fade*), dan penanganan mode offline yang transparan tanpa mengganggu tata letak aplikasi.
+* **Smart Image Caching & Skeleton Shimmer Loaders**:
+  - Migrasi seluruh pemuatan foto katalog dan makanan di [AppFoodImage](lib/views/widgets/app_food_image.dart) ke [`cached_network_image`](https://pub.dev/packages/cached_network_image) dengan caching disk lokal otomatis dan penanganan error fallback yang tangguh.
+  - Komponen pemuatan kerangka [AppShimmer](lib/views/widgets/app_shimmer.dart) dan `AppShimmerCard` menggunakan [`shimmer`](https://pub.dev/packages/shimmer) untuk animasi *skeleton loading* yang mulus saat memuat data.
+* **In-App Update Engine**:
+  - Penambahan modul [AppUpdateService](lib/services/app_update_service.dart) menggunakan paket [`in_app_update`](https://pub.dev/packages/in_app_update) untuk mendukung alur pembaruan aplikasi langsung dari Google Play Store (tipe *Immediate* maupun *Flexible*).
+* **Cupertino Wheel Time Picker & Shared Utility Widgets**:
+  - Pembuatan bottom sheet [AppWheelTimePickerSheet](lib/views/widgets/app_wheel_time_picker.dart) dengan roda seleksi jam dan menit berbasis iOS-style wheel picker yang ergonomis.
+  - Penambahan utilitas pemformat takaran gizi terpusat [AppFoodFormatter](lib/constants/app_food_formatter.dart) untuk konsistensi satuan gram, porsi, dan pembulatan angka.
+  - Komponen modular baru: `AppEmptyState`, `AppSearchBar`, `AppDialog`, dan `AppSnackBar`.
+* **Modularisasi Arsitektur Views**:
+  - Dekomposisi sub-widget terisolasi pada modul `views/food_info/widgets/` (`ArticleListItem`, `DailyTipCard`, `FeaturedArticleCard`, `FoodInfoQuizCard`), `views/notification/widgets/` (`NotificationCard`, `NotificationInfoTip`), `views/pantry/widgets/` (`PantryItemCard`, `PantrySummaryAlert`, `PantryTipsCard`), dan `views/profile/widgets/` (`ProfileHeroCard`, `ProfileSettingsMenu`, `ProfileStatsBento`, `ChangePasswordModal`).
+* **Ekspansi Test Suites Menjadi 75 Tests Passed**:
+  - Penambahan pengujian menyeluruh pada [test/widget_test.dart](test/widget_test.dart) (uji render `AppConnectivityBanner`, `AppFoodImage`, `AppShimmer`, `AppWheelTimePickerSheet`, dialog, tema) dan pengujian [test/app_update_service_test.dart](test/app_update_service_test.dart). Total pengujian otomatis melonjak dari 37 menjadi **75/75 Tests Passed**.
+
+#### [Changed]
+* **Gemini AI Model Fallback Chain Alignment**:
+  - Memperbarui rantai fallback model Gemini di [gemini_service.dart](lib/services/gemini_service.dart) agar secara ketat menggunakan model generasi modern `>= 3.6`: `gemini-3.7-flash` ➔ `gemini-3.6-flash` ➔ `gemini-flash-latest`, serta menghapus referensi model warisan.
+* **Pembaruan Versi & Build Number**:
+  - Menaikkan versi aplikasi menjadi `version: 2.2.6+12` di [pubspec.yaml](pubspec.yaml) dan [app_constants.dart](lib/constants/app_constants.dart).
+* **Modernisasi Konfigurasi Android**:
+  - Mengaktifkan `android:enableOnBackInvokedCallback="true"` pada [AndroidManifest.xml](android/app/src/main/AndroidManifest.xml) untuk mendukung *Predictive Back Gesture* Android 13/14+.
+  - Pembaruan set ikon aplikasi launcher beresolusi tinggi pada seluruh direktori `mipmap-*` Android dan `AppIcon.appiconset` iOS.
+
+#### [Fixed]
+* **Unsplash & Online Image Loading Bug**:
+  - Memperbaiki kegagalan pemuatan foto makanan dari Unsplash dengan menghapus header negosiasi `Accept: image/avif` yang tidak didukung decoding mesin bawaan Flutter/Android WebView, serta mengonfigurasi DNS resolver.
+* **Tipografi & Styling Floating Banner**:
+  - Membungkus `AppConnectivityBanner` dalam `Material` transparan untuk mencegah artefak teks bergaris bawah kuning (*missing Material widget*) saat melayang di atas navigasi layar.
+* **Pembersihan Lint & Analisis Statis**:
+  - Menghilangkan seluruh warning *deprecated member use* dan *unused imports* hingga `flutter analyze` mencapai 0 issues.
+
+---
+
+### **v2.1.0** — Security Architecture, Password Hashing & Google Account Switch
 #### [Added]
 * **Sistem Keamanan Hashing Password (SHA-256 + Salt)**:
   - Pembuatan utilitas [SecurityHelper](lib/utils/security_helper.dart) untuk mengubah kata sandi teks biasa menjadi kode hash kriptografi 64-karakter hex.
