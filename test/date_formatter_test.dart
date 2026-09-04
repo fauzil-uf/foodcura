@@ -84,11 +84,11 @@ void main() {
       expect(AppColors.nutritionVioletBg, isNotNull);
     });
 
-    test('AppConstants version is synchronized with v2.2.6 release', () {
+    test('AppConstants version is synchronized with v2.3.1 release', () {
       expect(AppConstants.appName, equals('FoodCura'));
-      expect(AppConstants.appVersion, equals('2.2.6'));
-      expect(AppConstants.appBuildNumber, equals('12'));
-      expect(AppConstants.appVersionDisplay, equals('v2.2.6'));
+      expect(AppConstants.appVersion, equals('2.3.1'));
+      expect(AppConstants.appBuildNumber, equals('13'));
+      expect(AppConstants.appVersionDisplay, equals('v2.3.1'));
     });
   });
 
