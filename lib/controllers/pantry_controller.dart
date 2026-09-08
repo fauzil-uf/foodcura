@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../database/db_helper.dart';
 import '../models/pantry_item_model.dart';
 import '../services/app_notifiers.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 
@@ -179,6 +181,14 @@ class PantryController extends ChangeNotifier {
   /// Menambah bahan makanan baru ke inventaris
   Future<int> addPantryItem(PantryItemModel item) async {
     final id = await _db.addPantryItem(item);
+    // Sinkronisasi ke Firestore (latar belakang)
+    try {
+      final activeUserId = item.userId ?? await _db.getActiveUserId();
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      FirestoreService.instance
+          .addPantryItem(uid, item.copyWith(id: id))
+          .ignore();
+    } catch (_) {}
     await _reminderService.syncPantryExpiryAlarms();
     await _reminderService.checkExpiryAndCreateNotifications(
       force: true,
@@ -192,6 +202,15 @@ class PantryController extends ChangeNotifier {
   /// Memperbarui bahan makanan
   Future<void> updatePantryItem(PantryItemModel item) async {
     await _db.updatePantryItem(item);
+    // Sinkronisasi ke Firestore (latar belakang)
+    try {
+      final activeUserId = item.userId ?? await _db.getActiveUserId();
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      final firestoreId = item.firestoreId ?? 'pantry_${item.id}';
+      FirestoreService.instance
+          .updatePantryItem(uid, firestoreId, item)
+          .ignore();
+    } catch (_) {}
     if (item.id != null) {
       final userId = item.userId ?? await _db.getActiveUserId();
       if (userId != null) {
@@ -213,6 +232,27 @@ class PantryController extends ChangeNotifier {
   /// Menandai bahan makanan sudah digunakan
   Future<void> markItemUsed(int id) async {
     await _db.markPantryItemUsed(id);
+    // Sinkronisasi status terpakai ke Firestore
+    try {
+      final activeUserId = await _db.getActiveUserId();
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      FirestoreService.instance
+          .updatePantryItem(
+            uid,
+            'pantry_$id',
+            PantryItemModel(
+              id: id,
+              name: '',
+              quantity: 0,
+              unit: '',
+              storage: '',
+              expiryDate: DateTime.now(),
+              createdAt: DateTime.now(),
+              isUsed: true,
+            ),
+          )
+          .ignore();
+    } catch (_) {}
     await _db.deleteNotificationsByPantryId(id);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
@@ -223,6 +263,12 @@ class PantryController extends ChangeNotifier {
   /// Menghapus bahan makanan
   Future<void> deleteItem(int id) async {
     await _db.deletePantryItem(id);
+    // Hapus dari Firestore
+    try {
+      final activeUserId = await _db.getActiveUserId();
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      FirestoreService.instance.deletePantryItem(uid, 'pantry_$id').ignore();
+    } catch (_) {}
     await _db.deleteNotificationsByPantryId(id);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
