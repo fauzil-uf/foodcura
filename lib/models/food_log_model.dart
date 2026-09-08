@@ -13,10 +13,12 @@ class FoodLogModel {
   final String time;
   final String date;
   final String? note;
+  final String? firestoreId;
 
   const FoodLogModel({
     this.id,
     this.userId,
+    this.firestoreId,
     required this.foodName,
     required this.mealType,
     required this.calories,
@@ -29,6 +31,22 @@ class FoodLogModel {
     required this.date,
     this.note,
   });
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'food_name': foodName,
+      'meal_type': mealType,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'cholesterol': cholesterol,
+      'image_path': imagePath,
+      'time': time,
+      'date': date,
+      'note': note ?? '',
+    };
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -52,6 +70,7 @@ class FoodLogModel {
     return FoodLogModel(
       id: map['id'] as int?,
       userId: map['user_id'] as int?,
+      firestoreId: map['firestore_id'] as String?,
       foodName: map['food_name'] as String,
       mealType: map['meal_type'] as String,
       calories: (map['calories'] as num).toInt(),
@@ -69,6 +88,7 @@ class FoodLogModel {
   FoodLogModel copyWith({
     int? id,
     int? userId,
+    String? firestoreId,
     String? foodName,
     String? mealType,
     int? calories,
@@ -84,6 +104,7 @@ class FoodLogModel {
     return FoodLogModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      firestoreId: firestoreId ?? this.firestoreId,
       foodName: foodName ?? this.foodName,
       mealType: mealType ?? this.mealType,
       calories: calories ?? this.calories,

@@ -12,8 +12,11 @@ class FoodItemModel {
   final String category;
   final String imagePath;
 
+  final String? firestoreId;
+
   const FoodItemModel({
     this.id,
+    this.firestoreId,
     required this.name,
     required this.calories,
     required this.protein,
@@ -23,6 +26,20 @@ class FoodItemModel {
     required this.category,
     required this.imagePath,
   });
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'name': name,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'cholesterol': cholesterol,
+      'category': category,
+      'image_path': imagePath,
+    };
+  }
 
   Map<String, dynamic> toMap() {
     return {

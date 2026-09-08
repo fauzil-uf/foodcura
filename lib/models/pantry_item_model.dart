@@ -10,10 +10,12 @@ class PantryItemModel {
   final String? imageUrl;
   final bool isUsed;
   final DateTime createdAt;
+  final String? firestoreId;
 
   const PantryItemModel({
     this.id,
     this.userId,
+    this.firestoreId,
     required this.name,
     required this.quantity,
     required this.unit,
@@ -57,6 +59,19 @@ class PantryItemModel {
     return '$qty $unit · $storage';
   }
 
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'quantity': quantity,
+      'unit': unit,
+      'storage': storage,
+      'expiry_date': expiryDate.toIso8601String(),
+      'image_url': imageUrl ?? '',
+      'is_used': isUsed,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -76,6 +91,7 @@ class PantryItemModel {
     return PantryItemModel(
       id: map['id'] as int?,
       userId: map['user_id'] as int?,
+      firestoreId: map['firestore_id'] as String?,
       name: map['name'] as String,
       quantity: (map['quantity'] as num).toDouble(),
       unit: map['unit'] as String,
@@ -85,7 +101,9 @@ class PantryItemModel {
       imageUrl: (map['image_url'] as String?)?.isEmpty == true
           ? null
           : map['image_url'] as String?,
-      isUsed: (map['is_used'] as int?) == 1,
+      isUsed: map['is_used'] is bool
+          ? map['is_used'] as bool
+          : (map['is_used'] as int?) == 1,
       createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.now(),
     );
@@ -94,6 +112,7 @@ class PantryItemModel {
   PantryItemModel copyWith({
     int? id,
     int? userId,
+    String? firestoreId,
     String? name,
     double? quantity,
     String? unit,
@@ -106,6 +125,7 @@ class PantryItemModel {
     return PantryItemModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      firestoreId: firestoreId ?? this.firestoreId,
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
