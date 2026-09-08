@@ -25,6 +25,13 @@ class SecurityHelper {
       return false;
     }
 
+    // Keamanan: Marker akun OAuth tidak boleh pernah cocok dengan input password pengguna
+    if (storedValue == 'google_oauth_user' ||
+        storedValue.startsWith('GOOGLE_OAUTH_') ||
+        storedValue.startsWith('GOOGLE_AUTH_')) {
+      return false;
+    }
+
     final computedHash = hashPassword(inputPassword);
     if (computedHash == storedValue) {
       return true;

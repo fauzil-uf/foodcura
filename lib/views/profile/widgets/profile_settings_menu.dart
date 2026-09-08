@@ -15,6 +15,7 @@ class ProfileSettingsMenu extends StatelessWidget {
   final VoidCallback onOpenSourceLicenses;
   final VoidCallback? onCheckUpdates;
   final VoidCallback onLogout;
+  final bool isGoogleAccount;
 
   const ProfileSettingsMenu({
     super.key,
@@ -26,6 +27,7 @@ class ProfileSettingsMenu extends StatelessWidget {
     required this.onOpenSourceLicenses,
     this.onCheckUpdates,
     required this.onLogout,
+    this.isGoogleAccount = false,
   });
 
   @override
@@ -59,15 +61,27 @@ class ProfileSettingsMenu extends StatelessWidget {
         const Text('KEAMANAN & PRIVASI', style: AppTextStyles.sectionHeader),
         const SizedBox(height: 8),
         _buildMenuCard([
-          _buildMenuTile(
-            icon: Icons.lock_reset_rounded,
-            iconBg: const Color(0xFFFFF8E1),
-            iconColor: const Color(0xFFF57F17),
-            title: 'Ganti Kata Sandi',
-            subtitle: 'Perbarui kata sandi akun untuk keamanan',
-            onTap: onChangePassword,
-          ),
-          const Divider(height: 1, color: AppColors.borderSoft),
+          if (!isGoogleAccount) ...[
+            _buildMenuTile(
+              icon: Icons.lock_reset_rounded,
+              iconBg: const Color(0xFFFFF8E1),
+              iconColor: const Color(0xFFF57F17),
+              title: 'Ganti Kata Sandi',
+              subtitle: 'Perbarui kata sandi akun untuk keamanan',
+              onTap: onChangePassword,
+            ),
+            const Divider(height: 1, color: AppColors.borderSoft),
+          ] else ...[
+            _buildMenuTile(
+              icon: Icons.verified_user_rounded,
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: AppColors.primary,
+              title: 'Keamanan Akun Google',
+              subtitle: 'Akun terhubung & diamankan via Google',
+              onTap: onChangePassword,
+            ),
+            const Divider(height: 1, color: AppColors.borderSoft),
+          ],
           _buildMenuTile(
             icon: Icons.shield_outlined,
             iconBg: const Color(0xFFE8F5E9),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
@@ -31,15 +33,49 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
   bool _obscureConfirm = true;
   bool _isSubmitting = false;
 
+  int _failedAttempts = 0;
+  int _lockoutSeconds = 0;
+  Timer? _lockoutTimer;
+
   @override
   void dispose() {
+    _lockoutTimer?.cancel();
     _oldPassCtrl.dispose();
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
     super.dispose();
   }
 
+  void _startLockout(int seconds) {
+    setState(() {
+      _lockoutSeconds = seconds;
+    });
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_lockoutSeconds > 1) {
+          _lockoutSeconds--;
+        } else {
+          _lockoutSeconds = 0;
+          timer.cancel();
+        }
+      });
+    });
+  }
+
   Future<void> _handleChangePassword() async {
+    if (_lockoutSeconds > 0) {
+      AppSnackBar.showError(
+        context,
+        'Terlalu banyak percobaan gagal. Silakan tunggu $_lockoutSeconds detik.',
+      );
+      return;
+    }
+
     final oldPass = _oldPassCtrl.text;
     final newPass = _newPassCtrl.text;
     final confirmPass = _confirmPassCtrl.text;
@@ -80,13 +116,28 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     if (!mounted) return;
 
     if (success) {
+      _failedAttempts = 0;
       Navigator.pop(context, true);
       AppSnackBar.showSuccess(context, 'Kata sandi berhasil diperbarui!');
     } else {
+      _failedAttempts++;
+      if (_failedAttempts >= 5) {
+        _startLockout(30);
+        setState(() => _isSubmitting = false);
+        AppSnackBar.showError(
+          context,
+          'Terlalu banyak percobaan gagal. Akses ubah kata sandi dikunci selama 30 detik demi keamanan.',
+        );
+        return;
+      }
+
       setState(() => _isSubmitting = false);
+      final remaining = 5 - _failedAttempts;
+      final errorMsg =
+          widget.controller.errorMessage ?? 'Gagal mengubah kata sandi.';
       AppSnackBar.showError(
         context,
-        widget.controller.errorMessage ?? 'Gagal mengubah kata sandi.',
+        '$errorMsg (Sisa percobaan: $remaining)',
       );
     }
   }
@@ -286,19 +337,52 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                   ),
                 ),
                 const SizedBox(height: 22),
+                if (_lockoutSeconds > 0)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.warningBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.lock_clock_rounded,
+                          color: AppColors.urgent,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Akses terkunci sementara. Coba lagi dalam $_lockoutSeconds detik.',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.urgent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: _lockoutSeconds > 0
+                          ? AppColors.textGraySoft
+                          : AppColors.primary,
                       foregroundColor: AppColors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(999),
                       ),
                       elevation: 0,
                     ),
-                    onPressed: _isSubmitting ? null : _handleChangePassword,
+                    onPressed: (_isSubmitting || _lockoutSeconds > 0)
+                        ? null
+                        : _handleChangePassword,
                     child: _isSubmitting
                         ? const SizedBox(
                             height: 20,
@@ -309,7 +393,9 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                             ),
                           )
                         : Text(
-                            'Perbarui Kata Sandi',
+                            _lockoutSeconds > 0
+                                ? 'Terkunci ($_lockoutSeconds dtk)'
+                                : 'Perbarui Kata Sandi',
                             style: AppTextStyles.button.copyWith(fontSize: 15),
                           ),
                   ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_constants.dart';
 import '../../constants/app_images.dart';
+import '../../constants/app_typography.dart';
 import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../../services/app_notifiers.dart';
@@ -165,6 +166,84 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // Buka modal ganti kata sandi akun
   void _showChangePasswordModal() {
+    if (_user?.isGoogleAccount == true) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: const BoxDecoration(
+                  color: AppColors.mintTint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.verified_user_rounded,
+                  color: AppColors.primary,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Akun Google Terhubung',
+                style: AppTextStyles.headlineMd,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Akun Anda (${_user?.email ?? ""}) terdaftar dan diamankan menggunakan Google Sign-In. Pengelolaan keamanan, verifikasi 2 langkah, dan kata sandi dikelola langsung oleh akun Google Anda.',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textGray,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Mengerti',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -298,6 +377,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       _showOpenSourceLicenses,
                                   onCheckUpdates: _showCheckUpdates,
                                   onLogout: _logout,
+                                  isGoogleAccount:
+                                      _user?.isGoogleAccount ?? false,
                                 ),
                               ],
                             ),

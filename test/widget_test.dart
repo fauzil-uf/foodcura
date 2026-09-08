@@ -162,8 +162,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.byType(SplashScreen), findsOneWidget);
-    expect(find.text('Nutrisi Sehat • Pantau Stok Dapur'), findsOneWidget);
-    expect(find.text('Smart Nutrition & Kitchen Pantry'), findsOneWidget);
+    expect(find.byType(Image), findsWidgets);
+    expect(find.byType(RichText), findsWidgets);
 
     // Advance clock past the remaining timers to let the animation complete
     await tester.pump(const Duration(seconds: 4));

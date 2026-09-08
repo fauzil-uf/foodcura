@@ -53,16 +53,35 @@ class AuthController extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final user = await _db.loginUser(cleanEmail, password);
+      // 1. Coba verifikasi login ke database SQLite lokal
+      var user = await _db.loginUser(cleanEmail, password);
       if (user != null) {
         _currentUser = user;
         _setLoading(false);
         return true;
       }
+
+      // 2. Jika verifikasi lokal gagal, periksa apakah password baru saja di-reset via email Firebase
+      final fbCred = await AuthService.instance.signInWithEmailPassword(
+        email: cleanEmail,
+        password: password,
+      );
+      if (fbCred != null && fbCred.user != null) {
+        // Password baru di Firebase valid! Sinkronkan kata sandi baru ke SQLite lokal
+        await _db.updatePasswordForEmail(cleanEmail, password);
+        user = await _db.loginUser(cleanEmail, password);
+        if (user != null) {
+          _currentUser = user;
+          _setLoading(false);
+          return true;
+        }
+      }
+
       _setLoading(false, 'Login gagal! Email atau password salah.');
       return false;
     } catch (e) {
-      _setLoading(false, 'Terjadi kesalahan saat login: $e');
+      final msg = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false, msg);
       return false;
     }
   }
@@ -108,6 +127,14 @@ class AuthController extends ChangeNotifier {
         UserModelSQL(name: cleanName, email: cleanEmail, password: password),
       );
       if (success) {
+        // Daftarkan juga ke Firebase Auth agar fitur Lupa Password via email berfungsi
+        try {
+          await AuthService.instance.createFirebaseUser(
+            email: cleanEmail,
+            password: password,
+          );
+        } catch (_) {}
+
         _setLoading(false);
         return true;
       }
@@ -241,7 +268,7 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Mengirimkan tautan reset kata sandi ke email pengguna via Firebase Auth
+  /// Mengirimkan tautan reset kata sandi ke email pengguna
   Future<bool> sendPasswordReset(String email) async {
     final cleanEmail = email.trim();
     if (cleanEmail.isEmpty) {
@@ -251,11 +278,29 @@ class AuthController extends ChangeNotifier {
 
     _setLoading(true);
     try {
+      // 1. Cek apakah email terdaftar di database FoodCura
+      final user = await _db.getUserByEmail(cleanEmail);
+      if (user == null) {
+        _setLoading(false, 'Email ini belum terdaftar di FoodCura.');
+        return false;
+      }
+
+      // 2. Jika akun Google, arahkan untuk login via Google
+      if (user.isGoogleAccount) {
+        _setLoading(
+          false,
+          'Akun ini terhubung via Google Sign-In. Silakan masuk menggunakan tombol "Lanjutkan dengan Google".',
+        );
+        return false;
+      }
+
+      // 3. Kirim link reset password ke email via Firebase Auth
       await AuthService.instance.sendPasswordReset(cleanEmail);
       _setLoading(false);
       return true;
     } catch (e) {
-      _setLoading(false, e.toString());
+      final msg = e.toString().replaceAll('Exception: ', '');
+      _setLoading(false, msg);
       return false;
     }
   }

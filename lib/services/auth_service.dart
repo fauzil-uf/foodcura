@@ -57,6 +57,40 @@ class AuthService {
     }
   }
 
+  // Registrasi user email/password ke Firebase Auth (untuk sinkronisasi reset email)
+  Future<UserCredential?> createFirebaseUser({
+    required String email,
+    required String password,
+  }) async {
+    final auth = _auth;
+    if (auth == null) return null;
+    try {
+      return await auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Verifikasi login ke Firebase Auth dengan email/password (untuk sinkronisasi password baru setelah reset)
+  Future<UserCredential?> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    final auth = _auth;
+    if (auth == null) return null;
+    try {
+      return await auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Login menggunakan akun Google
   Future<UserCredential?> signInWithGoogle() async {
     try {

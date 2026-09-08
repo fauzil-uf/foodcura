@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -25,6 +27,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   final _authController = AuthController();
 
+  int _failedAttempts = 0;
+  int _lockoutSeconds = 0;
+  Timer? _lockoutTimer;
+
   @override
   void initState() {
     super.initState();
@@ -33,11 +39,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _lockoutTimer?.cancel();
     _authController.removeListener(_onAuthStateChanged);
     _authController.dispose();
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  void _startLockout(int seconds) {
+    setState(() {
+      _lockoutSeconds = seconds;
+    });
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_lockoutSeconds > 1) {
+          _lockoutSeconds--;
+        } else {
+          _lockoutSeconds = 0;
+          timer.cancel();
+        }
+      });
+    });
   }
 
   // Update UI saat status loading atau auth berubah
@@ -57,6 +85,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Proses autentikasi login lokal
   Future<void> _login() async {
+    if (_lockoutSeconds > 0) {
+      _showSnackBar(
+        'Terlalu banyak percobaan gagal. Silakan tunggu $_lockoutSeconds detik.',
+      );
+      return;
+    }
+
     final success = await _authController.login(
       emailController.text,
       passwordController.text,
@@ -65,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
+      _failedAttempts = 0;
       final hasSeenOnboarding = _authController.hasSeenOnboarding;
 
       if (!mounted) return;
@@ -83,7 +119,21 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else if (_authController.errorMessage != null) {
-      _showSnackBar(_authController.errorMessage!);
+      final err = _authController.errorMessage!;
+      if (err.contains('salah') || err.contains('gagal')) {
+        _failedAttempts++;
+        if (_failedAttempts >= 5) {
+          _startLockout(30);
+          _showSnackBar(
+            'Terlalu banyak percobaan gagal. Akses login dikunci selama 30 detik demi keamanan akun.',
+          );
+          return;
+        }
+        final remaining = 5 - _failedAttempts;
+        _showSnackBar('$err (Sisa percobaan: $remaining)');
+      } else {
+        _showSnackBar(err);
+      }
     }
   }
 
@@ -213,13 +263,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 58,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: _lockoutSeconds > 0
+                                    ? AppColors.textGraySoft
+                                    : AppColors.primary,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 elevation: 3,
                               ),
-                              onPressed: _authController.isLoading
+                              onPressed: (_authController.isLoading ||
+                                      _lockoutSeconds > 0)
                                   ? null
                                   : _login,
                               child: _authController.isLoading
@@ -231,8 +284,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                  : const Text(
-                                      'Masuk',
+                                  : Text(
+                                      _lockoutSeconds > 0
+                                          ? 'Terkunci ($_lockoutSeconds dtk)'
+                                          : 'Masuk',
                                       style: AppTextStyles.button,
                                     ),
                             ),

@@ -466,6 +466,14 @@ class DBHelper {
       final userMap = Map<String, dynamic>.from(results.first);
       final storedPassword = userMap['password'] as String? ?? '';
 
+      // Cegah bypass login form biasa untuk akun yang terdaftar via Google OAuth
+      final isGoogle = storedPassword == 'google_oauth_user' ||
+          storedPassword.startsWith('GOOGLE_OAUTH_') ||
+          storedPassword.startsWith('GOOGLE_AUTH_');
+      if (isGoogle) {
+        throw 'Akun ini terdaftar menggunakan Google Sign-In. Silakan masuk menggunakan tombol "Lanjutkan dengan Google".';
+      }
+
       if (SecurityHelper.verifyPassword(password, storedPassword)) {
         // Auto-upgrade legacy plaintext password ke SHA-256 hash jika belum di-hash
         if (!SecurityHelper.isHashed(storedPassword)) {
@@ -584,10 +592,12 @@ class DBHelper {
       }
     } else {
       final trueCreationDate = (creationTime ?? DateTime.now()).toIso8601String();
+      final secureOAuthToken =
+          'GOOGLE_OAUTH_LOCKED_${DateTime.now().microsecondsSinceEpoch}';
       final userMap = {
         'name': cleanName,
         'email': cleanEmail,
-        'password': 'google_oauth_user',
+        'password': secureOAuthToken,
         'created_at': trueCreationDate,
       };
       userId = await db.insert(AppConstants.tableUsers, userMap);
@@ -595,7 +605,7 @@ class DBHelper {
         id: userId,
         name: cleanName,
         email: cleanEmail,
-        password: 'google_oauth_user',
+        password: secureOAuthToken,
         createdAt: userMap['created_at'],
       );
       await seedInitialPantryForUser(userId, db: db);
@@ -670,6 +680,33 @@ class DBHelper {
     return res.isNotEmpty;
   }
 
+  // Ambil user berdasarkan email (untuk validasi reset password)
+  Future<UserModelSQL?> getUserByEmail(String email) async {
+    final db = await database;
+    final res = await db.query(
+      AppConstants.tableUsers,
+      where: 'LOWER(TRIM(email)) = ?',
+      whereArgs: [email.trim().toLowerCase()],
+      limit: 1,
+    );
+    if (res.isEmpty) return null;
+    return UserModelSQL.fromMap(res.first);
+  }
+
+  // Perbarui password user berdasarkan email (sinkronisasi reset password)
+  Future<bool> updatePasswordForEmail(String email, String newPassword) async {
+    final db = await database;
+    final cleanEmail = email.trim().toLowerCase();
+    final newHashedPassword = SecurityHelper.hashPassword(newPassword);
+    final count = await db.update(
+      AppConstants.tableUsers,
+      {'password': newHashedPassword},
+      where: 'LOWER(TRIM(email)) = ?',
+      whereArgs: [cleanEmail],
+    );
+    return count > 0;
+  }
+
   // Ganti password user dengan validasi password lama
   Future<bool> changePassword({
     required int userId,
@@ -686,6 +723,14 @@ class DBHelper {
     if (userResults.isEmpty) return false;
 
     final storedPassword = userResults.first['password'] as String? ?? '';
+    // Akun Google tidak memiliki password lokal untuk diubah
+    final isGoogle = storedPassword == 'google_oauth_user' ||
+        storedPassword.startsWith('GOOGLE_OAUTH_') ||
+        storedPassword.startsWith('GOOGLE_AUTH_');
+    if (isGoogle) {
+      return false;
+    }
+
     if (!SecurityHelper.verifyPassword(oldPassword, storedPassword)) {
       return false;
     }

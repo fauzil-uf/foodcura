@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
+import '../../database/db_helper.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 
@@ -49,11 +50,147 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       Navigator.pop(context);
     } else {
-      AppSnackBar.showError(
-        context,
-        _authController.errorMessage ?? 'Gagal mengirim email reset password.',
-      );
+      final err =
+          _authController.errorMessage ?? 'Gagal mengirim email reset password.';
+      if (err.contains('tidak terdaftar di sistem')) {
+        await _showLocalResetDialog(email);
+      } else {
+        AppSnackBar.showError(context, err);
+      }
     }
+  }
+
+  Future<void> _showLocalResetDialog(String email) async {
+    final passCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool obscure = true;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDim,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Reset Kata Sandi Akun Lokal',
+                  style: AppTextStyles.headlineMd,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Akun untuk $email tersimpan di database lokal perangkat Anda. Masukkan kata sandi baru untuk akun ini.',
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textGray,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: passCtrl,
+                  obscureText: obscure,
+                  decoration: InputDecoration(
+                    labelText: 'Kata Sandi Baru (min. 8 karakter)',
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscure ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () => setModalState(() => obscure = !obscure),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmCtrl,
+                  obscureText: obscure,
+                  decoration: InputDecoration(
+                    labelText: 'Konfirmasi Kata Sandi Baru',
+                    prefixIcon: const Icon(Icons.lock_reset_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () async {
+                    final newPass = passCtrl.text;
+                    final confirm = confirmCtrl.text;
+                    if (newPass.length < 8) {
+                      AppSnackBar.showError(
+                        ctx,
+                        'Kata sandi baru minimal 8 karakter!',
+                      );
+                      return;
+                    }
+                    if (newPass != confirm) {
+                      AppSnackBar.showError(
+                        ctx,
+                        'Konfirmasi kata sandi tidak cocok!',
+                      );
+                      return;
+                    }
+                    await DBHelper().updatePasswordForEmail(email, newPass);
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    if (!mounted) return;
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Kata sandi berhasil diperbarui!',
+                      subtitle:
+                          'Silakan masuk menggunakan kata sandi baru Anda.',
+                    );
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Simpan Kata Sandi Baru',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override

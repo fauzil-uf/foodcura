@@ -15,7 +15,10 @@ class UserModelSQL {
   });
 
   /// Menandakan apakah pengguna terdaftar dan masuk melalui Google OAuth
-  bool get isGoogleAccount => password == 'google_oauth_user';
+  bool get isGoogleAccount =>
+      password == 'google_oauth_user' ||
+      password.startsWith('GOOGLE_OAUTH_') ||
+      password.startsWith('GOOGLE_AUTH_');
 
   Map<String, dynamic> toMap() {
     return {

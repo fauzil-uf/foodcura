@@ -30,6 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _logoOpacity;
   late final Animation<double> _textOpacity;
   late final Animation<Offset> _textSlide;
+  late final Animation<double> _textScale;
   late final Animation<double> _shimmerAnimation;
   late final Animation<double> _ambientPulseAnimation;
 
@@ -52,19 +53,22 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // 2. Animasi Teks & Tagline Meluncur Masuk Vertikal Halus
+    // 2. Animasi Tipografi Masuk Meluncur & Membesar Dinamis (Coordinated Spring)
     _textController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 750),
+      duration: const Duration(milliseconds: 800),
     );
     _textOpacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
-    _textSlide = Tween<Offset>(begin: const Offset(0.0, 0.25), end: Offset.zero)
+    _textSlide = Tween<Offset>(begin: const Offset(0.0, 0.28), end: Offset.zero)
         .animate(
           CurvedAnimation(parent: _textController, curve: Curves.easeOutCubic),
         );
+    _textScale = Tween<double>(begin: 0.82, end: 1.0).animate(
+      CurvedAnimation(parent: _textController, curve: Curves.easeOutBack),
+    );
 
     // 3. Efek Kilau Diamond & Mint Shimmer Menyeluruh (Left-to-Right Sweeping Beam)
     _shimmerController = AnimationController(
@@ -110,6 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Await menjamin animasi selesai 100% tuntas tanpa terpotong
     await _shimmerController.forward(from: 0.0);
     if (!mounted) return;
+    _shimmerController.repeat();
 
     // 5. Jeda harmoni visual sejenak setelah kilau cahaya rampung sempurna
     await Future.delayed(const Duration(milliseconds: 300));
@@ -369,169 +374,146 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 26),
 
-                  // Teks nama aplikasi & tagline dengan transisi meluncur ke atas dan masker kilau mengalir
-                  SlideTransition(
-                    position: _textSlide,
-                    child: FadeTransition(
-                      opacity: _textOpacity,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Tipografi Brand "FoodCura" dengan Layer Specular Shine Menyilaukan
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Layer Dasar: Warna otentik crisp (Food putih, Cura mint)
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Food',
-                                      style: AppTextStyles.logo.copyWith(
-                                        fontSize: 38,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.6,
-                                      ),
+                  // Tipografi nama aplikasi "FoodCura" dengan animasi melayang, bernapas, dan kilau specular
+                  AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _textController,
+                      _ambientPulseAnimation,
+                    ]),
+                    builder: (context, child) {
+                      final double pulse = _ambientPulseAnimation.value;
+                      // Bernapas & melayang halus selaras dengan denyut kartu logo
+                      final double livingScale =
+                          _textScale.value * (0.97 + 0.03 * pulse);
+                      final double floatOffsetY = (pulse - 1.0) * -6.0;
+
+                      return Opacity(
+                        opacity: _textOpacity.value,
+                        child: SlideTransition(
+                          position: _textSlide,
+                          child: Transform.translate(
+                            offset: Offset(0, floatOffsetY),
+                            child: Transform.scale(
+                              scale: livingScale,
+                              child: child,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Halo ambient bernapas lembut di belakang tipografi
+                        AnimatedBuilder(
+                          animation: _ambientPulseAnimation,
+                          builder: (context, _) {
+                            final double pulse = _ambientPulseAnimation.value;
+                            return Container(
+                              width: 230 * pulse,
+                              height: 52 * pulse,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                gradient: RadialGradient(
+                                  colors: [
+                                    AppColors.mintAccent.withValues(
+                                      alpha: 0.22 * pulse,
                                     ),
-                                    TextSpan(
-                                      text: 'Cura',
-                                      style: AppTextStyles.logo.copyWith(
-                                        fontSize: 38,
-                                        color: AppColors.mintAccent,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.6,
-                                      ),
+                                    const Color(0xFF34D399).withValues(
+                                      alpha: 0.08 * pulse,
                                     ),
+                                    Colors.transparent,
                                   ],
+                                  radius: 0.85,
                                 ),
                               ),
+                            );
+                          },
+                        ),
 
-                              // Layer Kilau: Berkas cahaya diamond specular menyapu huruf secara dinamis
-                              IgnorePointer(
-                                child: AnimatedBuilder(
-                                  animation: _shimmerAnimation,
-                                  builder: (context, _) {
-                                    final double val = _shimmerAnimation.value;
-                                    return ShaderMask(
-                                      blendMode: BlendMode.srcIn,
-                                      shaderCallback: (bounds) {
-                                        return LinearGradient(
-                                          begin: Alignment(val - 0.9, -0.2),
-                                          end: Alignment(val + 0.9, 0.2),
-                                          stops: const [
-                                            0.0,
-                                            0.35,
-                                            0.50,
-                                            0.65,
-                                            1.0,
-                                          ],
-                                          colors: [
-                                            Colors.transparent,
-                                            Colors.white.withValues(alpha: 0.2),
-                                            Colors.white, // Diamond Specular Core
-                                            const Color(0xFFBAF7D0), // Iridescent Emerald Glint
-                                            Colors.transparent,
-                                          ],
-                                        ).createShader(bounds);
-                                      },
-                                      child: RichText(
-                                        text: TextSpan(
-                                          children: [
-                                            TextSpan(
-                                              text: 'Food',
-                                              style: AppTextStyles.logo.copyWith(
-                                                fontSize: 38,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: -0.6,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: 'Cura',
-                                              style: AppTextStyles.logo.copyWith(
-                                                fontSize: 38,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: -0.6,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
+                        // Layer Dasar: Warna otentik crisp (Food putih, Cura mint)
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Food',
+                                style: AppTextStyles.logo.copyWith(
+                                  fontSize: 40,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.6,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Cura',
+                                style: AppTextStyles.logo.copyWith(
+                                  fontSize: 40,
+                                  color: AppColors.mintAccent,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.6,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                        ),
 
-                          // Pill Tagline Brand Bernuansa Frosted Glass Mewah
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.07),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.16),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Permata status neon bernapas
-                                AnimatedBuilder(
-                                  animation: _ambientPulseAnimation,
-                                  builder: (context, _) {
-                                    return Container(
-                                      width: 7,
-                                      height: 7,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: AppColors.mintAccent,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.mintAccent.withValues(
-                                              alpha: 0.7 *
-                                                  _ambientPulseAnimation.value,
-                                            ),
-                                            blurRadius:
-                                                8 * _ambientPulseAnimation.value,
-                                            spreadRadius: 2,
-                                          ),
-                                        ],
+                        // Layer Kilau: Berkas cahaya diamond specular menyapu huruf secara dinamis
+                        IgnorePointer(
+                          child: AnimatedBuilder(
+                            animation: _shimmerAnimation,
+                            builder: (context, _) {
+                              final double val = _shimmerAnimation.value;
+                              return ShaderMask(
+                                blendMode: BlendMode.srcIn,
+                                shaderCallback: (bounds) {
+                                  return LinearGradient(
+                                    begin: Alignment(val - 0.9, -0.2),
+                                    end: Alignment(val + 0.9, 0.2),
+                                    stops: const [
+                                      0.0,
+                                      0.35,
+                                      0.50,
+                                      0.65,
+                                      1.0,
+                                    ],
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.white.withValues(alpha: 0.2),
+                                      Colors.white, // Diamond Specular Core
+                                      const Color(0xFFBAF7D0), // Iridescent Emerald Glint
+                                      Colors.transparent,
+                                    ],
+                                  ).createShader(bounds);
+                                },
+                                child: RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Food',
+                                        style: AppTextStyles.logo.copyWith(
+                                          fontSize: 40,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.6,
+                                        ),
                                       ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 9),
-                                Text(
-                                  'Nutrisi Sehat • Pantau Stok Dapur',
-                                  style: TextStyle(
-                                    fontFamily: AppTextStyles.fontFamily,
-                                    color: Colors.white.withValues(alpha: 0.95),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.6,
+                                      TextSpan(
+                                        text: 'Cura',
+                                        style: AppTextStyles.logo.copyWith(
+                                          fontSize: 40,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.6,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -540,64 +522,49 @@ class _SplashScreenState extends State<SplashScreen>
 
             // Footer subtil dengan hairline progress capsule di bagian bawah layar
             Positioned(
-              bottom: 34,
+              bottom: 40,
               left: 0,
               right: 0,
               child: FadeTransition(
                 opacity: _textOpacity,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Hairline progress capsule yang terisi selaras dengan sapuan shimmer
-                    AnimatedBuilder(
-                      animation: _shimmerController,
-                      builder: (context, _) {
-                        final double progress =
-                            _shimmerController.value.clamp(0.0, 1.0);
-                        return Container(
-                          width: 48,
-                          height: 2.5,
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _shimmerController,
+                    builder: (context, _) {
+                      final double progress =
+                          _shimmerController.value.clamp(0.0, 1.0);
+                      return Container(
+                        width: 52,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 52 * progress,
+                          height: 3,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            width: 48 * progress,
-                            height: 2.5,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  AppColors.mintAccent,
-                                  Colors.white,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.mintAccent.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                  blurRadius: 6,
-                                ),
+                            gradient: const LinearGradient(
+                              colors: [
+                                AppColors.mintAccent,
+                                Colors.white,
                               ],
                             ),
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.mintAccent.withValues(
+                                  alpha: 0.6,
+                                ),
+                                blurRadius: 6,
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Smart Nutrition & Kitchen Pantry',
-                      style: TextStyle(
-                        fontFamily: AppTextStyles.fontFamily,
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 11,
-                        letterSpacing: 1.4,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

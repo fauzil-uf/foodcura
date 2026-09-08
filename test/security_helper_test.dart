@@ -53,6 +53,20 @@ void main() {
       expect(SecurityHelper.verifyPassword('', ''), isFalse);
     });
 
+    test('verifyPassword never verifies Google OAuth token markers', () {
+      expect(
+        SecurityHelper.verifyPassword('google_oauth_user', 'google_oauth_user'),
+        isFalse,
+      );
+      expect(
+        SecurityHelper.verifyPassword(
+          'GOOGLE_OAUTH_LOCKED_12345',
+          'GOOGLE_OAUTH_LOCKED_12345',
+        ),
+        isFalse,
+      );
+    });
+
     test('isHashed correctly identifies SHA-256 hex vs plaintext', () {
       final validHash = SecurityHelper.hashPassword('testing123');
       expect(SecurityHelper.isHashed(validHash), isTrue);
