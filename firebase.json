@@ -1,1 +1,16 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"foodcura-c2a5c","appId":"1:767149958522:android:ad8547f0f615682f19a2c3","fileOutput":"android/app/google-services.json"}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "foodcura-c2a5c",
+          "appId": "1:767149958522:android:ad8547f0f615682f19a2c3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      }
+    }
+  }
+}
