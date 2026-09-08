@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "767149958522-p2qf5ev9gv9a0rvdsqavfmmrob7ml9tq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fauzil.foodcura",
+            "certificate_hash": "693c7f04fc443a0bbf90bbf8f81f277a9a615dd8"
+          }
+        },
+        {
           "client_id": "767149958522-pvso7hte1eatq29rdr6rtnm70almn7k0.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
