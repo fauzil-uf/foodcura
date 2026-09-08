@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'constants/app_constants.dart';
 import 'constants/app_theme.dart';
+import 'database/db_helper.dart';
 import 'firebase_options.dart';
 import 'services/connectivity_service.dart';
 import 'services/notification_service.dart';
@@ -31,6 +32,8 @@ void main() async {
     await ReminderService().syncMealAlarms();
     await ReminderService().syncPantryExpiryAlarms();
   } catch (_) {}
+  // Sinkronisasi katalog makanan Firestore di background tanpa memblokir startup
+  DBHelper().syncFoodCatalogWithFirestore().ignore();
   runApp(const FoodCuraApp());
 }
 

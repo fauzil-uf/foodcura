@@ -13,6 +13,7 @@ import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../utils/security_helper.dart';
 
@@ -755,6 +756,37 @@ class DBHelper {
       orderBy: 'name ASC',
     );
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
+  }
+
+  /// Sinkronisasi katalog makanan antara Cloud Firestore dan SQLite lokal (Offline-First)
+  Future<void> syncFoodCatalogWithFirestore() async {
+    try {
+      final firestoreService = FirestoreService.instance;
+      if (!firestoreService.isAvailable) return;
+
+      final remoteFoods = await firestoreService.getFoods();
+      if (remoteFoods.isEmpty) {
+        // Jika koleksi foods di Firestore masih kosong, seed dari database lokal
+        final localFoods = await getFoodCatalog();
+        if (localFoods.isNotEmpty) {
+          await firestoreService.seedFoods(localFoods);
+        }
+      } else {
+        // Jika terdapat data dari Firestore, upsert ke SQLite lokal agar katalog selalu mutakhir
+        final db = await database;
+        final batch = db.batch();
+        for (final food in remoteFoods) {
+          batch.insert(
+            tableFoods,
+            food.toMap()..remove('id'),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    } catch (_) {
+      // Abaikan kegagalan jaringan saat offline
+    }
   }
 
   // Cari makanan di katalog berdasarkan nama atau kategori
