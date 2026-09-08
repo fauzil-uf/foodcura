@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/preference_handler.dart';
 
@@ -58,6 +59,14 @@ class AuthController extends ChangeNotifier {
       if (user != null) {
         _currentUser = user;
         _setLoading(false);
+        try {
+          final uid = AuthService.instance.currentUser?.uid ?? 'user_${user.id}';
+          FirestoreService.instance.saveUserProfile(
+            uid: uid,
+            email: user.email,
+            name: user.name,
+          ).ignore();
+        } catch (_) {}
         return true;
       }
 
@@ -73,6 +82,13 @@ class AuthController extends ChangeNotifier {
         if (user != null) {
           _currentUser = user;
           _setLoading(false);
+          try {
+            FirestoreService.instance.saveUserProfile(
+              uid: fbCred.user!.uid,
+              email: user.email,
+              name: user.name,
+            ).ignore();
+          } catch (_) {}
           return true;
         }
       }
@@ -129,10 +145,17 @@ class AuthController extends ChangeNotifier {
       if (success) {
         // Daftarkan juga ke Firebase Auth agar fitur Lupa Password via email berfungsi
         try {
-          await AuthService.instance.createFirebaseUser(
+          final fbCred = await AuthService.instance.createFirebaseUser(
             email: cleanEmail,
             password: password,
           );
+          if (fbCred?.user != null) {
+            FirestoreService.instance.saveUserProfile(
+              uid: fbCred!.user!.uid,
+              email: cleanEmail,
+              name: cleanName,
+            ).ignore();
+          }
         } catch (_) {}
 
         _setLoading(false);
@@ -180,7 +203,17 @@ class AuthController extends ChangeNotifier {
         email: cleanEmail,
       );
       final success = await _db.updateUser(updated);
-      if (success) _currentUser = updated;
+      if (success) {
+        _currentUser = updated;
+        try {
+          final uid = AuthService.instance.currentUser?.uid ?? 'user_${updated.id}';
+          FirestoreService.instance.saveUserProfile(
+            uid: uid,
+            email: updated.email,
+            name: updated.name,
+          ).ignore();
+        } catch (_) {}
+      }
       _setLoading(false);
       return success;
     } catch (e) {
@@ -257,6 +290,13 @@ class AuthController extends ChangeNotifier {
       if (user != null) {
         _currentUser = user;
         _setLoading(false);
+        try {
+          FirestoreService.instance.saveUserProfile(
+            uid: fbUser.uid,
+            email: email,
+            name: name,
+          ).ignore();
+        } catch (_) {}
         return true;
       }
 

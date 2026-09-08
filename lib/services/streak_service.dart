@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../constants/app_date_formatter.dart';
 import '../database/db_helper.dart';
+import 'auth_service.dart';
+import 'firestore_service.dart';
 
 // Service perhitungan streak harian user
 class StreakService {
@@ -108,6 +110,17 @@ class StreakService {
     if (currentStreak < 0) currentStreak = 0;
 
     await prefs.setInt(streakKey, currentStreak);
+
+    // Sinkronisasi Eco Points dan streak ke Firestore (latar belakang)
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance.updateEcoPoints(
+        uid: uid,
+        ecoPoints: currentStreak * 10,
+        streakCount: currentStreak,
+      ).ignore();
+    } catch (_) {}
+
     return currentStreak;
   }
 
