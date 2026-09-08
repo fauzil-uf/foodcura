@@ -10,6 +10,8 @@ import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
 import '../services/app_notifiers.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/nutrition_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
@@ -242,6 +244,12 @@ class FoodTrackerController extends ChangeNotifier {
         activeUserId != null ? log.copyWith(userId: activeUserId) : log;
     await _db.insertFoodLog(logWithUser);
 
+    // Sinkronisasi catatan makan ke Firestore (latar belakang)
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      FirestoreService.instance.addFoodLog(uid, logWithUser).ignore();
+    } catch (_) {}
+
     final todayStr = AppDateFormatter.formatToday();
     if (logWithUser.date == todayStr && activeUserId != null) {
       await _reminderService.cancelAndDismissMealReminder(
@@ -265,6 +273,12 @@ class FoodTrackerController extends ChangeNotifier {
     final logWithUser =
         activeUserId != null ? log.copyWith(userId: activeUserId) : log;
     await _db.updateFoodLog(logWithUser);
+
+    // Sinkronisasi update ke Firestore (latar belakang)
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      FirestoreService.instance.addFoodLog(uid, logWithUser).ignore();
+    } catch (_) {}
 
     final todayStr = AppDateFormatter.formatToday();
     if (logWithUser.date == todayStr && activeUserId != null) {
@@ -290,6 +304,12 @@ class FoodTrackerController extends ChangeNotifier {
     final targetLog = logs.where((l) => l.id == id).firstOrNull;
 
     await _db.deleteFoodLog(id);
+
+    // Hapus dari Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+      FirestoreService.instance.deleteFoodLog(uid, 'foodlog_$id').ignore();
+    } catch (_) {}
 
     if (targetLog != null && activeUserId != null) {
       final todayStr = AppDateFormatter.formatToday();
