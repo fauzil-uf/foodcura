@@ -34,6 +34,7 @@ class _PantryScreenState extends State<PantryScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0;
   StreamSubscription? _cloudSubscription;
+  StreamSubscription? _authSubscription;
 
   static const List<String> _filters = [
     'Semua',
@@ -60,21 +61,35 @@ class _PantryScreenState extends State<PantryScreen> {
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     NotificationNotifier.instance.removeListener(_onNotifChanged);
     _cloudSubscription?.cancel();
+    _authSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _setupCloudPantryListener() {
     try {
-      final uid = AuthService.instance.currentUser?.uid;
-      if (uid != null) {
-        _cloudSubscription = FirestoreService.instance
-            .streamPantryItems(uid)
-            .listen((_) {
-              _controller.syncCloudPantry();
-            });
+      _authSubscription?.cancel();
+      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
+        final uid = user?.uid;
+        if (uid != null) {
+          _subscribeToCloudPantry(uid);
+        }
+      });
+
+      final currentUid = AuthService.instance.currentUser?.uid;
+      if (currentUid != null) {
+        _subscribeToCloudPantry(currentUid);
       }
     } catch (_) {}
+  }
+
+  void _subscribeToCloudPantry(String uid) {
+    _cloudSubscription?.cancel();
+    _cloudSubscription = FirestoreService.instance
+        .streamPantryItems(uid)
+        .listen((_) {
+          _controller.syncCloudPantry();
+        });
   }
 
   // Render ulang UI jika state pantry berubah

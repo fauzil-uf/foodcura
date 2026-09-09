@@ -190,17 +190,34 @@ class SyncService extends ChangeNotifier {
       final localPantry = await _db.getPantryItems(userId: targetUserId);
       final cloudPantry = await _firestore.getPantryItems(uid);
       for (final cItem in cloudPantry) {
-        if (cItem.isUsed) continue;
-
-        final alreadyExists = localPantry.any((l) =>
+        final existingIndex = localPantry.indexWhere((l) =>
             (cItem.id != null && l.id == cItem.id) ||
             (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
-             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim() &&
-             l.expiryDate.year == cItem.expiryDate.year &&
-             l.expiryDate.month == cItem.expiryDate.month &&
-             l.expiryDate.day == cItem.expiryDate.day));
+             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim()));
 
-        if (!alreadyExists) {
+        if (existingIndex != -1) {
+          final local = localPantry[existingIndex];
+          if (cItem.isUsed && !local.isUsed) {
+            await _db.markPantryItemUsed(local.id!);
+            pantryRestored++;
+          } else if (!cItem.isUsed) {
+            final hasChanged = local.quantity != cItem.quantity ||
+                local.name.trim() != cItem.name.trim() ||
+                local.storage != cItem.storage ||
+                local.unit != cItem.unit ||
+                local.expiryDate.year != cItem.expiryDate.year ||
+                local.expiryDate.month != cItem.expiryDate.month ||
+                local.expiryDate.day != cItem.expiryDate.day;
+
+            if (hasChanged) {
+              await _db.updatePantryItem(cItem.copyWith(
+                id: local.id,
+                userId: targetUserId,
+              ));
+              pantryRestored++;
+            }
+          }
+        } else if (!cItem.isUsed) {
           await _db.addPantryItem(cItem.copyWith(userId: targetUserId));
           pantryRestored++;
         }
@@ -297,29 +314,46 @@ class SyncService extends ChangeNotifier {
       if (cloudPantry.isEmpty) return 0;
 
       final localPantry = await _db.getPantryItems(userId: targetUserId);
-      int addedCount = 0;
+      int changeCount = 0;
 
       for (final cItem in cloudPantry) {
-        if (cItem.isUsed) continue;
-
-        final alreadyExists = localPantry.any((l) =>
+        final existingIndex = localPantry.indexWhere((l) =>
             (cItem.id != null && l.id == cItem.id) ||
             (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
-             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim() &&
-             l.expiryDate.year == cItem.expiryDate.year &&
-             l.expiryDate.month == cItem.expiryDate.month &&
-             l.expiryDate.day == cItem.expiryDate.day));
+             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim()));
 
-        if (!alreadyExists) {
+        if (existingIndex != -1) {
+          final local = localPantry[existingIndex];
+          if (cItem.isUsed && !local.isUsed) {
+            await _db.markPantryItemUsed(local.id!);
+            changeCount++;
+          } else if (!cItem.isUsed) {
+            final hasChanged = local.quantity != cItem.quantity ||
+                local.name.trim() != cItem.name.trim() ||
+                local.storage != cItem.storage ||
+                local.unit != cItem.unit ||
+                local.expiryDate.year != cItem.expiryDate.year ||
+                local.expiryDate.month != cItem.expiryDate.month ||
+                local.expiryDate.day != cItem.expiryDate.day;
+
+            if (hasChanged) {
+              await _db.updatePantryItem(cItem.copyWith(
+                id: local.id,
+                userId: targetUserId,
+              ));
+              changeCount++;
+            }
+          }
+        } else if (!cItem.isUsed) {
           await _db.addPantryItem(cItem.copyWith(userId: targetUserId));
-          addedCount++;
+          changeCount++;
         }
       }
 
-      if (addedCount > 0) {
+      if (changeCount > 0) {
         PantryUpdateNotifier.instance.notifyPantryChanged();
       }
-      return addedCount;
+      return changeCount;
     } catch (e) {
       debugPrint('[SyncService] Gagal sinkronisasi pantry dari cloud: $e');
       return 0;
