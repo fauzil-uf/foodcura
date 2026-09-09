@@ -4,9 +4,11 @@ import '../database/db_helper.dart';
 import '../models/user_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
+import '../services/sync_service.dart';
 
 // Controller profil user, statistik (Eco Points, streak), & pengaturan akun
 class ProfileController extends ChangeNotifier {
@@ -84,6 +86,13 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
+  /// Sinkronisasi profil user dari Cloud Firestore ke database lokal
+  Future<bool> syncCloudProfile() async {
+    final updated = await SyncService.instance.syncUserProfileFromCloud();
+    await loadProfile();
+    return updated;
+  }
+
   /// Memperbarui nama dan email pengguna
   Future<bool> updateProfile({
     required String name,
@@ -125,7 +134,22 @@ class ProfileController extends ChangeNotifier {
       if (success) {
         _user = updated;
         _errorMessage = null;
+        UserProfileUpdateNotifier.instance.notifyUserChanged();
         notifyListeners();
+
+        // Sinkronisasi profil ke Firestore
+        try {
+          final uid = AuthService.instance.currentUser?.uid ?? 'user_${_user!.id}';
+          await FirestoreService.instance.saveUserProfile(
+            uid: uid,
+            email: cleanEmail,
+            name: cleanName,
+            ecoPoints: _ecoPoints,
+            streakCount: _streak,
+          );
+        } catch (e) {
+          debugPrint('[ProfileController] Gagal sync profil ke Firestore: $e');
+        }
       } else {
         _errorMessage = 'Gagal memperbarui profil ke database.';
         notifyListeners();

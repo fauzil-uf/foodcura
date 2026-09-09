@@ -175,6 +175,11 @@ class SyncService extends ChangeNotifier {
       // 1. Pulihkan Profil & Eco Points
       final cloudProfile = await _firestore.getUserProfile(uid);
       if (cloudProfile != null && user != null) {
+        final cloudName = cloudProfile['name']?.toString().trim();
+        if (cloudName != null && cloudName.isNotEmpty && cloudName != user.name) {
+          await _db.updateUser(user.copyWith(name: cloudName));
+          UserProfileUpdateNotifier.instance.notifyUserChanged();
+        }
         final cloudEcoPoints = (cloudProfile['eco_points'] as num?)?.toInt();
         final cloudStreak = (cloudProfile['streak_count'] as num?)?.toInt();
         if (cloudEcoPoints != null) {
@@ -339,6 +344,56 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  /// Sinkronisasi cepat profil user & poin dari Cloud Firestore ke database lokal
+  Future<bool> syncUserProfileFromCloud({String? explicitUid}) async {
+    try {
+      final user = await _db.getLoggedInUser();
+      final targetUserId = user?.id;
+      final uid = explicitUid ??
+          AuthService.instance.currentUser?.uid ??
+          (targetUserId != null ? 'user_$targetUserId' : null);
+
+      if (uid == null) return false;
+
+      final cloudProfile = await _firestore.getUserProfile(uid);
+      if (cloudProfile == null) return false;
+
+      bool changed = false;
+      final cloudName = cloudProfile['name']?.toString().trim();
+      if (cloudName != null && cloudName.isNotEmpty && user != null && user.name != cloudName) {
+        await _db.updateUser(user.copyWith(name: cloudName));
+        changed = true;
+      }
+
+      final cloudEcoPoints = (cloudProfile['eco_points'] as num?)?.toInt();
+      if (cloudEcoPoints != null) {
+        final currentPoints = EcoPointsNotifier.instance.value;
+        if (currentPoints != cloudEcoPoints) {
+          await EcoPointsNotifier.instance.setPoints(cloudEcoPoints);
+          changed = true;
+        }
+      }
+
+      final cloudStreak = (cloudProfile['streak_count'] as num?)?.toInt();
+      if (cloudStreak != null && targetUserId != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final currentStreak = prefs.getInt('user_streak_$targetUserId') ?? 0;
+        if (currentStreak != cloudStreak) {
+          await prefs.setInt('user_streak_$targetUserId', cloudStreak);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        UserProfileUpdateNotifier.instance.notifyUserChanged();
+      }
+      return changed;
+    } catch (e) {
+      debugPrint('[SyncService] Gagal sinkronisasi profil dari cloud: $e');
+      return false;
+    }
+  }
+
   /// Sinkronisasi cepat inventaris pantry dari Cloud Firestore ke SQLite lokal
   Future<int> syncPantryFromCloud({String? explicitUid}) async {
     try {
@@ -441,6 +496,11 @@ class SyncService extends ChangeNotifier {
           await _db.insertFoodLog(cLog.copyWith(userId: targetUserId));
           changeCount++;
         }
+      }
+
+      if (changeCount > 0) {
+        FoodLogUpdateNotifier.instance.notifyFoodLogsChanged();
+        PantryUpdateNotifier.instance.notifyPantryChanged();
       }
 
       return changeCount;

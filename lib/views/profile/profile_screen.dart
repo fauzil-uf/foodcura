@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -8,6 +11,8 @@ import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../../services/app_notifiers.dart';
 import '../../services/app_update_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../../services/sync_service.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
@@ -44,28 +49,27 @@ class _ProfileScreenState extends State<ProfileScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
+  
+  StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<Map<String, dynamic>?>? _cloudSubscription;
 
   // Palet warna acak avatar berdasarkan nama user
   static const List<Color> _avatarColors = [
+    Color(0xFF2E7D32),
+    Color(0xFF1565C0),
+    Color(0xFFE65100),
+    Color(0xFF6A1B9A),
+    Color(0xFF00838F),
+    Color(0xFFC2185B),
+    Color(0xFF4527A0),
+    Color(0xFF00695C),
+    Color(0xFFD84315),
+    Color(0xFF283593),
     Color(0xFF1B5E20),
     Color(0xFF2E7D32),
     Color(0xFF388E3C),
     Color(0xFF43A047),
     Color(0xFF00695C),
-    Color(0xFF00897B),
-    Color(0xFF0277BD),
-    Color(0xFF1565C0),
-    Color(0xFF283593),
-    Color(0xFF4527A0),
-    Color(0xFF6A1B9A),
-    Color(0xFFAD1457),
-    Color(0xFFC2185B),
-    Color(0xFFD81B60),
-    Color(0xFFE65100),
-    Color(0xFFEF6C00),
-    Color(0xFFF57C00),
-    Color(0xFF4E342E),
-    Color(0xFF37474F),
   ];
 
   @override
@@ -89,8 +93,36 @@ class _ProfileScreenState extends State<ProfileScreen>
     _profileController.initListeners();
     _profileController.addListener(_onProfileChanged);
     PantryUpdateNotifier.instance.addListener(_loadProfileData);
+    UserProfileUpdateNotifier.instance.addListener(_loadProfileData);
     NotificationNotifier.instance.addListener(_onNotifChanged);
+    _initCloudListener();
     _loadProfileData();
+  }
+
+  void _initCloudListener() {
+    try {
+      _authSubscription?.cancel();
+      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
+        final uid = user?.uid;
+        if (uid != null) {
+          _subscribeToCloudProfile(uid);
+        }
+      });
+
+      final currentUid = AuthService.instance.currentUser?.uid;
+      if (currentUid != null) {
+        _subscribeToCloudProfile(currentUid);
+      }
+    } catch (_) {}
+  }
+
+  void _subscribeToCloudProfile(String uid) {
+    _cloudSubscription?.cancel();
+    _cloudSubscription = FirestoreService.instance
+        .streamUserProfile(uid)
+        .listen((_) {
+          _profileController.syncCloudProfile();
+        });
   }
 
   // Update tampilan saat data profil berubah
@@ -105,7 +137,10 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
+    _cloudSubscription?.cancel();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
+    UserProfileUpdateNotifier.instance.removeListener(_loadProfileData);
     PantryUpdateNotifier.instance.removeListener(_loadProfileData);
     _profileController.removeListener(_onProfileChanged);
     _profileController.dispose();
@@ -503,7 +538,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Expanded(
                         child: RefreshIndicator(
                           color: AppColors.primary,
-                          onRefresh: _loadProfileData,
+                          onRefresh: () async {
+                            await _profileController.syncCloudProfile();
+                            if (mounted) {
+                              _animController.forward(from: 0);
+                            }
+                          },
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.only(

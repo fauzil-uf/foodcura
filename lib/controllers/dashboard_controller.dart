@@ -10,6 +10,7 @@ import '../services/gemini_service.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
+import '../services/sync_service.dart';
 
 // Controller dashboard / home (ringkasan kalori, nutrisi, radar pantry, & saran AI)
 class DashboardController extends ChangeNotifier {
@@ -178,5 +179,20 @@ class DashboardController extends ChangeNotifier {
   Future<void> refreshUnreadCount() async {
     _unreadNotifications = await _db.getUnreadNotificationCount();
     notifyListeners();
+  }
+
+  /// Sinkronisasi menyeluruh dari Cloud Firestore ke database lokal untuk Dashboard
+  Future<void> syncCloudDashboard() async {
+    try {
+      await Future.wait([
+        SyncService.instance.syncUserProfileFromCloud(),
+        SyncService.instance.syncPantryFromCloud(),
+        SyncService.instance.syncFoodLogsFromCloud(),
+        SyncService.instance.syncNotificationsFromCloud(),
+      ]);
+    } catch (e) {
+      debugPrint('[DashboardController] Gagal sync dashboard dari cloud: $e');
+    }
+    await loadDashboardData();
   }
 }

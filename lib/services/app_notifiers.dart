@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/db_helper.dart';
+import 'auth_service.dart';
+import 'firestore_service.dart';
 
 // Notifier jumlah notifikasi belum dibaca
 class NotificationNotifier extends ValueNotifier<int> {
@@ -40,6 +42,14 @@ class EcoPointsNotifier extends ValueNotifier<int> {
     final updated = current + points;
     await prefs.setInt(key, updated);
     value = updated;
+
+    // Sinkronisasi otomatis ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid;
+      if (uid != null) {
+        FirestoreService.instance.updateEcoPoints(uid: uid, ecoPoints: updated).ignore();
+      }
+    } catch (_) {}
   }
 
   Future<void> setPoints(int points) async {
@@ -62,6 +72,26 @@ class PantryUpdateNotifier extends ValueNotifier<int> {
   PantryUpdateNotifier._() : super(0);
 
   void notifyPantryChanged() {
+    value++;
+  }
+}
+
+// Notifier event perubahan catatan makan (Food Logs)
+class FoodLogUpdateNotifier extends ValueNotifier<int> {
+  static final FoodLogUpdateNotifier instance = FoodLogUpdateNotifier._();
+  FoodLogUpdateNotifier._() : super(0);
+
+  void notifyFoodLogsChanged() {
+    value++;
+  }
+}
+
+// Notifier event perubahan data profil pengguna
+class UserProfileUpdateNotifier extends ValueNotifier<int> {
+  static final UserProfileUpdateNotifier instance = UserProfileUpdateNotifier._();
+  UserProfileUpdateNotifier._() : super(0);
+
+  void notifyUserChanged() {
     value++;
   }
 }

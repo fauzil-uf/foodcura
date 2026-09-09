@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -5,8 +8,12 @@ import '../../constants/app_date_formatter.dart';
 import '../../constants/app_food_formatter.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/dashboard_controller.dart';
+import '../../models/food_log_model.dart';
+import '../../models/notification_model.dart';
 import '../../models/pantry_item_model.dart';
 import '../../services/app_notifiers.dart';
+import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../food_tracker/widgets/add_food_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_circular_progress.dart';
@@ -36,6 +43,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
+  StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<List<PantryItemModel>>? _pantrySub;
+  StreamSubscription<List<FoodLogModel>>? _foodLogSub;
+  StreamSubscription<Map<String, dynamic>?>? _userSub;
+  StreamSubscription<List<NotificationModel>>? _notifSub;
+
   @override
   void initState() {
     super.initState();
@@ -58,16 +71,67 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
     NotificationNotifier.instance.addListener(_onNotifChanged);
     NotificationNotifier.instance.refresh();
-    PantryUpdateNotifier.instance.addListener(_onPantryChanged);
+    PantryUpdateNotifier.instance.addListener(_onDataChanged);
+    FoodLogUpdateNotifier.instance.addListener(_onDataChanged);
+    UserProfileUpdateNotifier.instance.addListener(_onDataChanged);
+    EcoPointsNotifier.instance.addListener(_onDataChanged);
+    _initCloudListener();
+  }
+
+  void _initCloudListener() {
+    try {
+      _authSubscription?.cancel();
+      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
+        final uid = user?.uid;
+        if (uid != null) {
+          _subscribeToCloud(uid);
+        }
+      });
+
+      final currentUid = AuthService.instance.currentUser?.uid;
+      if (currentUid != null) {
+        _subscribeToCloud(currentUid);
+      }
+    } catch (_) {}
+  }
+
+  void _subscribeToCloud(String uid) {
+    _pantrySub?.cancel();
+    _pantrySub = FirestoreService.instance.streamPantryItems(uid).listen((_) {
+      _controller.loadDashboardData();
+    });
+
+    _foodLogSub?.cancel();
+    _foodLogSub = FirestoreService.instance.streamFoodLogs(uid).listen((_) {
+      _controller.loadDashboardData();
+    });
+
+    _userSub?.cancel();
+    _userSub = FirestoreService.instance.streamUserProfile(uid).listen((_) {
+      _controller.loadDashboardData();
+    });
+
+    _notifSub?.cancel();
+    _notifSub = FirestoreService.instance.streamNotifications(uid).listen((_) {
+      _controller.refreshUnreadCount();
+    });
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
+    _pantrySub?.cancel();
+    _foodLogSub?.cancel();
+    _userSub?.cancel();
+    _notifSub?.cancel();
     _animController.dispose();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
-    PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
+    PantryUpdateNotifier.instance.removeListener(_onDataChanged);
+    FoodLogUpdateNotifier.instance.removeListener(_onDataChanged);
+    UserProfileUpdateNotifier.instance.removeListener(_onDataChanged);
+    EcoPointsNotifier.instance.removeListener(_onDataChanged);
     super.dispose();
   }
 
@@ -81,8 +145,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (mounted) _controller.refreshUnreadCount();
   }
 
-  // Muat ulang data dashboard jika terjadi perubahan stok pantry di layar lain
-  void _onPantryChanged() {
+  // Muat ulang data dashboard jika terjadi perubahan di layar lain atau di cloud
+  void _onDataChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
@@ -161,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Expanded(
                 child: RefreshIndicator(
                   color: AppColors.primary,
-                  onRefresh: () => _controller.loadDashboardData(),
+                  onRefresh: () => _controller.syncCloudDashboard(),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(
