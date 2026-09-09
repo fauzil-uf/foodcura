@@ -109,19 +109,21 @@ class DashboardController extends ChangeNotifier {
     await loadDashboardData();
   }
 
+  bool _isDataLoading = false;
+
   /// Memuat semua data metrik dashboard secara paralel
   Future<void> loadDashboardData() async {
+    if (_isDataLoading) return;
+    _isDataLoading = true;
     _isLoading = true;
     notifyListeners();
 
     try {
       final todayStr = AppDateFormatter.formatToday();
 
-      // Jalankan sinkronisasi pengingat terlebih dahulu agar notifikasi baru sudah terdata di database
+      // Jalankan pengecekan pengingat notifikasi (membuat notifikasi jika ada yang jatuh tempo)
       await _reminderService.checkExpiryAndCreateNotifications();
       await _reminderService.checkMealRemindersAndCreateNotifications();
-      await _reminderService.syncMealAlarms();
-      await _reminderService.syncPantryExpiryAlarms();
 
       // Eksekusi query data dashboard beserta jumlah notifikasi yang sudah mutakhir
       final results = await Future.wait([
@@ -158,6 +160,7 @@ class DashboardController extends ChangeNotifier {
       debugPrint('Error loading dashboard data: $e');
     } finally {
       _isLoading = false;
+      _isDataLoading = false;
       notifyListeners();
     }
   }

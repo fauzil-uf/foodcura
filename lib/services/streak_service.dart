@@ -109,17 +109,22 @@ class StreakService {
 
     if (currentStreak < 0) currentStreak = 0;
 
+    final oldStreak = prefs.getInt(streakKey);
     await prefs.setInt(streakKey, currentStreak);
 
-    // Sinkronisasi Eco Points dan streak ke Firestore (latar belakang)
-    try {
-      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
-      FirestoreService.instance.updateEcoPoints(
-        uid: uid,
-        ecoPoints: currentStreak * 10,
-        streakCount: currentStreak,
-      ).ignore();
-    } catch (_) {}
+    // Sinkronisasi streak ke Firestore (latar belakang) HANYA jika nilainya benar-benar berubah.
+    // Hal ini krusial untuk mencegah infinite feedback loop dengan Firestore Stream listener.
+    if (oldStreak != currentStreak) {
+      try {
+        final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        FirestoreService.instance
+            .updateEcoPoints(
+              uid: uid,
+              streakCount: currentStreak,
+            )
+            .ignore();
+      } catch (_) {}
+    }
 
     return currentStreak;
   }

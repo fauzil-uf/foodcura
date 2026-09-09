@@ -153,18 +153,23 @@ class FirestoreService {
   /// Memperbarui Eco Points dan streak user di Firestore
   Future<void> updateEcoPoints({
     required String uid,
-    required int ecoPoints,
+    int? ecoPoints,
     int? streakCount,
   }) async {
     final firestore = _firestore;
     if (firestore == null) return;
 
     try {
-      await firestore.collection(colUsers).doc(uid).set({
-        'eco_points': ecoPoints,
-        'streak_count': ?streakCount,
+      final Map<String, dynamic> data = {
         'last_active_at': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+      if (ecoPoints != null) data['eco_points'] = ecoPoints;
+      if (streakCount != null) data['streak_count'] = streakCount;
+
+      await firestore.collection(colUsers).doc(uid).set(
+        data,
+        SetOptions(merge: true),
+      );
     } catch (e) {
       debugPrint('[FirestoreService] Gagal memperbarui eco points ($uid): $e');
     }

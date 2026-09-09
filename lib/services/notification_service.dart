@@ -16,6 +16,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+  bool? _exactAlarmsPermitted;
 
   static const String channelId = 'foodcura_nutrition_alerts';
   static const String channelName = 'Peringatan Nutrisi & Stok FoodCura';
@@ -384,28 +385,8 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    // Coba jadwalkan dengan mode exactAllowWhileIdle terlebih dahulu agar tepat waktu di menit yang dipilih.
-    // Jika sistem Android menolak exact alarm, otomatis fallback ke inexactAllowWhileIdle
-    // tanpa pernah menimbulkan crash ataupun exception merah di console.
-    try {
-      await _localNotifications.zonedSchedule(
-        id,
-        title,
-        body,
-        scheduledDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
-      debugPrint(
-        'Scheduled daily recurring meal notification #$id at $hour:$minute using exactAllowWhileIdle',
-      );
-    } catch (e) {
-      debugPrint(
-        'Exact scheduling fallback ($e). Scheduling with inexactAllowWhileIdle.',
-      );
+    // Jika sebelumnya sistem menolak exact alarm, langsung gunakan inexact agar efisien
+    if (_exactAlarmsPermitted == false) {
       try {
         await _localNotifications.zonedSchedule(
           id,
@@ -418,8 +399,38 @@ class NotificationService {
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
         );
-        debugPrint(
-          'Fallback scheduled meal notification #$id at $hour:$minute with inexactAllowWhileIdle',
+      } catch (innerErr) {
+        debugPrint('Error scheduling daily meal notification: $innerErr');
+      }
+      return;
+    }
+
+    try {
+      await _localNotifications.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+      _exactAlarmsPermitted = true;
+    } catch (e) {
+      _exactAlarmsPermitted = false;
+      try {
+        await _localNotifications.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
         );
       } catch (innerErr) {
         debugPrint('Error scheduling daily meal notification: $innerErr');
@@ -499,6 +510,25 @@ class NotificationService {
       await _localNotifications.cancel(id);
     } catch (_) {}
 
+    if (_exactAlarmsPermitted == false) {
+      try {
+        await _localNotifications.zonedSchedule(
+          id,
+          title,
+          body,
+          targetTZ,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
+      } catch (innerErr) {
+        debugPrint('Error scheduling future notification: $innerErr');
+      }
+      return;
+    }
+
     try {
       await _localNotifications.zonedSchedule(
         id,
@@ -511,10 +541,12 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: payload,
       );
+      _exactAlarmsPermitted = true;
       debugPrint(
         'Scheduled future expiry notification #$id at $scheduledDateTime',
       );
     } catch (e) {
+      _exactAlarmsPermitted = false;
       try {
         await _localNotifications.zonedSchedule(
           id,
@@ -597,6 +629,25 @@ class NotificationService {
       await _localNotifications.cancel(id);
     } catch (_) {}
 
+    if (_exactAlarmsPermitted == false) {
+      try {
+        await _localNotifications.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+        );
+      } catch (innerErr) {
+        debugPrint('Error scheduling expiry notification: $innerErr');
+      }
+      return;
+    }
+
     try {
       await _localNotifications.zonedSchedule(
         id,
@@ -609,7 +660,9 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
+      _exactAlarmsPermitted = true;
     } catch (e) {
+      _exactAlarmsPermitted = false;
       try {
         await _localNotifications.zonedSchedule(
           id,

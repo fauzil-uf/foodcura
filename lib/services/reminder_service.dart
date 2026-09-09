@@ -53,6 +53,8 @@ class ReminderService {
   static DateTime? _lastExpiryCheck;
   static bool _isCheckingMeals = false;
   static DateTime? _lastMealCheck;
+  static DateTime? _lastMealAlarmSync;
+  static DateTime? _lastPantryAlarmSync;
 
   // Cek masa simpan bahan pantry & buat notifikasi
   Future<void> checkExpiryAndCreateNotifications({
@@ -631,14 +633,21 @@ class ReminderService {
   }
 
   /// Mensinkronkan seluruh jadwal notifikasi pengingat jam makan harian ke sistem operasi
-  Future<void> syncMealAlarms({int? userId}) async {
+  Future<void> syncMealAlarms({int? userId, bool force = false}) async {
+    final now = DateTime.now();
+    if (!force &&
+        _lastMealAlarmSync != null &&
+        now.difference(_lastMealAlarmSync!).inSeconds < 10) {
+      return;
+    }
+    _lastMealAlarmSync = now;
+
     final prefs = await SharedPreferences.getInstance();
     final isMasterEnabled =
         prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true;
 
     final targetUserId = userId ?? await _db.getActiveUserId();
     final todayStr = AppDateFormatter.formatToday();
-    final now = DateTime.now();
     final todayDateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
@@ -693,7 +702,15 @@ class ReminderService {
   }
 
   /// Mensinkronkan alarm pengingat kedaluwarsa per-bahan ke sistem Android OS jam 08:00.
-  Future<void> syncPantryExpiryAlarms({int? userId}) async {
+  Future<void> syncPantryExpiryAlarms({int? userId, bool force = false}) async {
+    final now = DateTime.now();
+    if (!force &&
+        _lastPantryAlarmSync != null &&
+        now.difference(_lastPantryAlarmSync!).inSeconds < 10) {
+      return;
+    }
+    _lastPantryAlarmSync = now;
+
     final prefs = await SharedPreferences.getInstance();
     final isEnabled = prefs.getBool(AppConstants.keyNotifExpiryAlert) ?? true;
 
