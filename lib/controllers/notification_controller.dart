@@ -6,6 +6,7 @@ import '../services/app_notifiers.dart';
 import '../services/notification_service.dart';
 import '../services/nutrition_service.dart';
 import '../services/reminder_service.dart';
+import '../services/sync_service.dart';
 
 // Controller daftar notifikasi & filter status baca
 class NotificationController extends ChangeNotifier {
@@ -263,6 +264,13 @@ class NotificationController extends ChangeNotifier {
         await NotificationService.instance.cancelNotification(40000);
       } catch (_) {}
     }
+  }
+
+  /// Sinkronisasi notifikasi dari Cloud Firestore ke database lokal
+  Future<int> syncCloudNotifications() async {
+    final count = await SyncService.instance.syncNotificationsFromCloud();
+    await loadNotifications();
+    return count;
   }
 }
 

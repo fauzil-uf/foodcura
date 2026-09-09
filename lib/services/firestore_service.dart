@@ -448,6 +448,72 @@ class FirestoreService {
     }
   }
 
+  /// Mengambil semua log makanan user dari Firestore
+  Future<List<FoodLogModel>> getFoodLogs(String uid) async {
+    final firestore = _firestore;
+    if (firestore == null) return [];
+
+    try {
+      final snapshot = await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colFoodLogs)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return FoodLogModel(
+          id: (data['id'] as num?)?.toInt(),
+          foodName: data['food_name']?.toString() ?? '',
+          mealType: data['meal_type']?.toString() ?? '',
+          calories: (data['calories'] as num?)?.toInt() ?? 0,
+          protein: (data['protein'] as num?)?.toDouble() ?? 0.0,
+          carbs: (data['carbs'] as num?)?.toDouble() ?? 0.0,
+          fat: (data['fat'] as num?)?.toDouble() ?? 0.0,
+          cholesterol: (data['cholesterol'] as num?)?.toDouble() ?? 0.0,
+          imagePath: data['image_path']?.toString() ?? '',
+          time: data['time']?.toString() ?? '',
+          date: data['date']?.toString() ?? '',
+          note: data['note']?.toString(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal mengambil semua food logs: $e');
+      return [];
+    }
+  }
+
+  /// Stream realtime untuk log makanan user
+  Stream<List<FoodLogModel>> streamFoodLogs(String uid) {
+    final firestore = _firestore;
+    if (firestore == null) return const Stream.empty();
+
+    return firestore
+        .collection(colUsers)
+        .doc(uid)
+        .collection(colFoodLogs)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return FoodLogModel(
+          id: (data['id'] as num?)?.toInt(),
+          foodName: data['food_name']?.toString() ?? '',
+          mealType: data['meal_type']?.toString() ?? '',
+          calories: (data['calories'] as num?)?.toInt() ?? 0,
+          protein: (data['protein'] as num?)?.toDouble() ?? 0.0,
+          carbs: (data['carbs'] as num?)?.toDouble() ?? 0.0,
+          fat: (data['fat'] as num?)?.toDouble() ?? 0.0,
+          cholesterol: (data['cholesterol'] as num?)?.toDouble() ?? 0.0,
+          imagePath: data['image_path']?.toString() ?? '',
+          time: data['time']?.toString() ?? '',
+          date: data['date']?.toString() ?? '',
+          note: data['note']?.toString(),
+        );
+      }).toList();
+    });
+  }
+
   // ===========================================================================
   // 5. NOTIFICATIONS (SUBCOLLECTION: users/{uid}/notifications)
   // ===========================================================================
@@ -577,7 +643,6 @@ class FirestoreService {
           .collection(colUsers)
           .doc(uid)
           .collection(colNotifications)
-          .orderBy('created_at', descending: true)
           .get();
 
       return snapshot.docs.map((doc) {
@@ -590,14 +655,40 @@ class FirestoreService {
           iconType: d['icon_type'] as String? ?? 'info',
           isRead: d['is_read'] == true,
           relatedPantryId: (d['related_pantry_id'] as num?)?.toInt(),
-          createdAt: DateTime.tryParse(d['created_at']?.toString() ?? '') ??
-              DateTime.now(),
+          createdAt: _parseDateTime(d['created_at'], DateTime.now()),
         );
       }).toList();
     } catch (e) {
       debugPrint('[FirestoreService] Gagal mengambil notifikasi dari cloud: $e');
       return [];
     }
+  }
+
+  /// Stream realtime untuk notifikasi user
+  Stream<List<NotificationModel>> streamNotifications(String uid) {
+    final firestore = _firestore;
+    if (firestore == null) return const Stream.empty();
+
+    return firestore
+        .collection(colUsers)
+        .doc(uid)
+        .collection(colNotifications)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final d = doc.data();
+        return NotificationModel(
+          id: (d['id'] as num?)?.toInt(),
+          title: d['title'] as String? ?? '',
+          message: d['message'] as String? ?? '',
+          type: d['type'] as String? ?? 'system',
+          iconType: d['icon_type'] as String? ?? 'info',
+          isRead: d['is_read'] == true,
+          relatedPantryId: (d['related_pantry_id'] as num?)?.toInt(),
+          createdAt: _parseDateTime(d['created_at'], DateTime.now()),
+        );
+      }).toList();
+    });
   }
 
   // ===========================================================================

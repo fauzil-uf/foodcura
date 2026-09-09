@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -6,6 +8,8 @@ import '../../controllers/food_tracker_controller.dart';
 import '../../models/food_item_model.dart';
 import '../../models/food_log_model.dart';
 import '../../services/app_notifiers.dart';
+import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
@@ -34,6 +38,8 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
 
   List<String> get _tabs => _controller.tabs;
   int get _selectedTabIndex => _controller.selectedTabIndex;
+  StreamSubscription? _cloudSubscription;
+  StreamSubscription? _authSubscription;
 
   @override
   void initState() {
@@ -43,6 +49,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     _controller.addListener(_onControllerChanged);
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
     NotificationNotifier.instance.addListener(_onNotifChanged);
+    _setupCloudFoodLogsListener();
     _refreshData();
   }
 
@@ -51,9 +58,37 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     _controller.removeListener(_onControllerChanged);
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     NotificationNotifier.instance.removeListener(_onNotifChanged);
+    _cloudSubscription?.cancel();
+    _authSubscription?.cancel();
     _controller.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _setupCloudFoodLogsListener() {
+    try {
+      _authSubscription?.cancel();
+      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
+        final uid = user?.uid;
+        if (uid != null) {
+          _subscribeToCloudFoodLogs(uid);
+        }
+      });
+
+      final currentUid = AuthService.instance.currentUser?.uid;
+      if (currentUid != null) {
+        _subscribeToCloudFoodLogs(currentUid);
+      }
+    } catch (_) {}
+  }
+
+  void _subscribeToCloudFoodLogs(String uid) {
+    _cloudSubscription?.cancel();
+    _cloudSubscription = FirestoreService.instance
+        .streamFoodLogs(uid)
+        .listen((_) {
+          _controller.syncCloudFoodLogs();
+        });
   }
 
   // Update tampilan saat state controller berubah
@@ -211,7 +246,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                     )
                   : RefreshIndicator(
                       color: AppColors.primary,
-                      onRefresh: () => _controller.loadData(),
+                      onRefresh: () => _controller.syncCloudFoodLogs(),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.only(

@@ -223,23 +223,62 @@ class SyncService extends ChangeNotifier {
         }
       }
 
-      // 3. Pulihkan Notifikasi
+      // 3. Pulihkan Catatan Makan
+      int logsRestored = 0;
+      final localLogs = await _db.getFoodLogs(userId: targetUserId);
+      final cloudLogs = await _firestore.getFoodLogs(uid);
+      for (final cLog in cloudLogs) {
+        final existingIndex = localLogs.indexWhere((l) =>
+            (cLog.id != null && l.id == cLog.id) ||
+            (l.foodName.toLowerCase().trim() == cLog.foodName.toLowerCase().trim() &&
+             l.date == cLog.date &&
+             l.mealType == cLog.mealType));
+
+        if (existingIndex != -1) {
+          final local = localLogs[existingIndex];
+          final hasChanged = local.foodName != cLog.foodName ||
+              local.calories != cLog.calories ||
+              local.protein != cLog.protein ||
+              local.carbs != cLog.carbs ||
+              local.fat != cLog.fat ||
+              local.time != cLog.time ||
+              local.note != cLog.note;
+          if (hasChanged) {
+            await _db.updateFoodLog(cLog.copyWith(id: local.id, userId: targetUserId));
+            logsRestored++;
+          }
+        } else {
+          await _db.insertFoodLog(cLog.copyWith(userId: targetUserId));
+          logsRestored++;
+        }
+      }
+
+      // 4. Pulihkan Notifikasi
       final localNotifs = await _db.getNotifications(userId: targetUserId);
       final cloudNotifs = await _firestore.getNotifications(uid);
       for (final cNotif in cloudNotifs) {
-        final alreadyExists = localNotifs.any((l) =>
-            l.title == cNotif.title &&
-            l.createdAt.year == cNotif.createdAt.year &&
-            l.createdAt.month == cNotif.createdAt.month &&
-            l.createdAt.day == cNotif.createdAt.day);
+        final existingIndex = localNotifs.indexWhere((l) =>
+            (cNotif.id != null && l.id == cNotif.id) ||
+            (l.title == cNotif.title &&
+             l.createdAt.year == cNotif.createdAt.year &&
+             l.createdAt.month == cNotif.createdAt.month &&
+             l.createdAt.day == cNotif.createdAt.day));
 
-        if (!alreadyExists) {
+        if (existingIndex != -1) {
+          final local = localNotifs[existingIndex];
+          if (local.isRead != cNotif.isRead) {
+            if (cNotif.isRead && local.id != null) {
+              await _db.markNotificationRead(local.id!);
+              notifsRestored++;
+            }
+          }
+        } else {
           await _db.addNotification(cNotif.copyWith(userId: targetUserId));
           notifsRestored++;
         }
       }
 
-      // 4. Pulihkan Preferensi Notifikasi & Jam Makan
+      // 5. Pulihkan Preferensi Notifikasi & Jam Makan
       final cloudPrefs = await _firestore.getUserPreferences(uid);
       if (cloudPrefs != null) {
         final prefs = await SharedPreferences.getInstance();
@@ -287,8 +326,9 @@ class SyncService extends ChangeNotifier {
       return SyncResult(
         success: true,
         pantrySynced: pantryRestored,
+        logsSynced: logsRestored,
         notifsSynced: notifsRestored,
-        message: 'Berhasil memulihkan $pantryRestored bahan dan $notifsRestored notifikasi dari cloud.',
+        message: 'Berhasil memulihkan $pantryRestored bahan, $logsRestored catatan makan, dan $notifsRestored notifikasi dari cloud.',
       );
     } catch (e) {
       _lastError = e.toString();
@@ -356,6 +396,105 @@ class SyncService extends ChangeNotifier {
       return changeCount;
     } catch (e) {
       debugPrint('[SyncService] Gagal sinkronisasi pantry dari cloud: $e');
+      return 0;
+    }
+  }
+
+  /// Sinkronisasi cepat catatan makan dari Cloud Firestore ke SQLite lokal
+  Future<int> syncFoodLogsFromCloud({String? explicitUid}) async {
+    try {
+      final user = await _db.getLoggedInUser();
+      final targetUserId = user?.id;
+      final uid = explicitUid ??
+          AuthService.instance.currentUser?.uid ??
+          (targetUserId != null ? 'user_$targetUserId' : null);
+
+      if (uid == null) return 0;
+
+      final cloudLogs = await _firestore.getFoodLogs(uid);
+      if (cloudLogs.isEmpty) return 0;
+
+      final localLogs = await _db.getFoodLogs(userId: targetUserId);
+      int changeCount = 0;
+
+      for (final cLog in cloudLogs) {
+        final existingIndex = localLogs.indexWhere((l) =>
+            (cLog.id != null && l.id == cLog.id) ||
+            (l.foodName.toLowerCase().trim() == cLog.foodName.toLowerCase().trim() &&
+             l.date == cLog.date &&
+             l.mealType == cLog.mealType));
+
+        if (existingIndex != -1) {
+          final local = localLogs[existingIndex];
+          final hasChanged = local.foodName != cLog.foodName ||
+              local.calories != cLog.calories ||
+              local.protein != cLog.protein ||
+              local.carbs != cLog.carbs ||
+              local.fat != cLog.fat ||
+              local.time != cLog.time ||
+              local.note != cLog.note;
+          if (hasChanged) {
+            await _db.updateFoodLog(cLog.copyWith(id: local.id, userId: targetUserId));
+            changeCount++;
+          }
+        } else {
+          await _db.insertFoodLog(cLog.copyWith(userId: targetUserId));
+          changeCount++;
+        }
+      }
+
+      return changeCount;
+    } catch (e) {
+      debugPrint('[SyncService] Gagal sinkronisasi food logs dari cloud: $e');
+      return 0;
+    }
+  }
+
+  /// Sinkronisasi cepat notifikasi dari Cloud Firestore ke SQLite lokal
+  Future<int> syncNotificationsFromCloud({String? explicitUid}) async {
+    try {
+      final user = await _db.getLoggedInUser();
+      final targetUserId = user?.id;
+      final uid = explicitUid ??
+          AuthService.instance.currentUser?.uid ??
+          (targetUserId != null ? 'user_$targetUserId' : null);
+
+      if (uid == null) return 0;
+
+      final cloudNotifs = await _firestore.getNotifications(uid);
+      if (cloudNotifs.isEmpty) return 0;
+
+      final localNotifs = await _db.getNotifications(userId: targetUserId);
+      int changeCount = 0;
+
+      for (final cNotif in cloudNotifs) {
+        final existingIndex = localNotifs.indexWhere((l) =>
+            (cNotif.id != null && l.id == cNotif.id) ||
+            (l.title == cNotif.title &&
+             l.createdAt.year == cNotif.createdAt.year &&
+             l.createdAt.month == cNotif.createdAt.month &&
+             l.createdAt.day == cNotif.createdAt.day));
+
+        if (existingIndex != -1) {
+          final local = localNotifs[existingIndex];
+          if (local.isRead != cNotif.isRead) {
+            if (cNotif.isRead && local.id != null) {
+              await _db.markNotificationRead(local.id!);
+              changeCount++;
+            }
+          }
+        } else {
+          await _db.addNotification(cNotif.copyWith(userId: targetUserId));
+          changeCount++;
+        }
+      }
+
+      if (changeCount > 0) {
+        await NotificationNotifier.instance.refresh();
+      }
+      return changeCount;
+    } catch (e) {
+      debugPrint('[SyncService] Gagal sinkronisasi notifikasi dari cloud: $e');
       return 0;
     }
   }

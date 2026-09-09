@@ -15,6 +15,7 @@ import '../services/firestore_service.dart';
 import '../services/nutrition_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
+import '../services/sync_service.dart';
 
 // Controller pencatatan makanan, tracking nutrisi, & batas AKG
 class FoodTrackerController extends ChangeNotifier {
@@ -242,13 +243,16 @@ class FoodTrackerController extends ChangeNotifier {
     final activeUserId = log.userId ?? await _db.getActiveUserId();
     final logWithUser =
         activeUserId != null ? log.copyWith(userId: activeUserId) : log;
-    await _db.insertFoodLog(logWithUser);
+    final id = await _db.insertFoodLog(logWithUser);
+    final logWithId = logWithUser.copyWith(id: id);
 
-    // Sinkronisasi catatan makan ke Firestore (latar belakang)
+    // Sinkronisasi catatan makan ke Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      FirestoreService.instance.addFoodLog(uid, logWithUser).ignore();
-    } catch (_) {}
+      await FirestoreService.instance.addFoodLog(uid, logWithId);
+    } catch (e) {
+      debugPrint('[FoodTrackerController] Gagal sync addFoodLog ke Firestore: $e');
+    }
 
     final todayStr = AppDateFormatter.formatToday();
     if (logWithUser.date == todayStr && activeUserId != null) {
@@ -274,11 +278,13 @@ class FoodTrackerController extends ChangeNotifier {
         activeUserId != null ? log.copyWith(userId: activeUserId) : log;
     await _db.updateFoodLog(logWithUser);
 
-    // Sinkronisasi update ke Firestore (latar belakang)
+    // Sinkronisasi update ke Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      FirestoreService.instance.addFoodLog(uid, logWithUser).ignore();
-    } catch (_) {}
+      await FirestoreService.instance.addFoodLog(uid, logWithUser);
+    } catch (e) {
+      debugPrint('[FoodTrackerController] Gagal sync updateFoodLog ke Firestore: $e');
+    }
 
     final todayStr = AppDateFormatter.formatToday();
     if (logWithUser.date == todayStr && activeUserId != null) {
@@ -308,8 +314,10 @@ class FoodTrackerController extends ChangeNotifier {
     // Hapus dari Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      FirestoreService.instance.deleteFoodLog(uid, 'foodlog_$id').ignore();
-    } catch (_) {}
+      await FirestoreService.instance.deleteFoodLog(uid, 'foodlog_$id');
+    } catch (e) {
+      debugPrint('[FoodTrackerController] Gagal sync deleteFoodLog ke Firestore: $e');
+    }
 
     if (targetLog != null && activeUserId != null) {
       final todayStr = AppDateFormatter.formatToday();
@@ -383,6 +391,13 @@ class FoodTrackerController extends ChangeNotifier {
     _isSearching = false;
     _searchResults = [];
     notifyListeners();
+  }
+
+  /// Sinkronisasi catatan makan dari Cloud Firestore ke database lokal
+  Future<int> syncCloudFoodLogs() async {
+    final count = await SyncService.instance.syncFoodLogsFromCloud();
+    await loadData();
+    return count;
   }
 
   @override
