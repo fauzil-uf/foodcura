@@ -9,6 +9,7 @@ import '../help_center_screen.dart';
 class ProfileSettingsMenu extends StatelessWidget {
   final VoidCallback onEditProfile;
   final VoidCallback onNotificationSettings;
+  final VoidCallback? onCloudSync;
   final VoidCallback onChangePassword;
   final VoidCallback onPrivacyPolicy;
   final VoidCallback onAboutApp;
@@ -21,6 +22,7 @@ class ProfileSettingsMenu extends StatelessWidget {
     super.key,
     required this.onEditProfile,
     required this.onNotificationSettings,
+    this.onCloudSync,
     required this.onChangePassword,
     required this.onPrivacyPolicy,
     required this.onAboutApp,
@@ -55,6 +57,17 @@ class ProfileSettingsMenu extends StatelessWidget {
             subtitle: 'Pengingat kedaluwarsa & log harian',
             onTap: onNotificationSettings,
           ),
+          if (onCloudSync != null) ...[
+            const Divider(height: 1, color: AppColors.borderSoft),
+            _buildMenuTile(
+              icon: Icons.cloud_sync_rounded,
+              iconBg: const Color(0xFFEDE7F6),
+              iconColor: const Color(0xFF5E35B1),
+              title: 'Sinkronisasi Cloud',
+              subtitle: 'Cadangkan & pulihkan data ke Firestore',
+              onTap: onCloudSync!,
+            ),
+          ],
         ]),
         const SizedBox(height: 18),
 

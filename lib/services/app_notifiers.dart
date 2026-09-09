@@ -42,6 +42,13 @@ class EcoPointsNotifier extends ValueNotifier<int> {
     value = updated;
   }
 
+  Future<void> setPoints(int points) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = await _getKey();
+    await prefs.setInt(key, points);
+    value = points;
+  }
+
   Future<void> refresh() async {
     final prefs = await SharedPreferences.getInstance();
     final key = await _getKey();

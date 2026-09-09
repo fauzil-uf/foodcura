@@ -6,6 +6,8 @@ import '../constants/app_date_formatter.dart';
 import '../database/db_helper.dart';
 import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
+import 'auth_service.dart';
+import 'firestore_service.dart';
 import 'notification_service.dart';
 
 // Service pemantau kedaluwarsa bahan pantry & reminder jam makan
@@ -497,6 +499,27 @@ class ReminderService {
     await prefs.setString(AppConstants.keyNotifLunchTime, lunchTime);
     await prefs.setBool(AppConstants.keyNotifDinnerEnabled, dinnerEnabled);
     await prefs.setString(AppConstants.keyNotifDinnerTime, dinnerTime);
+
+    // Sinkronisasi preferensi pengguna ke Firestore (latar belakang)
+    try {
+      final activeUserId = await _db.getActiveUserId();
+      final uid = AuthService.instance.currentUser?.uid ??
+          (activeUserId != null ? 'user_$activeUserId' : null);
+      if (uid != null) {
+        FirestoreService.instance.saveUserPreferences(uid, {
+          'expiryAlert': expiryAlert,
+          'nutritionExcess': nutritionExcess,
+          'dailyMealLog': dailyMealLog,
+          'ecoTips': ecoTips,
+          'breakfastEnabled': breakfastEnabled,
+          'breakfastTime': breakfastTime,
+          'lunchEnabled': lunchEnabled,
+          'lunchTime': lunchTime,
+          'dinnerEnabled': dinnerEnabled,
+          'dinnerTime': dinnerTime,
+        }).ignore();
+      }
+    } catch (_) {}
 
     final targetUserId = await _db.getActiveUserId();
     if (targetUserId != null) {

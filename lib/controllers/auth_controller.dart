@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/preference_handler.dart';
+import '../services/sync_service.dart';
 
 // Controller state autentikasi (login, register, logout, session user)
 class AuthController extends ChangeNotifier {
@@ -66,6 +67,7 @@ class AuthController extends ChangeNotifier {
             email: user.email,
             name: user.name,
           ).ignore();
+          SyncService.instance.restoreFromCloud(explicitUid: uid).ignore();
         } catch (_) {}
         return true;
       }
@@ -88,6 +90,7 @@ class AuthController extends ChangeNotifier {
               email: user.email,
               name: user.name,
             ).ignore();
+            SyncService.instance.restoreFromCloud(explicitUid: fbCred.user!.uid).ignore();
           } catch (_) {}
           return true;
         }
@@ -296,6 +299,7 @@ class AuthController extends ChangeNotifier {
             email: email,
             name: name,
           ).ignore();
+          SyncService.instance.restoreFromCloud(explicitUid: fbUser.uid).ignore();
         } catch (_) {}
         return true;
       }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import '../models/article_model.dart';
 import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
@@ -28,6 +29,7 @@ class FirestoreService {
   static const String colPantryItems = 'pantry_items';
   static const String colFoodLogs = 'food_logs';
   static const String colNotifications = 'notifications';
+  static const String colArticles = 'articles';
 
   /// Cek ketersediaan Firestore
   bool get isAvailable => _firestore != null;
@@ -113,8 +115,8 @@ class FirestoreService {
         'uid': uid,
         'email': email,
         'name': name,
-        if (ecoPoints != null) 'eco_points': ecoPoints,
-        if (streakCount != null) 'streak_count': streakCount,
+        'eco_points': ?ecoPoints,
+        'streak_count': ?streakCount,
         'last_active_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -148,7 +150,7 @@ class FirestoreService {
     try {
       await firestore.collection(colUsers).doc(uid).set({
         'eco_points': ecoPoints,
-        if (streakCount != null) 'streak_count': streakCount,
+        'streak_count': ?streakCount,
         'last_active_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -166,11 +168,15 @@ class FirestoreService {
     if (firestore == null) return null;
 
     try {
-      final docRef = await firestore
+      final docId = item.id != null ? 'pantry_${item.id}' : null;
+      final collection = firestore
           .collection(colUsers)
           .doc(uid)
-          .collection(colPantryItems)
-          .add({
+          .collection(colPantryItems);
+      final docRef = docId != null ? collection.doc(docId) : collection.doc();
+
+      await docRef.set({
+        'id': item.id,
         'name': item.name,
         'quantity': item.quantity,
         'unit': item.unit,
@@ -180,7 +186,7 @@ class FirestoreService {
         'is_used': item.isUsed,
         'created_at': item.createdAt.toIso8601String(),
         'updated_at': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
       debugPrint('[FirestoreService] Gagal menambahkan pantry item: $e');
@@ -303,11 +309,15 @@ class FirestoreService {
     if (firestore == null) return null;
 
     try {
-      final docRef = await firestore
+      final docId = log.id != null ? 'foodlog_${log.id}' : null;
+      final collection = firestore
           .collection(colUsers)
           .doc(uid)
-          .collection(colFoodLogs)
-          .add({
+          .collection(colFoodLogs);
+      final docRef = docId != null ? collection.doc(docId) : collection.doc();
+
+      await docRef.set({
+        'id': log.id,
         'food_name': log.foodName,
         'meal_type': log.mealType,
         'calories': log.calories,
@@ -320,7 +330,7 @@ class FirestoreService {
         'date': log.date,
         'note': log.note ?? '',
         'created_at': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
       debugPrint('[FirestoreService] Gagal menambahkan food log: $e');
@@ -384,8 +394,39 @@ class FirestoreService {
   // 5. NOTIFICATIONS (SUBCOLLECTION: users/{uid}/notifications)
   // ===========================================================================
 
-  /// Menambahkan notifikasi ke Firestore
-  Future<void> addNotification(String uid, NotificationModel notif) async {
+  /// Menambahkan atau memperbarui notifikasi ke Firestore
+  Future<String?> addNotification(String uid, NotificationModel notif) async {
+    final firestore = _firestore;
+    if (firestore == null) return null;
+
+    try {
+      final docId = notif.id != null ? 'notif_${notif.id}' : null;
+      final collection = firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colNotifications);
+      final docRef = docId != null ? collection.doc(docId) : collection.doc();
+
+      await docRef.set({
+        'id': notif.id,
+        'title': notif.title,
+        'message': notif.message,
+        'type': notif.type,
+        'icon_type': notif.iconType,
+        'is_read': notif.isRead,
+        'related_pantry_id': notif.relatedPantryId,
+        'created_at': notif.createdAt.toIso8601String(),
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return docRef.id;
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal menambahkan notifikasi ke Firestore: $e');
+      return null;
+    }
+  }
+
+  /// Menandai satu notifikasi sudah dibaca di Firestore
+  Future<void> markNotificationRead(String uid, String notifDocId) async {
     final firestore = _firestore;
     if (firestore == null) return;
 
@@ -394,17 +435,214 @@ class FirestoreService {
           .collection(colUsers)
           .doc(uid)
           .collection(colNotifications)
-          .add({
-        'title': notif.title,
-        'message': notif.message,
-        'type': notif.type,
-        'icon_type': notif.iconType,
-        'is_read': notif.isRead,
-        'related_pantry_id': notif.relatedPantryId,
-        'created_at': notif.createdAt.toIso8601String(),
-      });
+          .doc(notifDocId)
+          .set({
+        'is_read': true,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal menambahkan notifikasi ke Firestore: $e');
+      debugPrint('[FirestoreService] Gagal menandai notif dibaca ($notifDocId): $e');
+    }
+  }
+
+  /// Menandai semua notifikasi sudah dibaca di Firestore
+  Future<void> markAllNotificationsRead(String uid) async {
+    final firestore = _firestore;
+    if (firestore == null) return;
+
+    try {
+      final snapshot = await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colNotifications)
+          .where('is_read', isEqualTo: false)
+          .get();
+
+      final batch = firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {
+          'is_read': true,
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal menandai semua notif dibaca: $e');
+    }
+  }
+
+  /// Menghapus satu notifikasi dari Firestore
+  Future<void> deleteNotification(String uid, String notifDocId) async {
+    final firestore = _firestore;
+    if (firestore == null) return;
+
+    try {
+      await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colNotifications)
+          .doc(notifDocId)
+          .delete();
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal menghapus notif ($notifDocId): $e');
+    }
+  }
+
+  /// Menghapus sejumlah notifikasi secara batch dari Firestore
+  Future<void> deleteNotificationsBatch(String uid, List<String> notifDocIds) async {
+    final firestore = _firestore;
+    if (firestore == null || notifDocIds.isEmpty) return;
+
+    try {
+      final batch = firestore.batch();
+      for (final docId in notifDocIds) {
+        final ref = firestore
+            .collection(colUsers)
+            .doc(uid)
+            .collection(colNotifications)
+            .doc(docId);
+        batch.delete(ref);
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal batch delete notifikasi: $e');
+    }
+  }
+
+  /// Mengambil semua daftar notifikasi dari Firestore
+  Future<List<NotificationModel>> getNotifications(String uid) async {
+    final firestore = _firestore;
+    if (firestore == null) return [];
+
+    try {
+      final snapshot = await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colNotifications)
+          .orderBy('created_at', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final d = doc.data();
+        return NotificationModel(
+          id: (d['id'] as num?)?.toInt(),
+          title: d['title'] as String? ?? '',
+          message: d['message'] as String? ?? '',
+          type: d['type'] as String? ?? 'system',
+          iconType: d['icon_type'] as String? ?? 'info',
+          isRead: d['is_read'] == true,
+          relatedPantryId: (d['related_pantry_id'] as num?)?.toInt(),
+          createdAt: DateTime.tryParse(d['created_at']?.toString() ?? '') ??
+              DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal mengambil notifikasi dari cloud: $e');
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // 6. ARTICLES (GLOBAL COLLECTION: articles)
+  // ===========================================================================
+
+  /// Mengambil artikel edukasi gizi dan food waste dari Firestore
+  Future<List<ArticleModel>> getArticles() async {
+    final firestore = _firestore;
+    if (firestore == null) return [];
+
+    try {
+      final snapshot = await firestore
+          .collection(colArticles)
+          .orderBy('id')
+          .get(const GetOptions(source: Source.serverAndCache));
+
+      if (snapshot.docs.isEmpty) return [];
+
+      return snapshot.docs.map((doc) {
+        final d = doc.data();
+        return ArticleModel(
+          id: (d['id'] as num?)?.toInt() ?? doc.id.hashCode.abs(),
+          title: d['title'] as String? ?? '',
+          category: d['category'] as String? ?? 'GIZI',
+          readTime: d['read_time'] as String? ?? '3 menit',
+          date: d['date'] as String? ?? '',
+          summary: d['summary'] as String? ?? '',
+          imageUrl: d['image_url'] as String? ?? '',
+          content: d['content'] as String? ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal mengambil artikel: $e');
+      return [];
+    }
+  }
+
+  /// Batch upload artikel edukasi lokal ke Firestore (seeding cloud)
+  Future<void> seedArticles(List<ArticleModel> articles) async {
+    final firestore = _firestore;
+    if (firestore == null || articles.isEmpty) return;
+
+    try {
+      final batch = firestore.batch();
+      final collection = firestore.collection(colArticles);
+
+      for (final a in articles) {
+        final docRef = collection.doc('article_${a.id}');
+        batch.set(docRef, {
+          'id': a.id,
+          'title': a.title,
+          'category': a.category,
+          'read_time': a.readTime,
+          'date': a.date,
+          'summary': a.summary,
+          'image_url': a.imageUrl,
+          'content': a.content,
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+
+      await batch.commit();
+      debugPrint('[FirestoreService] Berhasil seeding ${articles.length} artikel ke Firestore');
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal seeding artikel ke Firestore: $e');
+    }
+  }
+
+  // ===========================================================================
+  // 7. USER PREFERENCES (Jam Makan & Alert Switches)
+  // ===========================================================================
+
+  /// Menyimpan preferensi pengguna (jam makan, toggle alert) ke Firestore
+  Future<void> saveUserPreferences(String uid, Map<String, dynamic> preferences) async {
+    final firestore = _firestore;
+    if (firestore == null) return;
+
+    try {
+      await firestore.collection(colUsers).doc(uid).set({
+        'preferences': preferences,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal menyimpan preferensi user: $e');
+    }
+  }
+
+  /// Mengambil preferensi pengguna dari Firestore
+  Future<Map<String, dynamic>?> getUserPreferences(String uid) async {
+    final firestore = _firestore;
+    if (firestore == null) return null;
+
+    try {
+      final doc = await firestore.collection(colUsers).doc(uid).get();
+      final data = doc.data();
+      if (data != null && data.containsKey('preferences')) {
+        return Map<String, dynamic>.from(data['preferences'] as Map);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal mengambil preferensi user: $e');
+      return null;
     }
   }
 }

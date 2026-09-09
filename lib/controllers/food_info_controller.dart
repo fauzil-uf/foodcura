@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/article_model.dart';
+import '../services/firestore_service.dart';
 
 // Daftar artikel edukasi gizi & food waste
 const List<ArticleModel> _kArticles = [
@@ -216,6 +217,13 @@ const List<ArticleModel> _kArticles = [
 
 // Controller edukasi Food Info (filter kategori & pencarian artikel)
 class FoodInfoController extends ChangeNotifier {
+  final FirestoreService _firestoreService;
+
+  FoodInfoController({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService() {
+    loadArticles();
+  }
+
   static const List<String> categories = [
     'Semua',
     'GIZI & NUTRISI',
@@ -227,15 +235,38 @@ class FoodInfoController extends ChangeNotifier {
   int _selectedCategoryIndex = 0;
   String _searchQuery = '';
   bool _showAllArticles = false;
+  List<ArticleModel> _articles = _kArticles;
+  bool _isLoading = false;
 
   // Getters
   int get selectedCategoryIndex => _selectedCategoryIndex;
   String get searchQuery => _searchQuery;
   bool get showAllArticles => _showAllArticles;
+  List<ArticleModel> get articles => _articles;
+  bool get isLoading => _isLoading;
+
+  /// Memuat artikel dari Firestore dengan fallback lokal _kArticles
+  Future<void> loadArticles() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final cloudArticles = await _firestoreService.getArticles();
+      if (cloudArticles.isNotEmpty) {
+        _articles = cloudArticles;
+      } else {
+        // Seeding artikel awal ke Firestore secara otomatis di latar belakang
+        _firestoreService.seedArticles(_kArticles).ignore();
+      }
+    } catch (_) {} finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   /// Semua artikel yang sudah difilter berdasarkan kategori dan query pencarian.
   List<ArticleModel> get filteredArticles {
-    List<ArticleModel> list = _kArticles;
+    List<ArticleModel> list = _articles;
 
     // Filter berdasarkan kategori chip yang dipilih.
     if (_selectedCategoryIndex > 0 &&

@@ -7,9 +7,9 @@ Dokumen ini adalah ringkasan serah terima (handover) agar pengerjaan integrasi F
 ## 1. Status Git & Branch
 - **Branch Aktif**: `firebase` (Sudah di-push ke GitHub: `origin/firebase`)
 - **Branch `main`**: Aman, stabil, dan bersih di commit `88b8764`.
-- **Status Working Tree**: Bersih (`clean`), semua 81 unit & widget test lulus 100%.
+- **Status Working Tree**: 90 unit & widget test lulus 100% (semua lulus tanpa error).
 
-### Riwayat Commit di Branch `firebase`:
+### Riwayat Fase & Fitur di Branch `firebase`:
 1. `092f1c5`: Setup awal dependensi Firebase & konfigurasi `firebase.json`
 2. `16379f7`: Upgrade ekosistem pustaka Firebase ke versi terbaru (`cloud_firestore: ^6.1.0`, `firebase_core: ^4.0.0`, `firebase_auth: ^6.0.0`)
 3. `6491152`: Membuat `FirestoreService` & mapping model Firestore (Fase 1)
@@ -18,6 +18,11 @@ Dokumen ini adalah ringkasan serah terima (handover) agar pengerjaan integrasi F
 6. `b875bd9`: Sinkronisasi CRUD inventaris dapur (`pantry_items`) ke subcollection Firestore (Fase 4)
 7. `afb2a42`: Sinkronisasi catatan makan harian (`food_logs`) ke subcollection Firestore (Fase 5)
 8. `0ac30c4`: Aturan keamanan `firestore.rules` dan link di `firebase.json` (Fase 6)
+9. **Fase 7**: Sinkronisasi penuh CRUD subkoleksi `notifications` ke Firestore (`users/{uid}/notifications`)
+10. **Fase 8**: Standarisasi ID dokumen deterministik (`pantry_$id`, `foodlog_$id`, `notif_$id`)
+11. **Fase 9**: Koleksi global artikel edukasi gizi (`articles`) dengan offline fallback di `FoodInfoController`
+12. **Fase 10**: Sinkronisasi preferensi pengguna & jadwal makan (`users/{uid}.preferences`)
+13. **Fase 11**: Layanan sinkronisasi dua arah (`SyncService`), auto-restore saat login, & modal UI Sinkronisasi Cloud di Profil
 
 ---
 
@@ -28,16 +33,20 @@ firestore
 ├── foods/{foodId}                        (Global Collection - Read-only publik)
 │   ├── name, calories, protein, carbs, fat, cholesterol, category, image_path
 │
+├── articles/{articleId}                  (Global Collection - Read-only publik)
+│   ├── title, category, read_time, date, summary, image_url, content
+│
 └── users/{userId}                        (User Document)
     ├── uid, name, email, eco_points, streak_count, last_active_at
+    ├── preferences: { expiryAlert, dailyMealLog, breakfastTime, lunchTime, dinnerTime, ... }
     │
-    ├── pantry_items/{itemId}             (Subcollection)
+    ├── pantry_items/{itemId}             (Subcollection: pantry_$id)
     │   ├── name, quantity, unit, storage, expiry_date, is_used, created_at
     │
-    ├── food_logs/{logId}                 (Subcollection)
+    ├── food_logs/{logId}                 (Subcollection: foodlog_$id)
     │   ├── food_name, meal_type, calories, protein, carbs, fat, date, time, note
     │
-    └── notifications/{notifId}           (Subcollection)
+    └── notifications/{notifId}           (Subcollection: notif_$id)
         ├── title, message, type, icon_type, is_read, created_at
 ```
 

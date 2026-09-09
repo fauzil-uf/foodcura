@@ -1120,6 +1120,15 @@ class DBHelper {
       notif.copyWith(userId: targetUserId).toMap()..remove('id'),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+
+    // Sinkronisasi notifikasi ke Firestore (latar belakang)
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance
+          .addNotification(uid, notif.copyWith(id: res, userId: targetUserId))
+          .ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
@@ -1176,6 +1185,13 @@ class DBHelper {
       where: 'id = ? AND user_id = ?',
       whereArgs: [id, targetUserId],
     );
+
+    // Sinkronisasi status dibaca ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance.markNotificationRead(uid, 'notif_$id').ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
@@ -1192,6 +1208,13 @@ class DBHelper {
       where: 'is_read = 0 AND user_id = ?',
       whereArgs: [targetUserId],
     );
+
+    // Sinkronisasi tandai semua dibaca ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance.markAllNotificationsRead(uid).ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
@@ -1240,6 +1263,13 @@ class DBHelper {
       where: 'id = ? AND user_id = ?',
       whereArgs: [id, targetUserId],
     );
+
+    // Sinkronisasi hapus ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance.deleteNotification(uid, 'notif_$id').ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
@@ -1257,6 +1287,14 @@ class DBHelper {
       where: 'id IN ($placeholders) AND user_id = ?',
       whereArgs: [...ids, targetUserId],
     );
+
+    // Sinkronisasi batch hapus ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      final docIds = ids.map((id) => 'notif_$id').toList();
+      FirestoreService.instance.deleteNotificationsBatch(uid, docIds).ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }

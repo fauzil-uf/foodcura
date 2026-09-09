@@ -8,6 +8,7 @@ import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../../services/app_notifiers.dart';
 import '../../services/app_update_service.dart';
+import '../../services/sync_service.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_dialog.dart';
@@ -161,6 +162,164 @@ class _ProfileScreenState extends State<ProfileScreen>
       isScrollControlled: true,
       builder: (_) =>
           NotificationSettingsModal(controller: _profileController),
+    );
+  }
+
+  // Buka modal sinkronisasi Cloud Firestore
+  void _showCloudSyncModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (modalCtx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final isSyncing = SyncService.instance.isSyncing;
+          final lastSync = SyncService.instance.lastSyncTime;
+          final lastSyncText = lastSync != null
+              ? '${lastSync.day.toString().padLeft(2, '0')}/${lastSync.month.toString().padLeft(2, '0')}/${lastSync.year} ${lastSync.hour.toString().padLeft(2, '0')}:${lastSync.minute.toString().padLeft(2, '0')}'
+              : 'Belum pernah';
+
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceDim,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEDE7F6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.cloud_sync_rounded,
+                    color: Color(0xFF5E35B1),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Sinkronisasi Cloud Firestore',
+                  style: AppTextStyles.headlineMd,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Cadangkan seluruh bahan dapur, riwayat nutrisi, dan preferensi Anda ke server Google agar aman dan tersinkronisasi saat ganti perangkat.',
+                  style: AppTextStyles.body.copyWith(color: AppColors.textGray),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.borderSoft),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.access_time_rounded, size: 20, color: AppColors.textGray),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Terakhir: $lastSyncText',
+                          style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                if (isSyncing)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(color: Color(0xFF5E35B1)),
+                        SizedBox(height: 12),
+                        Text('Sedang menyinkronkan data...', style: AppTextStyles.caption),
+                      ],
+                    ),
+                  )
+                else ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        setModalState(() {});
+                        final res = await SyncService.instance.backupAllToCloud();
+                        if (!ctx.mounted) return;
+                        Navigator.of(ctx).pop();
+                        if (!mounted) return;
+                        if (res.success) {
+                          AppSnackBar.showSuccess(context, res.message ?? 'Cadangan cloud berhasil!');
+                        } else {
+                          AppSnackBar.showError(context, res.message ?? 'Gagal mencadangkan ke cloud.');
+                        }
+                        _loadProfileData();
+                      },
+                      icon: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
+                      label: const Text(
+                        'Cadangkan ke Cloud (Backup)',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5E35B1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        setModalState(() {});
+                        final res = await SyncService.instance.restoreFromCloud();
+                        if (!ctx.mounted) return;
+                        Navigator.of(ctx).pop();
+                        if (!mounted) return;
+                        if (res.success) {
+                          AppSnackBar.showSuccess(context, res.message ?? 'Pemulihan cloud berhasil!');
+                        } else {
+                          AppSnackBar.showError(context, res.message ?? 'Gagal memulihkan dari cloud.');
+                        }
+                        _loadProfileData();
+                      },
+                      icon: const Icon(Icons.cloud_download_outlined, color: Color(0xFF5E35B1)),
+                      label: const Text(
+                        'Pulihkan dari Cloud (Restore)',
+                        style: TextStyle(color: Color(0xFF5E35B1), fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF5E35B1)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -370,6 +529,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   onEditProfile: _showEditProfileModal,
                                   onNotificationSettings:
                                       _showNotificationSettings,
+                                  onCloudSync: _showCloudSyncModal,
                                   onChangePassword: _showChangePasswordModal,
                                   onPrivacyPolicy: _showPrivacyModal,
                                   onAboutApp: _showAboutAppDialog,
