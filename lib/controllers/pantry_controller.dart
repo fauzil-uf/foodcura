@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
+import '../services/sync_service.dart';
 
 // Controller inventaris pantry & pemantau kedaluwarsa
 class PantryController extends ChangeNotifier {
@@ -280,5 +281,12 @@ class PantryController extends ChangeNotifier {
   Future<void> refreshUnreadCount() async {
     _unreadNotifications = await _db.getUnreadNotificationCount();
     notifyListeners();
+  }
+
+  /// Sinkronisasi inventaris pantry dari Cloud Firestore ke database lokal
+  Future<int> syncCloudPantry() async {
+    final count = await SyncService.instance.syncPantryFromCloud();
+    await loadPantryData();
+    return count;
   }
 }

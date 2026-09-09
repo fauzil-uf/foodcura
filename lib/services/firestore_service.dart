@@ -237,6 +237,52 @@ class FirestoreService {
     }
   }
 
+  /// Helper normalisasi lokasi penyimpanan ke kategori resmi aplikasi
+  static String _normalizeStorage(dynamic val) {
+    final s = val?.toString().toLowerCase().trim() ?? '';
+    if (s.contains('freezer') || s.contains('beku')) return 'Freezer';
+    if (s.contains('kulkas') || s.contains('chiller') || s.contains('fridge') || s.contains('refrigerator')) return 'Kulkas';
+    if (s.contains('lemari') || s.contains('kering') || s.contains('dry')) return 'Lemari Kering';
+    if (s.contains('ruang') || s.contains('room')) return 'Suhu Ruang';
+    return 'Kulkas';
+  }
+
+  /// Helper toleran untuk parse tanggal (String ISO, Firestore Timestamp, int millis)
+  static DateTime _parseDateTime(dynamic val, [DateTime? fallback]) {
+    if (val == null) return fallback ?? DateTime.now();
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    if (val is String) {
+      final dt = DateTime.tryParse(val);
+      if (dt != null) return dt;
+    }
+    return fallback ?? DateTime.now();
+  }
+
+  /// Helper toleran untuk konversi angka kuantitas
+  static double _parseDouble(dynamic val, [double fallback = 1.0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      final d = double.tryParse(val);
+      if (d != null) return d;
+    }
+    return fallback;
+  }
+
+  /// Helper toleran untuk boolean
+  static bool _parseBool(dynamic val, [bool fallback = false]) {
+    if (val == null) return fallback;
+    if (val is bool) return val;
+    if (val is int) return val == 1;
+    if (val is String) {
+      final s = val.toLowerCase().trim();
+      return s == 'true' || s == '1';
+    }
+    return fallback;
+  }
+
   /// Mengambil semua item pantry user dari Firestore
   Future<List<PantryItemModel>> getPantryItems(String uid) async {
     final firestore = _firestore;
@@ -247,21 +293,27 @@ class FirestoreService {
           .collection(colUsers)
           .doc(uid)
           .collection(colPantryItems)
-          .orderBy('expiry_date')
           .get();
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
         return PantryItemModel(
-          name: data['name'] as String? ?? '',
-          quantity: (data['quantity'] as num?)?.toDouble() ?? 1.0,
-          unit: data['unit'] as String? ?? 'pcs',
-          storage: data['storage'] as String? ?? 'Chiller',
-          expiryDate: DateTime.tryParse(data['expiry_date']?.toString() ?? '') ??
-              DateTime.now().add(const Duration(days: 7)),
+          firestoreId: doc.id,
+          id: (data['id'] as num?)?.toInt(),
+          name: data['name']?.toString() ?? data['nama']?.toString() ?? '',
+          quantity: _parseDouble(data['quantity'] ?? data['jumlah'], 1.0),
+          unit: data['unit']?.toString() ?? data['satuan']?.toString() ?? 'buah',
+          storage: _normalizeStorage(data['storage'] ?? data['penyimpanan']),
+          expiryDate: _parseDateTime(
+            data['expiry_date'] ?? data['expiryDate'] ?? data['kadaluwarsa'] ?? data['kedaluwarsa'],
+            DateTime.now().add(const Duration(days: 7)),
+          ),
           imageUrl: (data['image_url'] as String?)?.isEmpty == true ? null : data['image_url'] as String?,
-          isUsed: data['is_used'] == true,
-          createdAt: DateTime.tryParse(data['created_at']?.toString() ?? '') ?? DateTime.now(),
+          isUsed: _parseBool(data['is_used'] ?? data['isUsed'], false),
+          createdAt: _parseDateTime(
+            data['created_at'] ?? data['createdAt'],
+            DateTime.now(),
+          ),
         );
       }).toList();
     } catch (e) {
@@ -279,21 +331,27 @@ class FirestoreService {
         .collection(colUsers)
         .doc(uid)
         .collection(colPantryItems)
-        .orderBy('expiry_date')
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
         return PantryItemModel(
-          name: data['name'] as String? ?? '',
-          quantity: (data['quantity'] as num?)?.toDouble() ?? 1.0,
-          unit: data['unit'] as String? ?? 'pcs',
-          storage: data['storage'] as String? ?? 'Chiller',
-          expiryDate: DateTime.tryParse(data['expiry_date']?.toString() ?? '') ??
-              DateTime.now().add(const Duration(days: 7)),
+          firestoreId: doc.id,
+          id: (data['id'] as num?)?.toInt(),
+          name: data['name']?.toString() ?? data['nama']?.toString() ?? '',
+          quantity: _parseDouble(data['quantity'] ?? data['jumlah'], 1.0),
+          unit: data['unit']?.toString() ?? data['satuan']?.toString() ?? 'buah',
+          storage: _normalizeStorage(data['storage'] ?? data['penyimpanan']),
+          expiryDate: _parseDateTime(
+            data['expiry_date'] ?? data['expiryDate'] ?? data['kadaluwarsa'] ?? data['kedaluwarsa'],
+            DateTime.now().add(const Duration(days: 7)),
+          ),
           imageUrl: (data['image_url'] as String?)?.isEmpty == true ? null : data['image_url'] as String?,
-          isUsed: data['is_used'] == true,
-          createdAt: DateTime.tryParse(data['created_at']?.toString() ?? '') ?? DateTime.now(),
+          isUsed: _parseBool(data['is_used'] ?? data['isUsed'], false),
+          createdAt: _parseDateTime(
+            data['created_at'] ?? data['createdAt'],
+            DateTime.now(),
+          ),
         );
       }).toList();
     });

@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodcura/constants/app_constants.dart';
 import 'package:foodcura/controllers/food_info_controller.dart';
-import 'package:foodcura/models/article_model.dart';
 import 'package:foodcura/models/notification_model.dart';
 import 'package:foodcura/services/app_notifiers.dart';
 import 'package:foodcura/services/firestore_service.dart';
@@ -146,6 +145,13 @@ void main() {
       expect(restored.id, equals(42));
       expect(restored.title, equals('Bahan Segera Kedaluwarsa'));
       expect(restored.isRead, isFalse);
+    });
+  });
+
+  group('Pantry Cloud Sync & Pull Tests', () {
+    test('SyncService.syncPantryFromCloud handles unauthenticated state gracefully', () async {
+      final result = await SyncService.instance.syncPantryFromCloud();
+      expect(result, equals(0));
     });
   });
 }

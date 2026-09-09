@@ -190,12 +190,15 @@ class SyncService extends ChangeNotifier {
       final localPantry = await _db.getPantryItems(userId: targetUserId);
       final cloudPantry = await _firestore.getPantryItems(uid);
       for (final cItem in cloudPantry) {
+        if (cItem.isUsed) continue;
+
         final alreadyExists = localPantry.any((l) =>
-            l.name.toLowerCase() == cItem.name.toLowerCase() &&
-            l.storage == cItem.storage &&
-            l.expiryDate.year == cItem.expiryDate.year &&
-            l.expiryDate.month == cItem.expiryDate.month &&
-            l.expiryDate.day == cItem.expiryDate.day);
+            (cItem.id != null && l.id == cItem.id) ||
+            (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
+             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim() &&
+             l.expiryDate.year == cItem.expiryDate.year &&
+             l.expiryDate.month == cItem.expiryDate.month &&
+             l.expiryDate.day == cItem.expiryDate.day));
 
         if (!alreadyExists) {
           await _db.addPantryItem(cItem.copyWith(userId: targetUserId));
@@ -276,6 +279,50 @@ class SyncService extends ChangeNotifier {
     } finally {
       _isSyncing = false;
       notifyListeners();
+    }
+  }
+
+  /// Sinkronisasi cepat inventaris pantry dari Cloud Firestore ke SQLite lokal
+  Future<int> syncPantryFromCloud({String? explicitUid}) async {
+    try {
+      final user = await _db.getLoggedInUser();
+      final targetUserId = user?.id;
+      final uid = explicitUid ??
+          AuthService.instance.currentUser?.uid ??
+          (targetUserId != null ? 'user_$targetUserId' : null);
+
+      if (uid == null) return 0;
+
+      final cloudPantry = await _firestore.getPantryItems(uid);
+      if (cloudPantry.isEmpty) return 0;
+
+      final localPantry = await _db.getPantryItems(userId: targetUserId);
+      int addedCount = 0;
+
+      for (final cItem in cloudPantry) {
+        if (cItem.isUsed) continue;
+
+        final alreadyExists = localPantry.any((l) =>
+            (cItem.id != null && l.id == cItem.id) ||
+            (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
+             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim() &&
+             l.expiryDate.year == cItem.expiryDate.year &&
+             l.expiryDate.month == cItem.expiryDate.month &&
+             l.expiryDate.day == cItem.expiryDate.day));
+
+        if (!alreadyExists) {
+          await _db.addPantryItem(cItem.copyWith(userId: targetUserId));
+          addedCount++;
+        }
+      }
+
+      if (addedCount > 0) {
+        PantryUpdateNotifier.instance.notifyPantryChanged();
+      }
+      return addedCount;
+    } catch (e) {
+      debugPrint('[SyncService] Gagal sinkronisasi pantry dari cloud: $e');
+      return 0;
     }
   }
 }

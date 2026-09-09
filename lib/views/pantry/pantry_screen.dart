@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -5,6 +7,8 @@ import '../../constants/app_typography.dart';
 import '../../controllers/pantry_controller.dart';
 import '../../models/pantry_item_model.dart';
 import '../../services/app_notifiers.dart';
+import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_empty_state.dart';
 import '../widgets/app_filter_chip_row.dart';
@@ -29,6 +33,7 @@ class _PantryScreenState extends State<PantryScreen> {
   final _controller = PantryController();
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0;
+  StreamSubscription? _cloudSubscription;
 
   static const List<String> _filters = [
     'Semua',
@@ -45,6 +50,7 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.loadPantryData();
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
     NotificationNotifier.instance.addListener(_onNotifChanged);
+    _setupCloudPantryListener();
   }
 
   @override
@@ -53,8 +59,22 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.dispose();
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     NotificationNotifier.instance.removeListener(_onNotifChanged);
+    _cloudSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _setupCloudPantryListener() {
+    try {
+      final uid = AuthService.instance.currentUser?.uid;
+      if (uid != null) {
+        _cloudSubscription = FirestoreService.instance
+            .streamPantryItems(uid)
+            .listen((_) {
+              _controller.syncCloudPantry();
+            });
+      }
+    } catch (_) {}
   }
 
   // Render ulang UI jika state pantry berubah
@@ -173,7 +193,16 @@ class _PantryScreenState extends State<PantryScreen> {
                         )
                       : RefreshIndicator(
                           color: AppColors.primary,
-                          onRefresh: () => _controller.loadPantryData(),
+                          onRefresh: () async {
+                            final synced = await _controller.syncCloudPantry();
+                            if (!context.mounted) return;
+                            if (synced > 0) {
+                              AppSnackBar.showSuccess(
+                                context,
+                                'Berhasil sinkronkan $synced bahan baru dari Cloud!',
+                              );
+                            }
+                          },
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.symmetric(horizontal: 20),
