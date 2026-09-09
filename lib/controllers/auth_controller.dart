@@ -61,6 +61,12 @@ class AuthController extends ChangeNotifier {
         _currentUser = user;
         _setLoading(false);
         try {
+          if (AuthService.instance.currentUser == null) {
+            await AuthService.instance.signInWithEmailPassword(
+              email: cleanEmail,
+              password: password,
+            );
+          }
           final uid = AuthService.instance.currentUser?.uid ?? 'user_${user.id}';
           FirestoreService.instance.saveUserProfile(
             uid: uid,

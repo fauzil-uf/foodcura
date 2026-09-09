@@ -186,10 +186,10 @@ class PantryController extends ChangeNotifier {
     try {
       final activeUserId = item.userId ?? await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      FirestoreService.instance
-          .addPantryItem(uid, item.copyWith(id: id))
-          .ignore();
-    } catch (_) {}
+      await FirestoreService.instance.addPantryItem(uid, item.copyWith(id: id));
+    } catch (e) {
+      debugPrint('[PantryController] Gagal sync addPantryItem ke Firestore: $e');
+    }
     await _reminderService.syncPantryExpiryAlarms();
     await _reminderService.checkExpiryAndCreateNotifications(
       force: true,
@@ -208,10 +208,10 @@ class PantryController extends ChangeNotifier {
       final activeUserId = item.userId ?? await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       final firestoreId = item.firestoreId ?? 'pantry_${item.id}';
-      FirestoreService.instance
-          .updatePantryItem(uid, firestoreId, item)
-          .ignore();
-    } catch (_) {}
+      await FirestoreService.instance.updatePantryItem(uid, firestoreId, item);
+    } catch (e) {
+      debugPrint('[PantryController] Gagal sync updatePantryItem ke Firestore: $e');
+    }
     if (item.id != null) {
       final userId = item.userId ?? await _db.getActiveUserId();
       if (userId != null) {
@@ -237,23 +237,23 @@ class PantryController extends ChangeNotifier {
     try {
       final activeUserId = await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      FirestoreService.instance
-          .updatePantryItem(
-            uid,
-            'pantry_$id',
-            PantryItemModel(
-              id: id,
-              name: '',
-              quantity: 0,
-              unit: '',
-              storage: '',
-              expiryDate: DateTime.now(),
-              createdAt: DateTime.now(),
-              isUsed: true,
-            ),
-          )
-          .ignore();
-    } catch (_) {}
+      await FirestoreService.instance.updatePantryItem(
+        uid,
+        'pantry_$id',
+        PantryItemModel(
+          id: id,
+          name: '',
+          quantity: 0,
+          unit: '',
+          storage: '',
+          expiryDate: DateTime.now(),
+          createdAt: DateTime.now(),
+          isUsed: true,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[PantryController] Gagal sync markItemUsed ke Firestore: $e');
+    }
     await _db.deleteNotificationsByPantryId(id);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
@@ -268,8 +268,10 @@ class PantryController extends ChangeNotifier {
     try {
       final activeUserId = await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      FirestoreService.instance.deletePantryItem(uid, 'pantry_$id').ignore();
-    } catch (_) {}
+      await FirestoreService.instance.deletePantryItem(uid, 'pantry_$id');
+    } catch (e) {
+      debugPrint('[PantryController] Gagal sync deletePantryItem ke Firestore: $e');
+    }
     await _db.deleteNotificationsByPantryId(id);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
