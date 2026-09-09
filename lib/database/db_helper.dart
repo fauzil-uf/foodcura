@@ -1110,7 +1110,10 @@ class DBHelper {
   // --- NOTIFICATIONS CRUD ---
 
   // Simpan notifikasi baru
-  Future<int> addNotification(NotificationModel notif) async {
+  Future<int> addNotification(
+    NotificationModel notif, {
+    bool syncToCloud = true,
+  }) async {
     final db = await database;
     final targetUserId = notif.userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1121,13 +1124,45 @@ class DBHelper {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
-    // Sinkronisasi notifikasi ke Firestore (latar belakang)
-    try {
-      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
-      FirestoreService.instance
-          .addNotification(uid, notif.copyWith(id: res, userId: targetUserId))
-          .ignore();
-    } catch (_) {}
+    // Sinkronisasi notifikasi ke Firestore (latar belakang) jika bukan hasil sync dari cloud
+    if (syncToCloud) {
+      try {
+        final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        FirestoreService.instance
+            .addNotification(uid, notif.copyWith(id: res, userId: targetUserId))
+            .ignore();
+      } catch (_) {}
+    }
+
+    await NotificationNotifier.instance.refresh();
+    return res;
+  }
+
+  // Perbarui notifikasi yang sudah ada (judul, pesan, status baca, dll.)
+  Future<int> updateNotification(
+    NotificationModel notif, {
+    bool syncToCloud = true,
+  }) async {
+    if (notif.id == null) return 0;
+    final db = await database;
+    final targetUserId = notif.userId ?? await getActiveUserId();
+    if (targetUserId == null) return 0;
+
+    final res = await db.update(
+      tableNotifications,
+      notif.copyWith(userId: targetUserId).toMap(),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [notif.id, targetUserId],
+    );
+
+    if (syncToCloud) {
+      try {
+        final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        FirestoreService.instance
+            .addNotification(uid, notif.copyWith(userId: targetUserId))
+            .ignore();
+      } catch (_) {}
+    }
 
     await NotificationNotifier.instance.refresh();
     return res;

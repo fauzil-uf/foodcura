@@ -14,6 +14,7 @@ import '../../models/pantry_item_model.dart';
 import '../../services/app_notifiers.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/sync_service.dart';
 import '../food_tracker/widgets/add_food_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_circular_progress.dart';
@@ -112,7 +113,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
 
     _notifSub?.cancel();
-    _notifSub = FirestoreService.instance.streamNotifications(uid).listen((_) {
+    _notifSub = FirestoreService.instance.streamNotifications(uid).listen((_) async {
+      await SyncService.instance.syncNotificationsFromCloud();
       _controller.refreshUnreadCount();
     });
   }

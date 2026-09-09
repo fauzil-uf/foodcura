@@ -683,18 +683,20 @@ class FirestoreService {
       return snapshot.docs.map((doc) {
         final d = doc.data();
         final rawId = (d['id'] as num?)?.toInt() ??
+            int.tryParse(doc.id) ??
             (doc.id.startsWith('notif_')
                 ? int.tryParse(doc.id.replaceFirst('notif_', ''))
                 : null);
         return NotificationModel(
           id: rawId,
-          title: d['title'] as String? ?? '',
-          message: d['message'] as String? ?? '',
-          type: d['type'] as String? ?? 'system',
-          iconType: d['icon_type'] as String? ?? 'info',
-          isRead: d['is_read'] == true,
-          relatedPantryId: (d['related_pantry_id'] as num?)?.toInt(),
-          createdAt: _parseDateTime(d['created_at'], DateTime.now()),
+          firestoreId: doc.id,
+          title: (d['title'] ?? d['judul'] ?? d['name'] ?? '').toString(),
+          message: (d['message'] ?? d['pesan'] ?? d['body'] ?? d['deskripsi'] ?? d['isi'] ?? '').toString(),
+          type: (d['type'] ?? d['tipe'] ?? d['kategori'] ?? 'system').toString(),
+          iconType: (d['icon_type'] ?? d['iconType'] ?? d['icon'] ?? 'info').toString(),
+          isRead: d['is_read'] == true || d['isRead'] == true || d['dibaca'] == true || d['read'] == true,
+          relatedPantryId: ((d['related_pantry_id'] ?? d['relatedPantryId']) as num?)?.toInt(),
+          createdAt: _parseDateTime(d['created_at'] ?? d['createdAt'] ?? d['tanggal'], DateTime.now()),
         );
       }).toList();
     } catch (e) {
@@ -717,18 +719,20 @@ class FirestoreService {
       return snapshot.docs.map((doc) {
         final d = doc.data();
         final rawId = (d['id'] as num?)?.toInt() ??
+            int.tryParse(doc.id) ??
             (doc.id.startsWith('notif_')
                 ? int.tryParse(doc.id.replaceFirst('notif_', ''))
                 : null);
         return NotificationModel(
           id: rawId,
-          title: d['title'] as String? ?? '',
-          message: d['message'] as String? ?? '',
-          type: d['type'] as String? ?? 'system',
-          iconType: d['icon_type'] as String? ?? 'info',
-          isRead: d['is_read'] == true,
-          relatedPantryId: (d['related_pantry_id'] as num?)?.toInt(),
-          createdAt: _parseDateTime(d['created_at'], DateTime.now()),
+          firestoreId: doc.id,
+          title: (d['title'] ?? d['judul'] ?? d['name'] ?? '').toString(),
+          message: (d['message'] ?? d['pesan'] ?? d['body'] ?? d['deskripsi'] ?? d['isi'] ?? '').toString(),
+          type: (d['type'] ?? d['tipe'] ?? d['kategori'] ?? 'system').toString(),
+          iconType: (d['icon_type'] ?? d['iconType'] ?? d['icon'] ?? 'info').toString(),
+          isRead: d['is_read'] == true || d['isRead'] == true || d['dibaca'] == true || d['read'] == true,
+          relatedPantryId: ((d['related_pantry_id'] ?? d['relatedPantryId']) as num?)?.toInt(),
+          createdAt: _parseDateTime(d['created_at'] ?? d['createdAt'] ?? d['tanggal'], DateTime.now()),
         );
       }).toList();
     });

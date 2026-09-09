@@ -4,6 +4,7 @@ import '../constants/app_date_formatter.dart';
 class NotificationModel {
   final int? id;
   final int? userId;
+  final String? firestoreId;
   final String title;
   final String message;
   final String type; // expiry_warning, nutrition_excess, tips, system
@@ -15,6 +16,7 @@ class NotificationModel {
   const NotificationModel({
     this.id,
     this.userId,
+    this.firestoreId,
     required this.title,
     required this.message,
     required this.type,
@@ -66,6 +68,7 @@ class NotificationModel {
   NotificationModel copyWith({
     int? id,
     int? userId,
+    String? firestoreId,
     String? title,
     String? message,
     String? type,
@@ -77,6 +80,7 @@ class NotificationModel {
     return NotificationModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      firestoreId: firestoreId ?? this.firestoreId,
       title: title ?? this.title,
       message: message ?? this.message,
       type: type ?? this.type,

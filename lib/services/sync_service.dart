@@ -530,21 +530,35 @@ class SyncService extends ChangeNotifier {
       for (final cNotif in cloudNotifs) {
         final existingIndex = localNotifs.indexWhere((l) =>
             (cNotif.id != null && l.id == cNotif.id) ||
-            (l.title == cNotif.title &&
+            (l.title.toLowerCase().trim() == cNotif.title.toLowerCase().trim() &&
              l.createdAt.year == cNotif.createdAt.year &&
              l.createdAt.month == cNotif.createdAt.month &&
              l.createdAt.day == cNotif.createdAt.day));
 
         if (existingIndex != -1) {
           final local = localNotifs[existingIndex];
-          if (local.isRead != cNotif.isRead) {
-            if (cNotif.isRead && local.id != null) {
-              await _db.markNotificationRead(local.id!);
-              changeCount++;
-            }
+          final hasChanged = local.title.trim() != cNotif.title.trim() ||
+              local.message.trim() != cNotif.message.trim() ||
+              local.isRead != cNotif.isRead ||
+              local.type != cNotif.type ||
+              local.iconType != cNotif.iconType;
+
+          if (hasChanged) {
+            await _db.updateNotification(
+              cNotif.copyWith(
+                id: local.id,
+                userId: targetUserId,
+                createdAt: local.createdAt,
+              ),
+              syncToCloud: false,
+            );
+            changeCount++;
           }
         } else {
-          await _db.addNotification(cNotif.copyWith(userId: targetUserId));
+          await _db.addNotification(
+            cNotif.copyWith(userId: targetUserId),
+            syncToCloud: false,
+          );
           changeCount++;
         }
       }
