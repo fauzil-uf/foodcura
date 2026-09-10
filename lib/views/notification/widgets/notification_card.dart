@@ -31,13 +31,13 @@ class NotificationCard extends StatelessWidget {
     String categoryTag;
 
     switch (notif.type) {
-      case 'meal_reminder':
+      case NotificationModel.typeMealReminder:
         categoryTag = 'Pengingat Makan';
         accentColor = AppColors.primary;
         iconData = Icons.restaurant_rounded;
         iconBgColor = AppColors.mintTint;
         break;
-      case 'expiry_warning':
+      case NotificationModel.typeExpiryWarning:
         final lowerTitle = notif.title.toLowerCase();
         final lowerMsg = notif.message.toLowerCase();
         final isUrgent = lowerTitle.contains('hari ini') ||
@@ -68,25 +68,25 @@ class NotificationCard extends StatelessWidget {
           iconBgColor = AppColors.mintTint;
         }
         break;
-      case 'nutrition_excess':
+      case NotificationModel.typeNutritionExcess:
         categoryTag = 'Batas Nutrisi';
         accentColor = AppColors.nutritionViolet;
         iconData = Icons.insights_rounded;
         iconBgColor = AppColors.nutritionVioletBg;
         break;
-      case 'tips':
+      case NotificationModel.typeTips:
         categoryTag = 'Tips & Edukasi';
         accentColor = AppColors.ecoGreen;
-        iconData = notif.iconType == 'restaurant'
+        iconData = notif.iconType == NotificationModel.iconRestaurant
             ? Icons.restaurant_rounded
             : Icons.lightbulb_rounded;
         iconBgColor = AppColors.mintTint;
         break;
-      case 'system':
+      case NotificationModel.typeSystem:
       default:
         categoryTag = 'Info Sistem';
         accentColor = AppColors.infoBlueDark;
-        iconData = notif.iconType == 'eco'
+        iconData = notif.iconType == NotificationModel.iconEco
             ? Icons.eco_rounded
             : Icons.system_update_rounded;
         iconBgColor = AppColors.infoBlueBg;

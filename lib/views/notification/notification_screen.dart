@@ -1,13 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
-import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
 import '../widgets/app_empty_state.dart';
 import '../widgets/app_filter_chip_row.dart';
 import '../widgets/app_snack_bar.dart';
@@ -15,7 +11,7 @@ import '../widgets/app_top_bar.dart';
 import 'widgets/notification_card.dart';
 import 'widgets/notification_info_tip.dart';
 
-// Layar pusat notifikasi (peringatan kedaluwarsa & nutrisi)
+/// Layar pusat notifikasi (peringatan kedaluwarsa & nutrisi).
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -28,51 +24,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   List<String> get _filters => _controller.filterNames;
   int get _selectedFilter => _controller.selectedFilterIndex;
-  StreamSubscription? _cloudSubscription;
-  StreamSubscription? _authSubscription;
 
   @override
   void initState() {
     super.initState();
-    // Pasang listener dan muat daftar notifikasi dari SQLite
     _controller.addListener(_onControllerChanged);
     _controller.loadNotifications();
-    _setupCloudNotificationsListener();
+    _controller.startCloudSync();
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    _cloudSubscription?.cancel();
-    _authSubscription?.cancel();
     super.dispose();
-  }
-
-  void _setupCloudNotificationsListener() {
-    try {
-      _authSubscription?.cancel();
-      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
-        final uid = user?.uid;
-        if (uid != null) {
-          _subscribeToCloudNotifications(uid);
-        }
-      });
-
-      final currentUid = AuthService.instance.currentUser?.uid;
-      if (currentUid != null) {
-        _subscribeToCloudNotifications(currentUid);
-      }
-    } catch (_) {}
-  }
-
-  void _subscribeToCloudNotifications(String uid) {
-    _cloudSubscription?.cancel();
-    _cloudSubscription = FirestoreService.instance
-        .streamNotifications(uid)
-        .listen((_) {
-          _controller.syncCloudNotifications();
-        });
   }
 
   // Update tampilan saat status baca atau filter berubah

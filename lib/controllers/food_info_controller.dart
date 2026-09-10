@@ -215,7 +215,7 @@ const List<ArticleModel> _kArticles = [
   ),
 ];
 
-// Controller edukasi Food Info (filter kategori & pencarian artikel)
+/// Controller edukasi Food Info (filter kategori & pencarian artikel).
 class FoodInfoController extends ChangeNotifier {
   final FirestoreService _firestoreService;
 
@@ -238,7 +238,6 @@ class FoodInfoController extends ChangeNotifier {
   List<ArticleModel> _articles = _kArticles;
   bool _isLoading = false;
 
-  // Getters
   int get selectedCategoryIndex => _selectedCategoryIndex;
   String get searchQuery => _searchQuery;
   bool get showAllArticles => _showAllArticles;

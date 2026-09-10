@@ -567,14 +567,7 @@ class FirestoreService {
       final docRef = docId != null ? collection.doc(docId) : collection.doc();
 
       await docRef.set({
-        'id': notif.id,
-        'title': notif.title,
-        'message': notif.message,
-        'type': notif.type,
-        'icon_type': notif.iconType,
-        'is_read': notif.isRead,
-        'related_pantry_id': notif.relatedPantryId,
-        'created_at': notif.createdAt.toIso8601String(),
+        ...notif.toFirestore(),
         'updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       return docRef.id;

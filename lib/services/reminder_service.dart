@@ -10,7 +10,7 @@ import 'auth_service.dart';
 import 'firestore_service.dart';
 import 'notification_service.dart';
 
-// Service pemantau kedaluwarsa bahan pantry & reminder jam makan
+/// Service pemantau kedaluwarsa bahan pantry & reminder jam makan harian
 class ReminderService {
   final DBHelper _db;
   final NotificationService _notificationService;
@@ -20,9 +20,28 @@ class ReminderService {
       _notificationService =
           notificationService ?? NotificationService.instance;
 
+  /// ID notifikasi sistem Android deterministik
+  static const int mealNotifIdBreakfast = 10001;
+  static const int mealNotifIdLunch = 10002;
+  static const int mealNotifIdDinner = 10003;
+  static const int pantryNotifIdBase = 20000;
+
+  /// Label tipe waktu makan
+  static const String mealTypeBreakfast = 'Sarapan';
+  static const String mealTypeLunch = 'Makan Siang';
+  static const String mealTypeDinner = 'Makan Malam';
+
+  /// Mendapatkan ID notifikasi sistem Android berdasarkan tipe waktu makan
+  static int getMealSystemNotifId(String mealType) {
+    if (mealType.contains(mealTypeBreakfast)) return mealNotifIdBreakfast;
+    if (mealType.contains(mealTypeLunch) || mealType.contains('Siang')) return mealNotifIdLunch;
+    if (mealType.contains(mealTypeDinner) || mealType.contains('Malam')) return mealNotifIdDinner;
+    return 10000;
+  }
+
   static const List<Map<String, String>> mealConfigs = [
     {
-      'type': 'Sarapan',
+      'type': mealTypeBreakfast,
       'enabledKey': AppConstants.keyNotifBreakfastEnabled,
       'timeKey': AppConstants.keyNotifBreakfastTime,
       'defaultTime': '07:30',
@@ -30,7 +49,7 @@ class ReminderService {
       'message': 'Jangan lupa catat sarapanmu hari ini untuk tracking kalori.',
     },
     {
-      'type': 'Makan Siang',
+      'type': mealTypeLunch,
       'enabledKey': AppConstants.keyNotifLunchEnabled,
       'timeKey': AppConstants.keyNotifLunchTime,
       'defaultTime': '12:30',
@@ -39,7 +58,7 @@ class ReminderService {
           'Jangan lupa catat makan siangmu hari ini untuk tracking kalori.',
     },
     {
-      'type': 'Makan Malam',
+      'type': mealTypeDinner,
       'enabledKey': AppConstants.keyNotifDinnerEnabled,
       'timeKey': AppConstants.keyNotifDinnerTime,
       'defaultTime': '19:00',
@@ -135,8 +154,8 @@ class ReminderService {
                 userId: targetUserId,
                 title: title,
                 message: message,
-                type: 'expiry_warning',
-                iconType: 'lightbulb',
+                type: NotificationModel.typeExpiryWarning,
+                iconType: NotificationModel.iconLightbulb,
                 relatedPantryId: item.id,
                 createdAt: DateTime.now(),
               ),
@@ -145,14 +164,16 @@ class ReminderService {
             await prefs.setBool(h30Key, true);
 
             // Gunakan ID deterministik per bahan agar Android meng-update notifikasi dan tidak menduplikasi kartu
-            final systemNotifId = 20000 + item.id!;
+            final systemNotifId = pantryNotifIdBase + item.id!;
             try {
               await _notificationService.showSystemNotification(
                 id: systemNotifId,
                 title: title,
                 body: message,
               );
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[ReminderService] Gagal menampilkan notifikasi pantry H-30: $e');
+            }
           }
         }
         // 2. Peringatan Bertahap Saat Masuk Status Segera / Urgent / Expired (H-5 s/d H+3)
@@ -199,8 +220,8 @@ class ReminderService {
                 userId: targetUserId,
                 title: title,
                 message: message,
-                type: 'expiry_warning',
-                iconType: 'warning',
+                type: NotificationModel.typeExpiryWarning,
+                iconType: NotificationModel.iconWarning,
                 relatedPantryId: item.id,
                 createdAt: DateTime.now(),
               ),
@@ -208,8 +229,8 @@ class ReminderService {
             await prefs.setString(dailyNotifKey, todayDateStr);
             await prefs.setString(legacyKey, todayDateStr);
 
-            // ID deterministik spesifik item (20000 + id bahan) menjamin 0 duplikasi di status bar Android
-            final systemNotifId = 20000 + item.id!;
+            // ID deterministik spesifik item (pantryNotifIdBase + id bahan) menjamin 0 duplikasi di status bar Android
+            final systemNotifId = pantryNotifIdBase + item.id!;
             try {
               await _notificationService.showSystemNotification(
                 id: systemNotifId,
@@ -219,7 +240,9 @@ class ReminderService {
                     ? NotificationService.urgentExpiryChannelId
                     : NotificationService.warningExpiryChannelId,
               );
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[ReminderService] Gagal menampilkan notifikasi kedaluwarsa pantry: $e');
+            }
           } else {
             await prefs.setString(dailyNotifKey, todayDateStr);
             await prefs.setString(legacyKey, todayDateStr);
@@ -270,11 +293,6 @@ class ReminderService {
     _lastMealCheck = now;
 
     try {
-      final targetUserId = userId ?? await _db.getActiveUserId();
-      if (targetUserId != null) {
-        await _db.migrateSampleFoodLogsFromToday(userId: targetUserId);
-      }
-
       final db = await _db.database;
       final todayStr = AppDateFormatter.formatToday();
       final startOfDay = DateTime(
@@ -342,15 +360,15 @@ class ReminderService {
               userId: targetUserId,
               title: title,
               message: meal['message']!,
-              type: 'meal_reminder',
-              iconType: 'restaurant',
+              type: NotificationModel.typeMealReminder,
+              iconType: NotificationModel.iconRestaurant,
               createdAt: now,
             );
             await _db.addNotification(notif);
             await prefs.setString(dailyNotifKey, todayDateStr);
 
-            // ID deterministik per jadwal makan (10001, 10002, 10003)
-            final systemNotifId = 10001 + i;
+            // ID deterministik per jadwal makan
+            final systemNotifId = getMealSystemNotifId(meal['type']!);
             try {
               await _notificationService.showSystemNotification(
                 id: systemNotifId,
@@ -358,7 +376,9 @@ class ReminderService {
                 body: notif.message,
                 channelIdOverride: NotificationService.mealChannelId,
               );
-            } catch (_) {}
+            } catch (e) {
+              debugPrint('[ReminderService] Gagal menampilkan notifikasi jadwal makan: $e');
+            }
           } else {
             await prefs.setString(dailyNotifKey, todayDateStr);
           }
@@ -385,19 +405,13 @@ class ReminderService {
       await _db.deleteMealReminderNotifications(mealType, userId: userId);
     } catch (_) {}
 
-    int? systemNotifId;
-    if (mealType.contains('Sarapan')) {
-      systemNotifId = 10001;
-    } else if (mealType.contains('Siang')) {
-      systemNotifId = 10002;
-    } else if (mealType.contains('Malam')) {
-      systemNotifId = 10003;
-    }
-
-    if (systemNotifId != null) {
+    final systemNotifId = getMealSystemNotifId(mealType);
+    if (systemNotifId > 0) {
       try {
         await _notificationService.cancelNotification(systemNotifId);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[ReminderService] Gagal membatalkan notifikasi makan: $e');
+      }
       // Jadwalkan ulang mulai besok agar alarm jam makan besok dan seterusnya tetap aktif
       await rescheduleMealAlarmForTomorrow(mealType);
     }
@@ -415,7 +429,7 @@ class ReminderService {
       final meal = mealConfigs[i];
       if (mealType.contains(meal['type']!) || meal['type']!.contains(mealType)) {
         final isEnabled = prefs.getBool(meal['enabledKey']!) ?? true;
-        final systemNotifId = 10001 + i;
+        final systemNotifId = getMealSystemNotifId(meal['type']!);
         if (!isEnabled) {
           await _notificationService.cancelNotification(systemNotifId);
           return;
@@ -601,8 +615,8 @@ class ReminderService {
       }
 
       await handleMealScheduleUpdate(
-        mealType: 'Sarapan',
-        notifId: 10001,
+        mealType: mealTypeBreakfast,
+        notifId: mealNotifIdBreakfast,
         oldEnabled: oldBreakfastEnabled,
         newEnabled: breakfastEnabled,
         oldTime: oldBreakfastTime,
@@ -610,8 +624,8 @@ class ReminderService {
       );
 
       await handleMealScheduleUpdate(
-        mealType: 'Makan Siang',
-        notifId: 10002,
+        mealType: mealTypeLunch,
+        notifId: mealNotifIdLunch,
         oldEnabled: oldLunchEnabled,
         newEnabled: lunchEnabled,
         oldTime: oldLunchTime,
@@ -619,8 +633,8 @@ class ReminderService {
       );
 
       await handleMealScheduleUpdate(
-        mealType: 'Makan Malam',
-        notifId: 10003,
+        mealType: mealTypeDinner,
+        notifId: mealNotifIdDinner,
         oldEnabled: oldDinnerEnabled,
         newEnabled: dinnerEnabled,
         oldTime: oldDinnerTime,
@@ -660,7 +674,7 @@ class ReminderService {
 
     for (var i = 0; i < mealConfigs.length; i++) {
       final meal = mealConfigs[i];
-      final systemNotifId = 10001 + i;
+      final systemNotifId = getMealSystemNotifId(meal['type']!);
 
       final isEnabled =
           isMasterEnabled && (prefs.getBool(meal['enabledKey']!) ?? true);

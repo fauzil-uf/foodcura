@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -8,13 +5,8 @@ import '../../constants/app_date_formatter.dart';
 import '../../constants/app_food_formatter.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/dashboard_controller.dart';
-import '../../models/food_log_model.dart';
-import '../../models/notification_model.dart';
 import '../../models/pantry_item_model.dart';
 import '../../services/app_notifiers.dart';
-import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
-import '../../services/sync_service.dart';
 import '../food_tracker/widgets/add_food_modal.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_circular_progress.dart';
@@ -23,7 +15,7 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/quiz_modal.dart';
 
-// Layar dashboard & ringkasan nutrisi harian
+/// Layar dashboard & ringkasan nutrisi harian.
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onNavigateToTracker;
   final VoidCallback? onNavigateToPantry;
@@ -44,12 +36,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
-  StreamSubscription<User?>? _authSubscription;
-  StreamSubscription<List<PantryItemModel>>? _pantrySub;
-  StreamSubscription<List<FoodLogModel>>? _foodLogSub;
-  StreamSubscription<Map<String, dynamic>?>? _userSub;
-  StreamSubscription<List<NotificationModel>>? _notifSub;
-
   @override
   void initState() {
     super.initState();
@@ -67,6 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     // Inisialisasi controller dan listener real-time
     _controller.addListener(_onControllerChanged);
     _controller.loadDashboardData();
+    _controller.startCloudSync();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.requestNotificationPermissionsIfFirstTime();
     });
@@ -76,56 +63,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     FoodLogUpdateNotifier.instance.addListener(_onDataChanged);
     UserProfileUpdateNotifier.instance.addListener(_onDataChanged);
     EcoPointsNotifier.instance.addListener(_onDataChanged);
-    _initCloudListener();
-  }
-
-  void _initCloudListener() {
-    try {
-      _authSubscription?.cancel();
-      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
-        final uid = user?.uid;
-        if (uid != null) {
-          _subscribeToCloud(uid);
-        }
-      });
-
-      final currentUid = AuthService.instance.currentUser?.uid;
-      if (currentUid != null) {
-        _subscribeToCloud(currentUid);
-      }
-    } catch (_) {}
-  }
-
-  void _subscribeToCloud(String uid) {
-    _pantrySub?.cancel();
-    _pantrySub = FirestoreService.instance.streamPantryItems(uid).listen((_) {
-      _controller.loadDashboardData();
-    });
-
-    _foodLogSub?.cancel();
-    _foodLogSub = FirestoreService.instance.streamFoodLogs(uid).listen((_) {
-      _controller.loadDashboardData();
-    });
-
-    _userSub?.cancel();
-    _userSub = FirestoreService.instance.streamUserProfile(uid).listen((_) {
-      _controller.loadDashboardData();
-    });
-
-    _notifSub?.cancel();
-    _notifSub = FirestoreService.instance.streamNotifications(uid).listen((_) async {
-      await SyncService.instance.syncNotificationsFromCloud();
-      _controller.refreshUnreadCount();
-    });
   }
 
   @override
   void dispose() {
-    _authSubscription?.cancel();
-    _pantrySub?.cancel();
-    _foodLogSub?.cancel();
-    _userSub?.cancel();
-    _notifSub?.cancel();
     _animController.dispose();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
@@ -176,8 +117,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AddFoodModal(initialMealType: mealType),
-    );
+      builder: (_) => AddFoodModal(
+        initialMealType: mealType,
+        targetDate: DateTime.now(),
+        onFoodAdded: () {
+          _controller.loadDashboardData();
+        },
+      ),
+    ).then((_) {
+      _controller.loadDashboardData();
+    });
   }
 
   // Tandai bahan pantry sudah dimasak dan beri reward poin

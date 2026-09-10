@@ -12,6 +12,8 @@ import 'package:foodcura/models/pantry_item_model.dart';
 import 'package:foodcura/models/quiz_model.dart';
 import 'package:foodcura/models/user_model.dart';
 import 'package:foodcura/services/gemini_service.dart';
+import 'package:foodcura/services/nutrition_service.dart';
+import 'package:foodcura/services/reminder_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Mock test for GeminiService
@@ -503,6 +505,69 @@ void main() {
       expect(tracker.selectedDate.month, equals(now.month));
       expect(tracker.selectedDate.day, equals(now.day));
       expect(tracker.canGoNextDay, isFalse);
+    });
+  });
+
+  group('Clean Code model and service constants tests', () {
+    test('NotificationModel constants and robust parsing work correctly', () {
+      expect(NotificationModel.typeExpiryWarning, equals('expiry_warning'));
+      expect(NotificationModel.typeNutritionExcess, equals('nutrition_excess'));
+      expect(NotificationModel.typeMealReminder, equals('meal_reminder'));
+      expect(NotificationModel.typeTips, equals('tips'));
+      expect(NotificationModel.typeSystem, equals('system'));
+
+      expect(NotificationModel.iconWarning, equals('warning'));
+      expect(NotificationModel.iconRestaurant, equals('restaurant'));
+      expect(NotificationModel.iconLightbulb, equals('lightbulb'));
+
+      // Test robust deserialization with missing/malformed dates & boolean isRead
+      final malformedMap = {
+        'id': 10,
+        'title': 'Test Notif',
+        'message': 'Pesan tes',
+        'created_at': 'not-a-date',
+        'is_read': true,
+      };
+      final parsed = NotificationModel.fromMap(malformedMap);
+      expect(parsed.id, equals(10));
+      expect(parsed.title, equals('Test Notif'));
+      expect(parsed.isRead, isTrue);
+      expect(parsed.type, equals(NotificationModel.typeSystem));
+      expect(parsed.createdAt, isA<DateTime>());
+
+      // Test toFirestore serialization
+      final firestoreMap = parsed.toFirestore();
+      expect(firestoreMap['id'], equals(10));
+      expect(firestoreMap['title'], equals('Test Notif'));
+      expect(firestoreMap['is_read'], isTrue);
+    });
+
+    test('NutritionService constants and system notif IDs match specification', () {
+      expect(
+        NutritionService.allNutrientKeywords,
+        containsAll(['Lemak', 'Kalori', 'Kolesterol', 'Karbohidrat', 'Protein']),
+      );
+      expect(NutritionService.getSystemNotifId('Lemak'), equals(NutritionService.systemNotifIdFat));
+      expect(NutritionService.getSystemNotifId('Kalori'), equals(NutritionService.systemNotifIdCalories));
+      expect(NutritionService.getSystemNotifId('Kolesterol'), equals(NutritionService.systemNotifIdCholesterol));
+      expect(NutritionService.getSystemNotifId('Karbohidrat'), equals(NutritionService.systemNotifIdCarbs));
+      expect(NutritionService.getSystemNotifId('Protein'), equals(NutritionService.systemNotifIdProtein));
+      expect(NutritionService.getSystemNotifId('Unknown'), equals(NutritionService.systemNotifIdMultiNutrient));
+    });
+
+    test('ReminderService meal notif IDs and helper match specification', () {
+      expect(
+        ReminderService.getMealSystemNotifId(ReminderService.mealTypeBreakfast),
+        equals(ReminderService.mealNotifIdBreakfast),
+      );
+      expect(
+        ReminderService.getMealSystemNotifId(ReminderService.mealTypeLunch),
+        equals(ReminderService.mealNotifIdLunch),
+      );
+      expect(
+        ReminderService.getMealSystemNotifId(ReminderService.mealTypeDinner),
+        equals(ReminderService.mealNotifIdDinner),
+      );
     });
   });
 }

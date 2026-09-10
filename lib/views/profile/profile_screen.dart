@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -11,9 +8,6 @@ import '../../controllers/profile_controller.dart';
 import '../../models/user_model.dart';
 import '../../services/app_notifiers.dart';
 import '../../services/app_update_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
-import '../../services/sync_service.dart';
 import '../auth/login_screen.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_dialog.dart';
@@ -28,7 +22,7 @@ import 'widgets/profile_hero_card.dart';
 import 'widgets/profile_settings_menu.dart';
 import 'widgets/profile_stats_bento.dart';
 
-// Layar profil pengguna & pengaturan akun
+/// Layar profil pengguna & pengaturan akun.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -49,9 +43,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
-  
-  StreamSubscription<User?>? _authSubscription;
-  StreamSubscription<Map<String, dynamic>?>? _cloudSubscription;
 
   // Palet warna acak avatar berdasarkan nama user
   static const List<Color> _avatarColors = [
@@ -92,37 +83,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     // Inisialisasi controller dan listener
     _profileController.initListeners();
     _profileController.addListener(_onProfileChanged);
+    _profileController.startCloudSync();
     PantryUpdateNotifier.instance.addListener(_loadProfileData);
     UserProfileUpdateNotifier.instance.addListener(_loadProfileData);
     NotificationNotifier.instance.addListener(_onNotifChanged);
-    _initCloudListener();
     _loadProfileData();
-  }
-
-  void _initCloudListener() {
-    try {
-      _authSubscription?.cancel();
-      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
-        final uid = user?.uid;
-        if (uid != null) {
-          _subscribeToCloudProfile(uid);
-        }
-      });
-
-      final currentUid = AuthService.instance.currentUser?.uid;
-      if (currentUid != null) {
-        _subscribeToCloudProfile(currentUid);
-      }
-    } catch (_) {}
-  }
-
-  void _subscribeToCloudProfile(String uid) {
-    _cloudSubscription?.cancel();
-    _cloudSubscription = FirestoreService.instance
-        .streamUserProfile(uid)
-        .listen((_) {
-          _profileController.syncCloudProfile();
-        });
   }
 
   // Update tampilan saat data profil berubah
@@ -137,8 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   void dispose() {
-    _authSubscription?.cancel();
-    _cloudSubscription?.cancel();
     NotificationNotifier.instance.removeListener(_onNotifChanged);
     UserProfileUpdateNotifier.instance.removeListener(_loadProfileData);
     PantryUpdateNotifier.instance.removeListener(_loadProfileData);
@@ -208,8 +171,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       isScrollControlled: true,
       builder: (modalCtx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          final isSyncing = SyncService.instance.isSyncing;
-          final lastSync = SyncService.instance.lastSyncTime;
+          final isSyncing = _profileController.isSyncing;
+          final lastSync = _profileController.lastSyncTime;
           final lastSyncText = lastSync != null
               ? '${lastSync.day.toString().padLeft(2, '0')}/${lastSync.month.toString().padLeft(2, '0')}/${lastSync.year} ${lastSync.hour.toString().padLeft(2, '0')}:${lastSync.minute.toString().padLeft(2, '0')}'
               : 'Belum pernah';
@@ -270,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const Icon(Icons.access_time_rounded, size: 20, color: AppColors.textGray),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                          child: Text(
                           'Terakhir: $lastSyncText',
                           style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
                         ),
@@ -296,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         setModalState(() {});
-                        final res = await SyncService.instance.backupAllToCloud();
+                        final res = await _profileController.backupAllToCloud();
                         if (!ctx.mounted) return;
                         Navigator.of(ctx).pop();
                         if (!mounted) return;
@@ -325,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     child: OutlinedButton.icon(
                       onPressed: () async {
                         setModalState(() {});
-                        final res = await SyncService.instance.restoreFromCloud();
+                        final res = await _profileController.restoreFromCloud();
                         if (!ctx.mounted) return;
                         Navigator.of(ctx).pop();
                         if (!mounted) return;

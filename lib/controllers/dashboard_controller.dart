@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../constants/app_date_formatter.dart';
@@ -6,13 +9,15 @@ import '../models/food_log_model.dart';
 import '../models/pantry_item_model.dart';
 import '../models/user_model.dart';
 import '../services/app_notifiers.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../services/gemini_service.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 import '../services/sync_service.dart';
 
-// Controller dashboard / home (ringkasan kalori, nutrisi, radar pantry, & saran AI)
+/// Controller dashboard / home (ringkasan kalori, nutrisi, radar pantry, & saran AI).
 class DashboardController extends ChangeNotifier {
   final DBHelper _db;
   final GeminiService _gemini;
@@ -52,7 +57,11 @@ class DashboardController extends ChangeNotifier {
   String? _aiNutritionAdvice;
   bool _isAiAdviceLoading = false;
 
-  // Getters
+  StreamSubscription<User?>? _authSubscription;
+  final List<StreamSubscription> _cloudSubscriptions = [];
+  String? _subscribedUid;
+  Timer? _debounceTimer;
+
   UserModelSQL? get user => _user;
   int get streak => _streak;
   int get totalCalories => _totalCalories;
@@ -178,13 +187,78 @@ class DashboardController extends ChangeNotifier {
     }
   }
 
-  /// Memperbarui badge hitungan notifikasi belum terbaca secara efisien
+  /// Memperbarui badge hitungan notifikasi belum terbaca secara efisien.
   Future<void> refreshUnreadCount() async {
     _unreadNotifications = await _db.getUnreadNotificationCount();
     notifyListeners();
   }
 
-  /// Sinkronisasi menyeluruh dari Cloud Firestore ke database lokal untuk Dashboard
+  void _debouncedLoadDashboardData() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      loadDashboardData();
+    });
+  }
+
+  /// Memulai sinkronisasi otomatis stream Cloud Firestore ke SQLite lokal untuk Dashboard.
+  void startCloudSync() {
+    try {
+      _authSubscription?.cancel();
+      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
+        final uid = user?.uid;
+        if (uid != null) {
+          _subscribeToCloud(uid);
+        } else {
+          _cancelCloudSubscriptions();
+        }
+      });
+
+      final currentUid = AuthService.instance.currentUser?.uid;
+      if (currentUid != null) {
+        _subscribeToCloud(currentUid);
+      }
+    } catch (e) {
+      debugPrint('[DashboardController] Gagal setup cloud sync: $e');
+    }
+  }
+
+  void _subscribeToCloud(String uid) {
+    if (_subscribedUid == uid) return;
+    _subscribedUid = uid;
+    _cancelCloudSubscriptions();
+
+    _cloudSubscriptions.add(
+      FirestoreService.instance.streamPantryItems(uid).listen((_) {
+        _debouncedLoadDashboardData();
+      }),
+    );
+    _cloudSubscriptions.add(
+      FirestoreService.instance.streamFoodLogs(uid).listen((_) {
+        _debouncedLoadDashboardData();
+      }),
+    );
+    _cloudSubscriptions.add(
+      FirestoreService.instance.streamUserProfile(uid).listen((_) {
+        _debouncedLoadDashboardData();
+      }),
+    );
+    _cloudSubscriptions.add(
+      FirestoreService.instance.streamNotifications(uid).listen((_) async {
+        await SyncService.instance.syncNotificationsFromCloud();
+        refreshUnreadCount();
+      }),
+    );
+  }
+
+  void _cancelCloudSubscriptions() {
+    for (final sub in _cloudSubscriptions) {
+      sub.cancel();
+    }
+    _cloudSubscriptions.clear();
+    _subscribedUid = null;
+  }
+
+  /// Sinkronisasi menyeluruh dari Cloud Firestore ke database lokal untuk Dashboard.
   Future<void> syncCloudDashboard() async {
     try {
       await Future.wait([
@@ -197,5 +271,13 @@ class DashboardController extends ChangeNotifier {
       debugPrint('[DashboardController] Gagal sync dashboard dari cloud: $e');
     }
     await loadDashboardData();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _authSubscription?.cancel();
+    _cancelCloudSubscriptions();
+    super.dispose();
   }
 }

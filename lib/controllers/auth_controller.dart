@@ -355,7 +355,28 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  /// Mengecek apakah email terdaftar
+  /// Memperbarui kata sandi pengguna secara langsung di database lokal berdasarkan alamat email.
+  Future<bool> resetPasswordWithNewPassword({
+    required String email,
+    required String newPassword,
+  }) async {
+    final cleanEmail = email.trim();
+    if (newPassword.length < 8) {
+      _setLoading(false, 'Kata sandi baru minimal 8 karakter!');
+      return false;
+    }
+    _setLoading(true);
+    try {
+      final res = await _db.updatePasswordForEmail(cleanEmail, newPassword);
+      _setLoading(false);
+      return res;
+    } catch (e) {
+      _setLoading(false, 'Gagal memperbarui kata sandi: $e');
+      return false;
+    }
+  }
+
+  /// Mengecek apakah email terdaftar.
   Future<bool> isEmailRegistered(String email) =>
       _db.isEmailRegistered(email.trim());
 

@@ -4,13 +4,12 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/pantry_controller.dart';
-import '../../../database/pantry_grocery_catalog.dart';
 import '../../../models/pantry_ingredient_model.dart';
 import '../../../models/pantry_item_model.dart';
 import '../../widgets/app_food_image.dart';
 import '../../widgets/app_snack_bar.dart';
 
-// Modal tambah / edit stok bahan pantry
+/// Modal tambah atau edit stok bahan pantry.
 class AddPantryItemModal extends StatefulWidget {
   final VoidCallback? onItemAdded;
   final PantryItemModel? itemToEdit;
@@ -116,7 +115,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
       return;
     }
 
-    final results = PantryGroceryCatalog.search(query);
+    final results = _controller.searchCatalog(query);
     setState(() {
       _suggestions = results.take(5).toList();
       _showSuggestions = results.isNotEmpty;
@@ -201,7 +200,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     final resolvedImage =
         _selectedImageUrl ??
         widget.itemToEdit?.imageUrl ??
-        PantryGroceryCatalog.getImageFor(name);
+        _controller.getCatalogImageUrl(name);
 
     final item = PantryItemModel(
       id: widget.itemToEdit?.id,
@@ -247,7 +246,9 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final quantityVal = double.tryParse(_quantityController.text.trim());
+    final quantityVal = double.tryParse(
+      _quantityController.text.trim().replaceAll(',', '.'),
+    );
     final isQtyInvalid =
         _quantityController.text.trim().isNotEmpty &&
         (quantityVal == null || quantityVal <= 0);
@@ -349,7 +350,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
                                 ),
                               ),
                               onPressed: () {
-                                final matches = PantryGroceryCatalog.search(
+                                final matches = _controller.searchCatalog(
                                   name,
                                 );
                                 if (matches.isNotEmpty) {

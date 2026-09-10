@@ -25,12 +25,14 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver {
   late int _currentIndex;
+  late final Set<int> _loadedTabs;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialTab;
+    _loadedTabs = {_currentIndex};
     _syncNotificationState();
 
     // Periksa apakah versi ini baru bagi pengguna (In-App Update Notification)
@@ -68,6 +70,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     if (_currentIndex != index) {
       setState(() {
         _currentIndex = index;
+        _loadedTabs.add(index);
       });
       NotificationNotifier.instance.refresh();
     }
@@ -76,14 +79,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   @override
   Widget build(BuildContext context) {
     final screens = [
-      DashboardScreen(
-        onNavigateToTracker: () => _onTabTapped(1),
-        onNavigateToPantry: () => _onTabTapped(2),
-      ),
-      const FoodTrackerScreen(),
-      const PantryScreen(),
-      const FoodInfoScreen(),
-      const ProfileScreen(),
+      _loadedTabs.contains(0)
+          ? DashboardScreen(
+              onNavigateToTracker: () => _onTabTapped(1),
+              onNavigateToPantry: () => _onTabTapped(2),
+            )
+          : const SizedBox.shrink(),
+      _loadedTabs.contains(1)
+          ? const FoodTrackerScreen()
+          : const SizedBox.shrink(),
+      _loadedTabs.contains(2)
+          ? const PantryScreen()
+          : const SizedBox.shrink(),
+      _loadedTabs.contains(3)
+          ? const FoodInfoScreen()
+          : const SizedBox.shrink(),
+      _loadedTabs.contains(4)
+          ? const ProfileScreen()
+          : const SizedBox.shrink(),
     ];
 
     const double bottomPosition = 14.0;

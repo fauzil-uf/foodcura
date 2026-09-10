@@ -606,7 +606,7 @@ class PantryGroceryCatalog {
     ),
   ];
 
-  // Cari bahan dapur mentah berdasarkan nama atau kategori
+  /// Cari bahan dapur mentah berdasarkan nama atau kategori
   static List<PantryIngredientModel> search(String query) {
     if (query.trim().isEmpty) return [];
     final cleanQuery = query.trim().toLowerCase();
@@ -619,7 +619,7 @@ class PantryGroceryCatalog {
         .toList();
   }
 
-  // Dapatkan URL gambar bahan secara otomatis berdasarkan nama
+  /// Dapatkan URL gambar bahan secara otomatis berdasarkan nama
   static String? getImageFor(String itemName) {
     if (itemName.trim().isEmpty) return null;
     final cleanName = itemName.trim().toLowerCase();

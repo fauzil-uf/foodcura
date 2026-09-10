@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../constants/app_constants.dart';
-import '../constants/app_date_formatter.dart';
 import '../constants/app_food_formatter.dart';
 import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
@@ -17,7 +16,7 @@ import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../utils/security_helper.dart';
 
-// Helper database SQLite lokal (CRUD user, makanan, pantry, & notifikasi)
+/// Helper database SQLite lokal (CRUD user, makanan, pantry, & notifikasi)
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
   factory DBHelper() => _instance;
@@ -46,7 +45,7 @@ class DBHelper {
       onCreate: (db, version) async => await _createTables(db),
       onUpgrade: (db, oldVersion, newVersion) async {
         await _createTables(db);
-        await _seedDatabase(db);
+        await _loadFoodCatalogFromAssets(db);
       },
       onDowngrade: onDatabaseDowngradeDelete,
     );
@@ -152,15 +151,15 @@ class DBHelper {
     ''');
 
     await _createIndices(db);
-    await _seedDatabase(db);
+    await _loadFoodCatalogFromAssets(db);
   }
 
-  Future<void> _seedDatabase(Database db) async {
+  /// Memuat master katalog makanan dari assets lokal ke database SQLite
+  Future<void> _loadFoodCatalogFromAssets(Database db) async {
     try {
       final jsonString = await rootBundle.loadString('assets/food_data.json');
       final foods = FoodItemModel.listFromJsonString(jsonString);
 
-      // Bersihkan dan masukkan ulang katalog makanan terupdate
       await db.delete(tableFoods);
 
       final batch = db.batch();
@@ -182,7 +181,7 @@ class DBHelper {
       if (prefs.getBool(syncKey) == true) return;
 
       // Sinkronkan ulang database dengan data gizi katalog yang sudah dinormalisasi ke porsi saji realistis (URT)
-      await _seedDatabase(db);
+      await _loadFoodCatalogFromAssets(db);
 
       // Perbaiki juga data food_logs & pantry_items jika user sempat mencatat dengan URL lama
       const fallbackCleanImage =
@@ -208,178 +207,7 @@ class DBHelper {
     } catch (_) {}
   }
 
-  /// Menyiapkan stok bahan awal untuk akun pengguna baru
-  Future<void> seedInitialPantryForUser(int userId, {Database? db}) async {
-    final dbInst = db ?? await database;
-    final existing = await dbInst.query(
-      tablePantryItems,
-      where: 'user_id = ?',
-      whereArgs: [userId],
-      limit: 1,
-    );
-    if (existing.isNotEmpty) return;
-
-    final now = DateTime.now();
-    final items = [
-      PantryItemModel(
-        userId: userId,
-        name: 'Bayam Segar',
-        quantity: 250,
-        unit: 'g',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 1)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500',
-        createdAt: now.subtract(const Duration(days: 3)),
-      ),
-      PantryItemModel(
-        userId: userId,
-        name: 'Susu UHT',
-        quantity: 1,
-        unit: 'L',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 3)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500',
-        createdAt: now.subtract(const Duration(days: 5)),
-      ),
-      PantryItemModel(
-        userId: userId,
-        name: 'Brokoli',
-        quantity: 500,
-        unit: 'g',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 4)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=500',
-        createdAt: now.subtract(const Duration(days: 2)),
-      ),
-      PantryItemModel(
-        userId: userId,
-        name: 'Tomat',
-        quantity: 300,
-        unit: 'g',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 6)),
-        imageUrl:
-            'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500',
-        createdAt: now.subtract(const Duration(days: 1)),
-      ),
-    ];
-    for (var it in items) {
-      await dbInst.insert(
-        tablePantryItems,
-        it.toMap()..remove('id'),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-  }
-
-  /// Menyiapkan data awal Food Tracker untuk akun pengguna baru
-  Future<void> seedInitialFoodLogsForUser(int userId, {Database? db}) async {
-    final dbInst = db ?? await database;
-    final existing = await dbInst.query(
-      tableFoodLogs,
-      where: 'user_id = ?',
-      whereArgs: [userId],
-      limit: 1,
-    );
-    if (existing.isNotEmpty) return;
-
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final sampleDateStr = AppDateFormatter.formatToday(yesterday);
-    final logs = [
-      FoodLogModel(
-        userId: userId,
-        foodName: 'Roti Gandum Panggang',
-        mealType: 'Sarapan',
-        calories: 260,
-        protein: 9.0,
-        carbs: 44.0,
-        fat: 5.0,
-        cholesterol: 0.0,
-        imagePath:
-            'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500',
-        time: '07:30',
-        date: sampleDateStr,
-        note: 'Menu sarapan praktis kaya serat dan energi.',
-      ),
-      FoodLogModel(
-        userId: userId,
-        foodName: 'Dada Ayam Panggang',
-        mealType: 'Makan Siang',
-        calories: 284,
-        protein: 31.0,
-        carbs: 0.0,
-        fat: 15.0,
-        cholesterol: 85.0,
-        imagePath:
-            'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=500',
-        time: '12:30',
-        date: sampleDateStr,
-        note: 'Tinggi protein untuk energi.',
-      ),
-      FoodLogModel(
-        userId: userId,
-        foodName: 'Rujak Buah',
-        mealType: 'Camilan',
-        calories: 200,
-        protein: 1.0,
-        carbs: 24.0,
-        fat: 11.0,
-        cholesterol: 0.0,
-        imagePath:
-            'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=500',
-        time: '16:00',
-        date: sampleDateStr,
-        note: 'Camilan buah segar kaya serat & vitamin C.',
-      ),
-      FoodLogModel(
-        userId: userId,
-        foodName: 'Ikan Bandeng Bakar',
-        mealType: 'Makan Malam',
-        calories: 250,
-        protein: 26.0,
-        carbs: 2.0,
-        fat: 15.0,
-        cholesterol: 60.0,
-        imagePath:
-            'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=500',
-        time: '19:30',
-        date: sampleDateStr,
-        note: 'Menu makan malam kaya omega-3.',
-      ),
-    ];
-    for (var l in logs) {
-      await dbInst.insert(
-        tableFoodLogs,
-        l.toMap()..remove('id'),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-  }
-
-  /// Memindahkan log makanan sampel bawaan jika berada pada tanggal hari ini ke hari kemarin.
-  /// Ini memastikan hari ini bersih untuk pencatatan pengguna dan pengingat waktu makan dapat aktif.
-  Future<void> migrateSampleFoodLogsFromToday({int? userId}) async {
-    final targetUserId = userId ?? await getActiveUserId();
-    if (targetUserId == null) return;
-
-    final db = await database;
-    final todayStr = AppDateFormatter.formatToday();
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final yesterdayStr = AppDateFormatter.formatToday(yesterday);
-
-    await db.update(
-      tableFoodLogs,
-      {'date': yesterdayStr},
-      where:
-          "user_id = ? AND date = ? AND food_name IN ('Roti Gandum Panggang', 'Dada Ayam Panggang', 'Rujak Buah', 'Ikan Bandeng Bakar')",
-      whereArgs: [targetUserId, todayStr],
-    );
-  }
-
-  Future<void> _seedNotifications(Database db, {required int userId}) async {
+  Future<void> _createWelcomeNotifications(Database db, {required int userId}) async {
     final now = DateTime.now();
     final notifs = [
       NotificationModel(
@@ -413,13 +241,13 @@ class DBHelper {
 
   // --- USER AUTH CRUD ---
 
-  // Ambil user ID yang sedang login dari SharedPreferences
+  /// Ambil user ID yang sedang login dari SharedPreferences
   Future<int?> getActiveUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(AppConstants.keyLoggedInUserId);
   }
 
-  // Registrasi user baru + seeding data awal (pantry, food logs, notifikasi)
+  /// Registrasi user baru
   Future<bool> registerUser(UserModelSQL pengguna) async {
     final db = await database;
     try {
@@ -438,9 +266,7 @@ class DBHelper {
       if (id > 0) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt(AppConstants.keyLoggedInUserId, id);
-        await seedInitialPantryForUser(id, db: db);
-        await seedInitialFoodLogsForUser(id, db: db);
-        await _seedNotifications(db, userId: id);
+        await _createWelcomeNotifications(db, userId: id);
         await EcoPointsNotifier.instance.refresh();
         await NotificationNotifier.instance.refresh();
         PantryUpdateNotifier.instance.notifyPantryChanged();
@@ -609,9 +435,7 @@ class DBHelper {
         password: secureOAuthToken,
         createdAt: userMap['created_at'],
       );
-      await seedInitialPantryForUser(userId, db: db);
-      await seedInitialFoodLogsForUser(userId, db: db);
-      await _seedNotifications(db, userId: userId);
+      await _createWelcomeNotifications(db, userId: userId);
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -1168,7 +992,7 @@ class DBHelper {
     return res;
   }
 
-  // Ambil daftar notifikasi user dengan opsi filter kategori
+  /// Ambil daftar notifikasi user dengan opsi filter kategori
   Future<List<NotificationModel>> getNotifications({
     String? filter,
     int? userId,
@@ -1178,23 +1002,33 @@ class DBHelper {
 
     final db = await database;
     String? typeClause;
-    if (filter != null && filter != 'Semua' && filter.isNotEmpty) {
-      if (filter == 'Kedaluwarsa' ||
-          filter == 'Kadaluwarsa' ||
-          filter == 'expiry' ||
-          filter == 'expiry_warning') {
-        typeClause = "type = 'expiry_warning'";
-      } else if (filter == 'unread' || filter == 'Belum Dibaca') {
+    if (filter != null &&
+        filter != 'Semua' &&
+        filter != NotificationModel.filterAll &&
+        filter.isNotEmpty) {
+      if (filter == NotificationModel.filterExpiry ||
+          filter == NotificationModel.typeExpiryWarning ||
+          filter == 'Kedaluwarsa' ||
+          filter == 'Kadaluwarsa') {
+        typeClause = "type = '${NotificationModel.typeExpiryWarning}'";
+      } else if (filter == NotificationModel.filterUnread ||
+          filter == 'Belum Dibaca') {
         typeClause = "is_read = 0";
-      } else if (filter == 'Pengingat Makan' || filter == 'meal_reminder') {
-        typeClause = "type = 'meal_reminder'";
-      } else if (filter == 'Alert Gizi' || filter == 'nutrition_excess') {
-        typeClause = "type = 'nutrition_excess'";
-      } else if (filter == 'Sistem' ||
-          filter == 'foodcura' ||
-          filter == 'tips' ||
+      } else if (filter == NotificationModel.filterMealReminder ||
+          filter == NotificationModel.typeMealReminder ||
+          filter == 'Pengingat Makan') {
+        typeClause = "type = '${NotificationModel.typeMealReminder}'";
+      } else if (filter == NotificationModel.filterNutritionExcess ||
+          filter == NotificationModel.typeNutritionExcess ||
+          filter == 'Alert Gizi') {
+        typeClause = "type = '${NotificationModel.typeNutritionExcess}'";
+      } else if (filter == NotificationModel.filterInfoTips ||
+          filter == NotificationModel.typeTips ||
+          filter == NotificationModel.typeSystem ||
+          filter == 'Sistem' ||
           filter == 'Info & Tips') {
-        typeClause = "type IN ('system', 'tips')";
+        typeClause =
+            "type IN ('${NotificationModel.typeSystem}', '${NotificationModel.typeTips}')";
       }
     }
 
@@ -1208,7 +1042,7 @@ class DBHelper {
     return results.map((map) => NotificationModel.fromMap(map)).toList();
   }
 
-  // Tandai notifikasi tertentu sudah dibaca
+  /// Tandai notifikasi tertentu sudah dibaca
   Future<int> markNotificationRead(int id) async {
     final db = await database;
     final targetUserId = await getActiveUserId();
@@ -1225,13 +1059,15 @@ class DBHelper {
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
       FirestoreService.instance.markNotificationRead(uid, 'notif_$id').ignore();
-    } catch (_) {}
+    } catch (_) {
+      // Supresi aman saat offline atau unauthenticated
+    }
 
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  // Tandai semua notifikasi sudah dibaca
+  /// Tandai semua notifikasi sudah dibaca
   Future<int> markAllNotificationsRead({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1248,13 +1084,15 @@ class DBHelper {
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
       FirestoreService.instance.markAllNotificationsRead(uid).ignore();
-    } catch (_) {}
+    } catch (_) {
+      // Supresi aman saat offline atau unauthenticated
+    }
 
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  // Hitung jumlah notifikasi yang belum dibaca
+  /// Hitung jumlah notifikasi yang belum dibaca
   Future<int> getUnreadNotificationCount({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1267,7 +1105,7 @@ class DBHelper {
     return (result.first['count'] as int?) ?? 0;
   }
 
-  // Bersihkan notifikasi duplikat di database
+  /// Bersihkan notifikasi duplikat di database
   Future<void> cleanDuplicateNotifications({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return;
@@ -1287,7 +1125,7 @@ class DBHelper {
     );
   }
 
-  // Hapus satu notifikasi berdasarkan ID
+  /// Hapus satu notifikasi berdasarkan ID
   Future<int> deleteNotification(int id) async {
     final targetUserId = await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1303,13 +1141,15 @@ class DBHelper {
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
       FirestoreService.instance.deleteNotification(uid, 'notif_$id').ignore();
-    } catch (_) {}
+    } catch (_) {
+      // Supresi aman saat offline atau unauthenticated
+    }
 
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  // Hapus beberapa notifikasi sekaligus (batch) berdasarkan daftar ID
+  /// Hapus beberapa notifikasi sekaligus (batch) berdasarkan daftar ID
   Future<int> deleteNotifications(List<int> ids) async {
     if (ids.isEmpty) return 0;
     final targetUserId = await getActiveUserId();
@@ -1328,13 +1168,15 @@ class DBHelper {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
       final docIds = ids.map((id) => 'notif_$id').toList();
       FirestoreService.instance.deleteNotificationsBatch(uid, docIds).ignore();
-    } catch (_) {}
+    } catch (_) {
+      // Supresi aman saat offline atau unauthenticated
+    }
 
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  // Hapus semua notifikasi terkait item pantry tertentu
+  /// Hapus semua notifikasi terkait item pantry tertentu
   Future<int> deleteNotificationsByPantryId(int pantryId, {int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1349,7 +1191,7 @@ class DBHelper {
     return res;
   }
 
-  // Hapus notifikasi pengingat jam makan tertentu hari ini
+  /// Hapus notifikasi pengingat jam makan tertentu hari ini
   Future<int> deleteMealReminderNotifications(String mealType, {int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1360,14 +1202,20 @@ class DBHelper {
     final db = await database;
     final res = await db.delete(
       tableNotifications,
-      where: "type = 'meal_reminder' AND (LOWER(title) LIKE ? OR LOWER(message) LIKE ?) AND substr(created_at, 1, 10) = ? AND user_id = ?",
-      whereArgs: ['%${mealType.toLowerCase()}%', '%${mealType.toLowerCase()}%', todayDateStr, targetUserId],
+      where:
+          "type = '${NotificationModel.typeMealReminder}' AND (LOWER(title) LIKE ? OR LOWER(message) LIKE ?) AND substr(created_at, 1, 10) = ? AND user_id = ?",
+      whereArgs: [
+        '%${mealType.toLowerCase()}%',
+        '%${mealType.toLowerCase()}%',
+        todayDateStr,
+        targetUserId,
+      ],
     );
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  // Hapus notifikasi batas nutrisi tertentu hari ini
+  /// Hapus notifikasi batas nutrisi tertentu hari ini
   Future<int> deleteNutritionNotifications(String keyword, {int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1378,14 +1226,15 @@ class DBHelper {
     final db = await database;
     final res = await db.delete(
       tableNotifications,
-      where: "type = 'nutrition_excess' AND title LIKE ? AND substr(created_at, 1, 10) = ? AND user_id = ?",
+      where:
+          "type = '${NotificationModel.typeNutritionExcess}' AND title LIKE ? AND substr(created_at, 1, 10) = ? AND user_id = ?",
       whereArgs: ['%$keyword%', todayDateStr, targetUserId],
     );
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  // Hapus semua notifikasi milik user aktif
+  /// Hapus semua notifikasi milik user aktif
   Future<int> clearAllNotifications({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;

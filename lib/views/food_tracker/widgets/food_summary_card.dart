@@ -5,9 +5,11 @@ import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../controllers/food_tracker_controller.dart';
 import '../../../models/food_log_model.dart';
+import '../../../models/nutrient_warning_model.dart';
+import '../../../services/nutrition_service.dart';
 import '../../widgets/app_circular_progress.dart';
 
-// Kartu ringkasan kalori & makronutrien harian
+/// Kartu ringkasan kalori & makronutrien harian.
 class FoodSummaryCard extends StatelessWidget {
   const FoodSummaryCard({
     super.key,
@@ -18,7 +20,7 @@ class FoodSummaryCard extends StatelessWidget {
   });
 
   final FoodTrackerController controller;
-  final List<Map<String, dynamic>> nutrientWarnings;
+  final List<NutrientWarningModel> nutrientWarnings;
   final void Function(String mealType) onAddFood;
   final void Function(int tabIndex) onOpenMealTab;
 
@@ -291,15 +293,17 @@ class FoodSummaryCard extends StatelessWidget {
         ),
         if (nutrientWarnings.isNotEmpty) ...[
           const SizedBox(height: 14),
-          ...nutrientWarnings.map(
-            (w) => Container(
+          ...nutrientWarnings.map((w) {
+            final warnColor = _resolveWarningColor(w);
+            final warnIcon = _resolveWarningIcon(w);
+            return Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: (w['color'] as Color).withValues(alpha: 0.08),
+                color: warnColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: (w['color'] as Color).withValues(alpha: 0.4),
+                  color: warnColor.withValues(alpha: 0.4),
                   width: 1.5,
                 ),
               ),
@@ -309,12 +313,12 @@ class FoodSummaryCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: (w['color'] as Color).withValues(alpha: 0.15),
+                      color: warnColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      w['icon'] as IconData,
-                      color: w['color'] as Color,
+                      warnIcon,
+                      color: warnColor,
                       size: 20,
                     ),
                   ),
@@ -324,20 +328,20 @@ class FoodSummaryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          w['title'] as String,
+                          w.title,
                           style: AppTextStyles.label.copyWith(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: w['color'] as Color,
+                            color: warnColor,
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          w['message'] as String,
-                          style: AppTextStyles.subtitleSmall.copyWith(
+                          w.message,
+                          style: AppTextStyles.bodySmall.copyWith(
                             fontSize: 11.5,
+                            color: AppColors.textGray,
                             height: 1.35,
-                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -345,8 +349,8 @@ class FoodSummaryCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ),
+            );
+          }),
         ],
         const SizedBox(height: 24),
         Row(
@@ -659,5 +663,30 @@ class FoodSummaryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _resolveWarningColor(NutrientWarningModel warning) {
+    return warning.severity == NutrientWarningSeverity.alert
+        ? AppColors.urgent
+        : AppColors.secondaryContainer;
+  }
+
+  IconData _resolveWarningIcon(NutrientWarningModel warning) {
+    switch (warning.nutrient) {
+      case NutritionService.nutrientFat:
+        return warning.severity == NutrientWarningSeverity.alert
+            ? Icons.warning_amber_rounded
+            : Icons.info_outline_rounded;
+      case NutritionService.nutrientCalories:
+        return Icons.local_fire_department_rounded;
+      case NutritionService.nutrientCholesterol:
+        return Icons.favorite_border_rounded;
+      case NutritionService.nutrientCarbs:
+        return Icons.bakery_dining_rounded;
+      case NutritionService.nutrientProtein:
+        return Icons.fitness_center_rounded;
+      default:
+        return Icons.warning_amber_rounded;
+    }
   }
 }

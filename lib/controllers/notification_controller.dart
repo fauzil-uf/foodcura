@@ -3,13 +3,15 @@ import 'package:flutter/foundation.dart';
 import '../database/db_helper.dart';
 import '../models/notification_model.dart';
 import '../services/app_notifiers.dart';
+import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/nutrition_service.dart';
 import '../services/reminder_service.dart';
 import '../services/sync_service.dart';
+import 'mixins/cloud_sync_controller_mixin.dart';
 
-// Controller daftar notifikasi & filter status baca
-class NotificationController extends ChangeNotifier {
+/// Controller daftar notifikasi & filter status baca.
+class NotificationController extends ChangeNotifier with CloudSyncControllerMixin {
   final DBHelper _db;
   final ReminderService _reminderService;
 
@@ -34,13 +36,12 @@ class NotificationController extends ChangeNotifier {
 
   static const List<String?> _filterArgs = [
     null,
-    'unread',
-    'expiry',
-    'meal_reminder',
-    'foodcura',
+    NotificationModel.filterUnread,
+    NotificationModel.filterExpiry,
+    NotificationModel.filterMealReminder,
+    NotificationModel.filterInfoTips,
   ];
 
-  // Getters
   List<NotificationModel> get notifications => _notifications;
   int get selectedFilterIndex => _selectedFilterIndex;
   List<String> get filterNames => _filterNames;
@@ -211,7 +212,7 @@ class NotificationController extends ChangeNotifier {
           notif.relatedPantryId!,
         );
       } catch (_) {}
-    } else if (notif.type == 'meal_reminder') {
+    } else if (notif.type == NotificationModel.typeMealReminder) {
       final lowerTitle = notif.title.toLowerCase();
       final lowerMsg = notif.message.toLowerCase();
       for (final meal in ReminderService.mealConfigs) {
@@ -224,11 +225,7 @@ class NotificationController extends ChangeNotifier {
             userId,
             meal['type']!,
           );
-          final systemId = meal['type'] == 'Sarapan'
-              ? 10001
-              : meal['type'] == 'Makan Siang'
-              ? 10002
-              : 10003;
+          final systemId = ReminderService.getMealSystemNotifId(meal['type']!);
           try {
             await NotificationService.instance.cancelNotification(systemId);
           } catch (_) {}
@@ -237,41 +234,49 @@ class NotificationController extends ChangeNotifier {
           }
         }
       }
-    } else if (notif.type == 'nutrition_excess') {
+    } else if (notif.type == NotificationModel.typeNutritionExcess) {
       final lowerTitle = notif.title.toLowerCase();
       final lowerMsg = notif.message.toLowerCase();
-      for (final kw in [
-        'lemak',
-        'kalori',
-        'kolesterol',
-        'karbohidrat',
-        'protein',
-      ]) {
-        if (lowerTitle.contains(kw) || lowerMsg.contains(kw)) {
-          final capitalKw = kw[0].toUpperCase() + kw.substring(1);
+      for (final kw in NutritionService.allNutrientKeywords) {
+        if (lowerTitle.contains(kw.toLowerCase()) ||
+            lowerMsg.contains(kw.toLowerCase())) {
           await NutritionService.recordDismissedNutritionNotification(
             userId,
-            capitalKw,
+            kw,
           );
           try {
             await NotificationService.instance.cancelNotification(
-              NutritionService.getSystemNotifId(capitalKw),
+              NutritionService.getSystemNotifId(kw),
             );
           } catch (_) {}
         }
       }
       try {
-        await NotificationService.instance.cancelNotification(40000);
+        await NotificationService.instance.cancelNotification(
+          NutritionService.systemNotifIdMultiNutrient,
+        );
       } catch (_) {}
     }
   }
 
-  /// Sinkronisasi notifikasi dari Cloud Firestore ke database lokal
+  /// Memulai sinkronisasi otomatis stream notifikasi Cloud Firestore ke SQLite lokal.
+  void startCloudSync() {
+    initCloudSyncSubscription<List<NotificationModel>>(
+      streamFactory: (uid) => FirestoreService.instance.streamNotifications(uid),
+      onDataTriggered: () => syncCloudNotifications(),
+    );
+  }
+
+  /// Sinkronisasi notifikasi dari Cloud Firestore ke database lokal.
   Future<int> syncCloudNotifications() async {
     final count = await SyncService.instance.syncNotificationsFromCloud();
     await loadNotifications();
     return count;
   }
+
+  @override
+  void dispose() {
+    cancelCloudSyncSubscription();
+    super.dispose();
+  }
 }
-
-

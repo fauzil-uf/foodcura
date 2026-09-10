@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../constants/app_colors.dart';
 import '../constants/app_date_formatter.dart';
 import '../database/db_helper.dart';
 import '../models/food_item_model.dart';
 import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
+import '../models/nutrient_warning_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
@@ -16,9 +16,10 @@ import '../services/nutrition_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 import '../services/sync_service.dart';
+import 'mixins/cloud_sync_controller_mixin.dart';
 
-// Controller pencatatan makanan, tracking nutrisi, & batas AKG
-class FoodTrackerController extends ChangeNotifier {
+/// Controller pencatatan makanan, tracking nutrisi, & batas AKG
+class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin {
   final DBHelper _db;
   final NutritionService _nutritionService;
   final StreakService _streakService;
@@ -43,7 +44,7 @@ class FoodTrackerController extends ChangeNotifier {
   List<FoodLogModel> _allLogs = [];
   List<FoodItemModel> _recentCatalog = [];
   List<FoodItemModel> _searchResults = [];
-  List<Map<String, dynamic>> _warnings = [];
+  List<NutrientWarningModel> _warnings = [];
   int _unreadNotifications = 0;
 
   bool _isLoading = true;
@@ -57,7 +58,6 @@ class FoodTrackerController extends ChangeNotifier {
     'Camilan',
   ];
 
-  // Getters
   int get selectedTabIndex => _selectedTabIndex;
   DateTime get selectedDate => _selectedDate;
   List<String> get tabs => _tabs;
@@ -66,7 +66,7 @@ class FoodTrackerController extends ChangeNotifier {
   List<FoodLogModel> get allLogs => _allLogs;
   List<FoodItemModel> get recentCatalog => _recentCatalog;
   List<FoodItemModel> get searchResults => _searchResults;
-  List<Map<String, dynamic>> get warnings => _warnings;
+  List<NutrientWarningModel> get warnings => _warnings;
   int get unreadNotifications => _unreadNotifications;
 
   bool get isLoading => _isLoading;
@@ -74,11 +74,16 @@ class FoodTrackerController extends ChangeNotifier {
 
   List<FoodLogModel> get filteredLogs => _selectedTabIndex == 0
       ? _allLogs
-      : _allLogs.where((l) => l.mealType == _tabs[_selectedTabIndex]).toList();
+      : _allLogs
+          .where((l) =>
+              l.mealType.trim().toLowerCase() ==
+              _tabs[_selectedTabIndex].trim().toLowerCase())
+          .toList();
 
   /// Helper: mendapatkan log berdasarkan nama meal type secara generik.
-  List<FoodLogModel> logsForMeal(String mealType) =>
-      _allLogs.where((l) => l.mealType == mealType).toList();
+  List<FoodLogModel> logsForMeal(String mealType) => _allLogs
+      .where((l) => l.mealType.trim().toLowerCase() == mealType.trim().toLowerCase())
+      .toList();
 
   int get totalCalories => _allLogs.fold(0, (sum, log) => sum + log.calories);
   double get totalProtein =>
@@ -176,64 +181,71 @@ class FoodTrackerController extends ChangeNotifier {
   void _calculateWarnings() {
     _warnings = [];
 
-    void addWarn(String title, String msg, Color color, IconData icon) {
-      _warnings.add({
-        'title': title,
-        'message': msg,
-        'color': color,
-        'icon': icon,
-      });
+    void addWarn(
+      String title,
+      String msg,
+      String nutrient,
+      NutrientWarningSeverity severity,
+    ) {
+      _warnings.add(
+        NutrientWarningModel(
+          title: title,
+          message: msg,
+          nutrient: nutrient,
+          severity: severity,
+        ),
+      );
     }
 
     if (totalFat >= NutritionService.maxDailyFat) {
       addWarn(
         'Peringatan Lemak Tinggi!',
-        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) telah melebihi batas anjuran harian Kemenkes (67g). Batasi gorengan & santan.',
-        AppColors.urgent,
-        Icons.warning_amber_rounded,
+        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / ${NutritionService.maxDailyFat.toStringAsFixed(0)}g) telah melebihi batas anjuran harian Kemenkes (${NutritionService.maxDailyFat.toStringAsFixed(0)}g). Batasi gorengan & santan.',
+        NutritionService.nutrientFat,
+        NutrientWarningSeverity.alert,
       );
     } else if (totalFat >= 55.0) {
       addWarn(
         'Perhatian Lemak',
-        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / 67g) mendekati batas harian disarankan (67g).',
-        AppColors.secondaryContainer,
-        Icons.info_outline_rounded,
+        'Asupan Lemak (${totalFat.toStringAsFixed(1)}g / ${NutritionService.maxDailyFat.toStringAsFixed(0)}g) mendekati batas harian disarankan (${NutritionService.maxDailyFat.toStringAsFixed(0)}g).',
+        NutritionService.nutrientFat,
+        NutrientWarningSeverity.caution,
       );
     }
 
     if (totalCalories > NutritionService.maxDailyCalories) {
       addWarn(
         'Peringatan Kalori Berlebih!',
-        'Total kalori ($totalCalories kcal / 2000 kcal) telah melebihi batas harian rekomendasi.',
-        AppColors.urgent,
-        Icons.local_fire_department_rounded,
+        'Total kalori ($totalCalories kcal / ${NutritionService.maxDailyCalories} kcal) telah melebihi batas harian rekomendasi.',
+        NutritionService.nutrientCalories,
+        NutrientWarningSeverity.alert,
       );
     }
 
     if (totalCholesterol > NutritionService.maxDailyCholesterol) {
       addWarn(
         'Peringatan Kolesterol Tinggi!',
-        'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / 300mg) telah melebihi batas yang disarankan.',
-        AppColors.urgent,
-        Icons.favorite_border_rounded,
+        'Estimasi kolesterol (${totalCholesterol.toStringAsFixed(0)}mg / ${NutritionService.maxDailyCholesterol.toStringAsFixed(0)}mg) telah melebihi batas yang disarankan.',
+        NutritionService.nutrientCholesterol,
+        NutrientWarningSeverity.alert,
       );
     }
 
     if (totalCarbs > NutritionService.maxDailyCarbs) {
       addWarn(
         'Peringatan Karbohidrat Tinggi!',
-        'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / 300g) telah melebihi rekomendasi harian.',
-        AppColors.secondaryContainer,
-        Icons.bakery_dining_rounded,
+        'Asupan Karbohidrat (${totalCarbs.toStringAsFixed(1)}g / ${NutritionService.maxDailyCarbs.toStringAsFixed(0)}g) telah melebihi rekomendasi harian.',
+        NutritionService.nutrientCarbs,
+        NutrientWarningSeverity.caution,
       );
     }
 
     if (totalProtein > NutritionService.maxDailyProtein) {
       addWarn(
         'Peringatan Protein Tinggi!',
-        'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / 65g) telah melebihi rekomendasi harian Anda.',
-        AppColors.secondaryContainer,
-        Icons.fitness_center_rounded,
+        'Asupan Protein (${totalProtein.toStringAsFixed(1)}g / ${NutritionService.maxDailyProtein.toStringAsFixed(0)}g) telah melebihi rekomendasi harian Anda.',
+        NutritionService.nutrientProtein,
+        NutrientWarningSeverity.caution,
       );
     }
   }
@@ -266,7 +278,17 @@ class FoodTrackerController extends ChangeNotifier {
     );
     await _streakService.computeAndSaveStreak(userId: activeUserId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
+    FoodLogUpdateNotifier.instance.notifyFoodLogsChanged();
     await NotificationNotifier.instance.refresh();
+
+    // Sinkronkan tab aktif agar beralih ke jenis makan yang baru ditambahkan
+    final mealIndex = _tabs.indexWhere(
+      (t) => t.trim().toLowerCase() == logWithUser.mealType.trim().toLowerCase(),
+    );
+    if (mealIndex != -1 && _selectedTabIndex != 0) {
+      _selectedTabIndex = mealIndex;
+    }
+
     await loadData();
     return notif;
   }
@@ -298,6 +320,7 @@ class FoodTrackerController extends ChangeNotifier {
     );
     await _streakService.computeAndSaveStreak(userId: activeUserId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
+    FoodLogUpdateNotifier.instance.notifyFoodLogsChanged();
     await NotificationNotifier.instance.refresh();
     await loadData();
     return notif;
@@ -344,6 +367,7 @@ class FoodTrackerController extends ChangeNotifier {
     await _nutritionService.checkNutritionExcess(userId: activeUserId);
     await _streakService.computeAndSaveStreak(userId: activeUserId);
     PantryUpdateNotifier.instance.notifyPantryChanged();
+    FoodLogUpdateNotifier.instance.notifyFoodLogsChanged();
     await NotificationNotifier.instance.refresh();
     await loadData();
   }
@@ -400,9 +424,18 @@ class FoodTrackerController extends ChangeNotifier {
     return count;
   }
 
+  /// Mengaktifkan sinkronisasi realtime dari Cloud Firestore
+  void startCloudSync() {
+    initCloudSyncSubscription(
+      streamFactory: (uid) => FirestoreService.instance.streamFoodLogs(uid),
+      onDataTriggered: () => syncCloudFoodLogs(),
+    );
+  }
+
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    cancelCloudSyncSubscription();
     super.dispose();
   }
 }

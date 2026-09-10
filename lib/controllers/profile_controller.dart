@@ -9,9 +9,10 @@ import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 import '../services/sync_service.dart';
+import 'mixins/cloud_sync_controller_mixin.dart';
 
-// Controller profil user, statistik (Eco Points, streak), & pengaturan akun
-class ProfileController extends ChangeNotifier {
+/// Controller profil pengguna, statistik (Eco Points, streak), & pengaturan akun.
+class ProfileController extends ChangeNotifier with CloudSyncControllerMixin {
   final DBHelper _db;
   final StreakService _streakService;
 
@@ -28,7 +29,6 @@ class ProfileController extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Getters
   UserModelSQL? get user => _user;
   int get streak => _streak;
   int get ecoPoints => _ecoPoints;
@@ -55,11 +55,20 @@ class ProfileController extends ChangeNotifier {
 
   @override
   void dispose() {
+    cancelCloudSyncSubscription();
     removeListeners();
     super.dispose();
   }
 
-  /// Memuat profil pengguna, kalkulasi streak deterministik, dan jumlah notifikasi
+  /// Memulai sinkronisasi otomatis stream profil Cloud Firestore ke SQLite lokal.
+  void startCloudSync() {
+    initCloudSyncSubscription<Map<String, dynamic>?>(
+      streamFactory: (uid) => FirestoreService.instance.streamUserProfile(uid),
+      onDataTriggered: () => syncCloudProfile(),
+    );
+  }
+
+  /// Memuat profil pengguna, kalkulasi streak deterministik, dan jumlah notifikasi.
   Future<void> loadProfile() async {
     _isLoading = true;
     _errorMessage = null;
@@ -86,11 +95,31 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
-  /// Sinkronisasi profil user dari Cloud Firestore ke database lokal
+  /// Status proses sinkronisasi aktif.
+  bool get isSyncing => SyncService.instance.isSyncing;
+
+  /// Waktu sinkronisasi terakhir.
+  DateTime? get lastSyncTime => SyncService.instance.lastSyncTime;
+
+  /// Sinkronisasi profil user dari Cloud Firestore ke database lokal.
   Future<bool> syncCloudProfile() async {
     final updated = await SyncService.instance.syncUserProfileFromCloud();
     await loadProfile();
     return updated;
+  }
+
+  /// Mencadangkan seluruh data pengguna ke Cloud Firestore.
+  Future<SyncResult> backupAllToCloud() async {
+    final res = await SyncService.instance.backupAllToCloud();
+    await loadProfile();
+    return res;
+  }
+
+  /// Memulihkan seluruh data pengguna dari Cloud Firestore.
+  Future<SyncResult> restoreFromCloud() async {
+    final res = await SyncService.instance.restoreFromCloud();
+    await loadProfile();
+    return res;
   }
 
   /// Memperbarui nama dan email pengguna

@@ -4,7 +4,7 @@ import '../models/quiz_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/gemini_service.dart';
 
-// Controller kuis edukasi gizi & reward Eco Points
+/// Controller kuis edukasi gizi & reward Eco Points.
 class QuizController extends ChangeNotifier {
   final GeminiService _geminiService;
 
@@ -20,7 +20,6 @@ class QuizController extends ChangeNotifier {
   bool _isCompleted = false;
   bool _pointsAwarded = false;
 
-  // Getters
   List<QuizQuestion> get questions => _questions;
   bool get isLoading => _isLoading;
   int get currentIndex => _currentIndex;

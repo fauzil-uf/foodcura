@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -8,8 +6,6 @@ import '../../controllers/food_tracker_controller.dart';
 import '../../models/food_item_model.dart';
 import '../../models/food_log_model.dart';
 import '../../services/app_notifiers.dart';
-import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
@@ -21,7 +17,7 @@ import 'widgets/food_search_results.dart';
 import 'widgets/food_summary_card.dart';
 import 'widgets/food_tracker_header.dart';
 
-// Layar pelacak nutrisi & log makanan harian
+/// Layar pelacak nutrisi & log makanan harian.
 class FoodTrackerScreen extends StatefulWidget {
   final int initialTabIndex;
 
@@ -38,8 +34,6 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
 
   List<String> get _tabs => _controller.tabs;
   int get _selectedTabIndex => _controller.selectedTabIndex;
-  StreamSubscription? _cloudSubscription;
-  StreamSubscription? _authSubscription;
 
   @override
   void initState() {
@@ -48,8 +42,9 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     _controller.setSelectedTab(widget.initialTabIndex);
     _controller.addListener(_onControllerChanged);
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
+    FoodLogUpdateNotifier.instance.addListener(_onFoodLogsChanged);
     NotificationNotifier.instance.addListener(_onNotifChanged);
-    _setupCloudFoodLogsListener();
+    _controller.startCloudSync();
     _refreshData();
   }
 
@@ -57,38 +52,11 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
+    FoodLogUpdateNotifier.instance.removeListener(_onFoodLogsChanged);
     NotificationNotifier.instance.removeListener(_onNotifChanged);
-    _cloudSubscription?.cancel();
-    _authSubscription?.cancel();
     _controller.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _setupCloudFoodLogsListener() {
-    try {
-      _authSubscription?.cancel();
-      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
-        final uid = user?.uid;
-        if (uid != null) {
-          _subscribeToCloudFoodLogs(uid);
-        }
-      });
-
-      final currentUid = AuthService.instance.currentUser?.uid;
-      if (currentUid != null) {
-        _subscribeToCloudFoodLogs(currentUid);
-      }
-    } catch (_) {}
-  }
-
-  void _subscribeToCloudFoodLogs(String uid) {
-    _cloudSubscription?.cancel();
-    _cloudSubscription = FirestoreService.instance
-        .streamFoodLogs(uid)
-        .listen((_) {
-          _controller.syncCloudFoodLogs();
-        });
   }
 
   // Update tampilan saat state controller berubah
@@ -99,6 +67,11 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
   // Muat ulang daftar makanan jika ada bahan pantry yang baru dimasak
   void _onPantryChanged() {
     if (mounted) _controller.loadData();
+  }
+
+  // Muat ulang daftar makanan jika ada catatan makan baru ditambahkan/diubah
+  void _onFoodLogsChanged() {
+    if (mounted) _refreshData();
   }
 
   // Refresh badge notifikasi unread jika ada notifikasi baru
@@ -135,8 +108,13 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
         targetDate: _controller.selectedDate,
         controller: _controller,
         recentFoods: _controller.recentCatalog,
+        onFoodAdded: () {
+          _refreshData();
+        },
       ),
-    );
+    ).then((_) {
+      _refreshData();
+    });
   }
 
   // Modal telusuri semua katalog makanan
@@ -149,8 +127,13 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
         currentMealType: mealType,
         targetDate: _controller.selectedDate,
         controller: _controller,
+        onFoodAdded: () {
+          _refreshData();
+        },
       ),
-    );
+    ).then((_) {
+      _refreshData();
+    });
   }
 
   // Modal detail & edit makanan
@@ -159,8 +142,16 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FoodDetailModal(log: log, controller: _controller),
-    );
+      builder: (_) => FoodDetailModal(
+        log: log,
+        controller: _controller,
+        onLogDeleted: () {
+          _refreshData();
+        },
+      ),
+    ).then((_) {
+      _refreshData();
+    });
   }
 
   // Placeholder scanner makanan

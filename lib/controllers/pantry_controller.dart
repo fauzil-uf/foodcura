@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../database/db_helper.dart';
+import '../database/pantry_grocery_catalog.dart';
+import '../models/pantry_ingredient_model.dart';
 import '../models/pantry_item_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/auth_service.dart';
@@ -8,9 +10,10 @@ import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_service.dart';
 import '../services/sync_service.dart';
+import 'mixins/cloud_sync_controller_mixin.dart';
 
-// Controller inventaris pantry & pemantau kedaluwarsa
-class PantryController extends ChangeNotifier {
+/// Controller inventaris pantry & pemantau kedaluwarsa.
+class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
   final DBHelper _db;
   final ReminderService _reminderService;
 
@@ -31,7 +34,6 @@ class PantryController extends ChangeNotifier {
   int _unreadNotifications = 0;
   bool _isLoading = true;
 
-  // Getters
   List<PantryItemModel> get items => _items;
   String? get selectedFilter => _selectedFilter;
   String get searchQuery => _searchQuery;
@@ -279,16 +281,40 @@ class PantryController extends ChangeNotifier {
     await loadPantryData();
   }
 
-  /// Memperbarui badge hitungan notifikasi belum terbaca secara efisien
+  /// Memperbarui badge hitungan notifikasi belum terbaca secara efisien.
   Future<void> refreshUnreadCount() async {
     _unreadNotifications = await _db.getUnreadNotificationCount();
     notifyListeners();
   }
 
-  /// Sinkronisasi inventaris pantry dari Cloud Firestore ke database lokal
+  /// Mencari bahan makanan dalam katalog referensi pantry.
+  List<PantryIngredientModel> searchCatalog(String query) {
+    return PantryGroceryCatalog.search(query);
+  }
+
+  /// Mengambil URL gambar referensi untuk nama bahan dari katalog.
+  String? getCatalogImageUrl(String name) {
+    return PantryGroceryCatalog.getImageFor(name);
+  }
+
+  /// Memulai sinkronisasi otomatis stream Cloud Firestore ke SQLite lokal.
+  void startCloudSync() {
+    initCloudSyncSubscription<List<PantryItemModel>>(
+      streamFactory: (uid) => FirestoreService.instance.streamPantryItems(uid),
+      onDataTriggered: () => syncCloudPantry(),
+    );
+  }
+
+  /// Sinkronisasi inventaris pantry dari Cloud Firestore ke database lokal.
   Future<int> syncCloudPantry() async {
     final count = await SyncService.instance.syncPantryFromCloud();
     await loadPantryData();
     return count;
+  }
+
+  @override
+  void dispose() {
+    cancelCloudSyncSubscription();
+    super.dispose();
   }
 }

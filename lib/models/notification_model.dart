@@ -2,13 +2,36 @@ import '../constants/app_date_formatter.dart';
 
 /// Model notifikasi aplikasi (peringatan kedaluwarsa, nutrisi, tips, sistem)
 class NotificationModel {
+  /// Tipe-tipe notifikasi
+  static const String typeExpiryWarning = 'expiry_warning';
+  static const String typeNutritionExcess = 'nutrition_excess';
+  static const String typeMealReminder = 'meal_reminder';
+  static const String typeTips = 'tips';
+  static const String typeSystem = 'system';
+
+  /// Tipe-tipe icon notifikasi
+  static const String iconWarning = 'warning';
+  static const String iconRestaurant = 'restaurant';
+  static const String iconLightbulb = 'lightbulb';
+  static const String iconEco = 'eco';
+  static const String iconSystemUpdate = 'system_update';
+  static const String iconInfo = 'info';
+
+  /// Kategori filter notifikasi
+  static const String filterAll = 'all';
+  static const String filterUnread = 'unread';
+  static const String filterExpiry = 'expiry';
+  static const String filterMealReminder = 'meal_reminder';
+  static const String filterNutritionExcess = 'nutrition_excess';
+  static const String filterInfoTips = 'foodcura';
+
   final int? id;
   final int? userId;
   final String? firestoreId;
   final String title;
   final String message;
-  final String type; // expiry_warning, nutrition_excess, tips, system
-  final String iconType; // warning, restaurant, lightbulb, eco, system_update
+  final String type;
+  final String iconType;
   final bool isRead;
   final int? relatedPantryId;
   final DateTime createdAt;
@@ -37,6 +60,7 @@ class NotificationModel {
         createdAt.day == now.day;
   }
 
+  /// Serialisasi ke Map untuk database lokal SQLite
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -51,17 +75,46 @@ class NotificationModel {
     };
   }
 
+  /// Serialisasi ke Map untuk Cloud Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      if (id != null) 'id': id,
+      'title': title,
+      'message': message,
+      'type': type,
+      'icon_type': iconType,
+      'is_read': isRead,
+      'related_pantry_id': relatedPantryId,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  /// Factory deserialisasi dari Map SQLite atau JSON dengan parsing tanggal & boolean yang aman
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
+    DateTime parsedDate;
+    final rawCreatedAt = map['created_at'];
+    if (rawCreatedAt is DateTime) {
+      parsedDate = rawCreatedAt;
+    } else if (rawCreatedAt is String) {
+      parsedDate = DateTime.tryParse(rawCreatedAt) ?? DateTime.now();
+    } else {
+      parsedDate = DateTime.now();
+    }
+
+    final rawIsRead = map['is_read'];
+    final isReadBool = rawIsRead == 1 || rawIsRead == true;
+
     return NotificationModel(
       id: map['id'] as int?,
       userId: map['user_id'] as int?,
-      title: map['title'] as String,
-      message: map['message'] as String,
-      type: map['type'] as String,
-      iconType: map['icon_type'] as String,
-      isRead: (map['is_read'] as int?) == 1,
+      firestoreId: map['firestore_id'] as String?,
+      title: (map['title'] ?? '') as String,
+      message: (map['message'] ?? '') as String,
+      type: (map['type'] ?? typeSystem) as String,
+      iconType: (map['icon_type'] ?? iconInfo) as String,
+      isRead: isReadBool,
       relatedPantryId: map['related_pantry_id'] as int?,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: parsedDate,
     );
   }
 

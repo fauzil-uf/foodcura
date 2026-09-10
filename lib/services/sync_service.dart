@@ -487,6 +487,8 @@ class SyncService extends ChangeNotifier {
               local.carbs != cLog.carbs ||
               local.fat != cLog.fat ||
               local.time != cLog.time ||
+              local.date != cLog.date ||
+              local.mealType != cLog.mealType ||
               local.note != cLog.note;
           if (hasChanged) {
             await _db.updateFoodLog(cLog.copyWith(id: local.id, userId: targetUserId));

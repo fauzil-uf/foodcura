@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../controllers/auth_controller.dart';
-import '../../database/db_helper.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 
-// Layar pemulihan kata sandi (reset link)
+/// Layar pemulihan kata sandi (reset link via email atau reset langsung).
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -157,7 +156,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       );
                       return;
                     }
-                    await DBHelper().updatePasswordForEmail(email, newPass);
+                    await _authController.resetPasswordWithNewPassword(
+                      email: email,
+                      newPassword: newPass,
+                    );
                     if (!ctx.mounted) return;
                     Navigator.pop(ctx);
                     if (!mounted) return;

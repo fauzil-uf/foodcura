@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
@@ -7,8 +5,6 @@ import '../../constants/app_typography.dart';
 import '../../controllers/pantry_controller.dart';
 import '../../models/pantry_item_model.dart';
 import '../../services/app_notifiers.dart';
-import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
 import '../notification/notification_screen.dart';
 import '../widgets/app_empty_state.dart';
 import '../widgets/app_filter_chip_row.dart';
@@ -21,7 +17,7 @@ import 'widgets/pantry_item_detail_modal.dart';
 import 'widgets/pantry_summary_alert.dart';
 import 'widgets/pantry_tips_card.dart';
 
-// Layar stok dapur & pemantau kedaluwarsa bahan
+/// Layar stok dapur & pemantau kedaluwarsa bahan makanan.
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
 
@@ -33,8 +29,6 @@ class _PantryScreenState extends State<PantryScreen> {
   final _controller = PantryController();
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0;
-  StreamSubscription? _cloudSubscription;
-  StreamSubscription? _authSubscription;
 
   static const List<String> _filters = [
     'Semua',
@@ -46,12 +40,11 @@ class _PantryScreenState extends State<PantryScreen> {
   @override
   void initState() {
     super.initState();
-    // Sinkronisasi data pantry dan notifikasi real-time
     _controller.addListener(_onControllerChanged);
     _controller.loadPantryData();
+    _controller.startCloudSync();
     PantryUpdateNotifier.instance.addListener(_onPantryChanged);
     NotificationNotifier.instance.addListener(_onNotifChanged);
-    _setupCloudPantryListener();
   }
 
   @override
@@ -60,36 +53,8 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.dispose();
     PantryUpdateNotifier.instance.removeListener(_onPantryChanged);
     NotificationNotifier.instance.removeListener(_onNotifChanged);
-    _cloudSubscription?.cancel();
-    _authSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _setupCloudPantryListener() {
-    try {
-      _authSubscription?.cancel();
-      _authSubscription = AuthService.instance.authStateChanges.listen((user) {
-        final uid = user?.uid;
-        if (uid != null) {
-          _subscribeToCloudPantry(uid);
-        }
-      });
-
-      final currentUid = AuthService.instance.currentUser?.uid;
-      if (currentUid != null) {
-        _subscribeToCloudPantry(currentUid);
-      }
-    } catch (_) {}
-  }
-
-  void _subscribeToCloudPantry(String uid) {
-    _cloudSubscription?.cancel();
-    _cloudSubscription = FirestoreService.instance
-        .streamPantryItems(uid)
-        .listen((_) {
-          _controller.syncCloudPantry();
-        });
   }
 
   // Render ulang UI jika state pantry berubah
