@@ -91,7 +91,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('FoodCura v2.3.5'), findsOneWidget);
+    expect(find.text('FoodCura v2.3.6'), findsOneWidget);
     expect(find.text('Lihat Lisensi Open Source'), findsOneWidget);
     expect(find.text('Tutup'), findsOneWidget);
   });
