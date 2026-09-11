@@ -1,4 +1,4 @@
-// Model soal kuis edukasi gizi & food waste
+/// Model soal kuis edukasi gizi & food waste
 class QuizQuestion {
   final int id;
   final String question;

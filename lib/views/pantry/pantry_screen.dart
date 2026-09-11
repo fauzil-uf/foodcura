@@ -17,7 +17,7 @@ import 'widgets/pantry_item_detail_modal.dart';
 import 'widgets/pantry_summary_alert.dart';
 import 'widgets/pantry_tips_card.dart';
 
-/// Layar stok dapur & pemantau kedaluwarsa bahan makanan.
+//// Layar stok dapur & pemantau kedaluwarsa bahan makanan.
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
 
@@ -57,22 +57,22 @@ class _PantryScreenState extends State<PantryScreen> {
     super.dispose();
   }
 
-  // Render ulang UI jika state pantry berubah
+  /// Render ulang UI jika state pantry berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  // Muat ulang daftar bahan pantry jika ada update dari modal/layar lain
+  /// Muat ulang daftar bahan pantry jika ada update dari modal/layar lain
   void _onPantryChanged() {
     if (mounted) _controller.loadPantryData();
   }
 
-  // Refresh jumlah notifikasi unread
+  /// Refresh jumlah notifikasi unread
   void _onNotifChanged() {
     if (mounted) _controller.refreshUnreadCount();
   }
 
-  // Filter bahan berdasarkan tingkat urgensi kedaluwarsa
+  /// Filter bahan berdasarkan tingkat urgensi kedaluwarsa
   void _onFilterChanged(int index) {
     setState(() => _selectedFilter = index);
     String? filter;
@@ -90,12 +90,12 @@ class _PantryScreenState extends State<PantryScreen> {
     _controller.setFilter(filter);
   }
 
-  // Cari bahan pantry berdasarkan nama
+  /// Cari bahan pantry berdasarkan nama
   void _onSearch(String query) {
     _controller.setSearchQuery(query);
   }
 
-  // Tandai bahan telah dimasak & berikan reward poin
+  /// Tandai bahan telah dimasak & berikan reward poin
   Future<void> _markAsUsed(PantryItemModel item) async {
     if (item.id == null) return;
     await _controller.markItemUsed(item.id!);
@@ -114,7 +114,7 @@ class _PantryScreenState extends State<PantryScreen> {
     }
   }
 
-  // Buka modal tambah bahan makanan ke pantry
+  /// Buka modal tambah bahan makanan ke pantry
   void _openAddModal() {
     showModalBottomSheet(
       context: context,
@@ -124,7 +124,7 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  // Buka modal detail bahan dan aksi kelola stok
+  /// Buka modal detail bahan dan aksi kelola stok
   void _openItemDetailModal(PantryItemModel item) {
     showModalBottomSheet(
       context: context,
@@ -135,7 +135,7 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  // Buka layar notifikasi
+  /// Buka layar notifikasi
   void _openNotifications() {
     Navigator.push(
       context,
@@ -214,7 +214,12 @@ class _PantryScreenState extends State<PantryScreen> {
                                 // Tampilan kosong saat tidak ada item
                                 if (totalItems == 0)
                                   AppEmptyState(
-                                    padding: const EdgeInsets.fromLTRB(40, 40, 40, 150),
+                                    padding: const EdgeInsets.fromLTRB(
+                                      40,
+                                      40,
+                                      40,
+                                      150,
+                                    ),
                                     icon: _searchController.text.isNotEmpty
                                         ? Icons.search_off_rounded
                                         : Icons.kitchen_outlined,
@@ -227,17 +232,25 @@ class _PantryScreenState extends State<PantryScreen> {
                                     action: _searchController.text.isEmpty
                                         ? ElevatedButton.icon(
                                             onPressed: _openAddModal,
-                                            icon: const Icon(Icons.add, size: 18),
-                                            label: const Text('Tambah Bahan Pertama'),
+                                            icon: const Icon(
+                                              Icons.add,
+                                              size: 18,
+                                            ),
+                                            label: const Text(
+                                              'Tambah Bahan Pertama',
+                                            ),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.primary,
+                                              backgroundColor:
+                                                  AppColors.primary,
                                               foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 24,
-                                                vertical: 12,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(999),
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
                                               ),
                                               elevation: 0,
                                             ),
@@ -290,10 +303,7 @@ class _PantryScreenState extends State<PantryScreen> {
                     height: 50,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [
-                          AppColors.primaryDark,
-                          AppColors.primary,
-                        ],
+                        colors: [AppColors.primaryDark, AppColors.primary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -345,7 +355,7 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  // Seksi kelompok bahan berdasarkan urgensi kedaluwarsa (Urgent, Segera, Aman)
+  /// Seksi kelompok bahan berdasarkan urgensi kedaluwarsa (Urgent, Segera, Aman)
   Widget _buildExpirySection({
     required String title,
     required List<PantryItemModel> items,

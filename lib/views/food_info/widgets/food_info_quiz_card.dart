@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-// Banner mini kuis interaktif gizi & reward Eco Points
+/// Banner mini kuis interaktif gizi & reward Eco Points
 class FoodInfoQuizCard extends StatelessWidget {
   final VoidCallback onStartQuiz;
 

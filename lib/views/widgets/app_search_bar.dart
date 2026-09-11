@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-// Kolom pencarian terstandar untuk seluruh aplikasi
+/// Kolom pencarian terstandar untuk seluruh aplikasi
 class AppSearchBar extends StatelessWidget {
   final TextEditingController? controller;
   final String hintText;

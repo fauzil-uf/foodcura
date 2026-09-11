@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-// Banner info edukasi transparansi pengiriman notifikasi lokal
+/// Banner info edukasi transparansi pengiriman notifikasi lokal
 class NotificationInfoTip extends StatelessWidget {
   const NotificationInfoTip({super.key});
 

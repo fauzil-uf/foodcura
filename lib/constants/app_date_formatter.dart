@@ -1,7 +1,7 @@
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
-// Helper format tanggal & waktu (Locale Indonesia)
+/// Helper format tanggal & waktu (Locale Indonesia)
 class AppDateFormatter {
   AppDateFormatter._();
 
@@ -104,7 +104,7 @@ class AppDateFormatter {
   }
 }
 
-/// Extension ringkas untuk formatting langsung dari objek [DateTime].
+//// Extension ringkas untuk formatting langsung dari objek [DateTime].
 extension AppDateTimeExt on DateTime {
   String toShortDate() => AppDateFormatter.formatShortDate(this);
   String toFullDate() => AppDateFormatter.formatToday(this);
@@ -114,13 +114,13 @@ extension AppDateTimeExt on DateTime {
   String toRelativeTime() => AppDateFormatter.formatRelativeTime(this);
 }
 
-/// Extension untuk [DateTime] nullable dengan fallback otomatis.
+//// Extension untuk [DateTime] nullable dengan fallback otomatis.
 extension AppNullableDateTimeExt on DateTime? {
   String toShortDate([String fallback = '-']) =>
       this != null ? AppDateFormatter.formatShortDate(this!) : fallback;
 }
 
-/// Extension untuk parsing cepat [String] ke [DateTime].
+//// Extension untuk parsing cepat [String] ke [DateTime].
 extension AppStringDateExt on String? {
   DateTime? toDateTime() => AppDateFormatter.parseDate(this);
 }

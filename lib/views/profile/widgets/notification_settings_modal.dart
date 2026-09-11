@@ -6,7 +6,7 @@ import '../../../controllers/profile_controller.dart';
 import '../../widgets/app_snack_bar.dart';
 import '../../widgets/app_wheel_time_picker.dart';
 
-// Modal pengaturan preferensi notifikasi
+/// Modal pengaturan preferensi notifikasi
 class NotificationSettingsModal extends StatefulWidget {
   final ProfileController controller;
 
@@ -58,12 +58,13 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     }
   }
 
-  // Muat status preferensi notifikasi dari controller saat modal pertama dibuka
+  /// Muat status preferensi notifikasi dari controller saat modal pertama dibuka
   Future<void> _loadSettings() async {
     final settings = await widget.controller.loadNotificationSettings();
     final allowed = await widget.controller.areNotificationsEnabled();
     final exactAllowed = await widget.controller.canScheduleExactAlarms();
-    final batteryIgnored = await widget.controller.isBatteryOptimizationIgnored();
+    final batteryIgnored = await widget.controller
+        .isBatteryOptimizationIgnored();
     if (mounted) {
       setState(() {
         _notificationsAllowed = allowed;
@@ -83,13 +84,14 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     }
   }
 
-  // Periksa ulang izin sistem tanpa mereset data input form
-  // Jika exact alarm baru diaktifkan → reschedule alarm agar pakai exactAllowWhileIdle
+  /// Periksa ulang izin sistem tanpa mereset data input form
+  /// Jika exact alarm baru diaktifkan → reschedule alarm agar pakai exactAllowWhileIdle
   Future<void> _checkPermissions() async {
     final wasExactAllowed = _exactAlarmsAllowed;
     final allowed = await widget.controller.areNotificationsEnabled();
     final exactAllowed = await widget.controller.canScheduleExactAlarms();
-    final batteryIgnored = await widget.controller.isBatteryOptimizationIgnored();
+    final batteryIgnored = await widget.controller
+        .isBatteryOptimizationIgnored();
     if (mounted) {
       setState(() {
         _notificationsAllowed = allowed;
@@ -114,7 +116,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     }
   }
 
-  // Modal dialog pemilih jam dengan roda drag / scroll interaktif terpusat (format 24 jam)
+  /// Modal dialog pemilih jam dengan roda drag / scroll interaktif terpusat (format 24 jam)
   Future<void> _pickTime({
     required String currentTime,
     required String mealTitle,
@@ -125,8 +127,8 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     final presets = mealTitle == 'Sarapan'
         ? const ['06:30', '07:00', '07:30', '08:00']
         : mealTitle == 'Makan Siang'
-            ? const ['11:30', '12:00', '12:30', '13:00']
-            : const ['18:30', '19:00', '19:30', '20:00'];
+        ? const ['11:30', '12:00', '12:30', '13:00']
+        : const ['18:30', '19:00', '19:30', '20:00'];
 
     final result = await AppWheelTimePickerSheet.show(
       context: context,
@@ -223,13 +225,13 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
                     'Aktifkan izin sistem agar notifikasi pengingat jam makan & stok bahan dapat muncul di perangkat.',
                 actionLabel: 'Izinkan',
                 onAction: () async {
-                  final granted =
-                      await widget.controller.requestNotificationPermissions();
+                  final granted = await widget.controller
+                      .requestNotificationPermissions();
                   if (!granted) {
                     await widget.controller.openNotificationSettings();
                   }
-                  final allowed =
-                      await widget.controller.areNotificationsEnabled();
+                  final allowed = await widget.controller
+                      .areNotificationsEnabled();
                   if (mounted) {
                     setState(() {
                       _notificationsAllowed = allowed;
@@ -252,8 +254,8 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
                 onAction: () async {
                   await widget.controller.openExactAlarmSettings();
                   final wasAllowed = _exactAlarmsAllowed;
-                  final exactAllowed =
-                      await widget.controller.canScheduleExactAlarms();
+                  final exactAllowed = await widget.controller
+                      .canScheduleExactAlarms();
                   if (mounted) {
                     setState(() {
                       _exactAlarmsAllowed = exactAllowed;
@@ -423,8 +425,8 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
                     : () async {
                         setState(() => _isSaving = true);
                         try {
-                          final allowed =
-                              await widget.controller.areNotificationsEnabled();
+                          final allowed = await widget.controller
+                              .areNotificationsEnabled();
                           if (!allowed) {
                             await widget.controller
                                 .requestNotificationPermissions();
@@ -484,7 +486,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     );
   }
 
-  // Baris item jadwal waktu makan beserta switch aktif/nonaktif dan pemilih jam
+  /// Baris item jadwal waktu makan beserta switch aktif/nonaktif dan pemilih jam
   Widget _buildMealTimeRow({
     required IconData icon,
     required Color iconColor,
@@ -559,7 +561,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     );
   }
 
-  // Baris opsi pengaturan dengan switch toggle
+  /// Baris opsi pengaturan dengan switch toggle
   Widget _buildSwitchTile({
     required String title,
     required String subtitle,
@@ -595,7 +597,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
     );
   }
 
-  // Banner status izin sistem & pengoptimalan baterai yang terpusat dan konsisten
+  /// Banner status izin sistem & pengoptimalan baterai yang terpusat dan konsisten
   Widget _buildStatusBanner({
     required IconData icon,
     required Color color,
@@ -639,10 +641,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
             style: FilledButton.styleFrom(
               backgroundColor: color,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(
@@ -652,10 +651,7 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
             onPressed: onAction,
             child: Text(
               actionLabel,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
             ),
           ),
         ],

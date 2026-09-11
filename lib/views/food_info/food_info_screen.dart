@@ -17,7 +17,7 @@ import 'widgets/daily_tip_card.dart';
 import 'widgets/featured_article_card.dart';
 import 'widgets/food_info_quiz_card.dart';
 
-// Layar artikel edukasi gizi & info food waste
+/// Layar artikel edukasi gizi & info food waste
 class FoodInfoScreen extends StatefulWidget {
   const FoodInfoScreen({super.key});
 
@@ -49,12 +49,12 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     super.dispose();
   }
 
-  // Update tampilan saat kategori artikel atau hasil pencarian berubah
+  /// Update tampilan saat kategori artikel atau hasil pencarian berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  // Update badge notifikasi
+  /// Update badge notifikasi
   void _onNotifChanged() {
     if (mounted) {
       setState(() {
@@ -63,7 +63,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     }
   }
 
-  // Buka layar notifikasi
+  /// Buka layar notifikasi
   void _openNotifications() {
     Navigator.push(
       context,
@@ -71,7 +71,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     ).then((_) => NotificationNotifier.instance.refresh());
   }
 
-  // Buka modal baca detail artikel lengkap
+  /// Buka modal baca detail artikel lengkap
   void _openArticleDetail(ArticleModel article) {
     showModalBottomSheet(
       context: context,
@@ -81,7 +81,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
-  // Buka modal kuis gizi interaktif
+  /// Buka modal kuis gizi interaktif
   void _startQuiz() {
     showModalBottomSheet(
       context: context,
@@ -185,7 +185,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
-  // Header seksi dengan label badge
+  /// Header seksi dengan label badge
   Widget _buildSectionHeaderWithBadge({
     required String title,
     required String badge,
@@ -216,7 +216,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
-  // Header daftar artikel terbaru beserta toggle ekspansi
+  /// Header daftar artikel terbaru beserta toggle ekspansi
   Widget _buildLatestArticlesHeader(int totalCount) {
     final title = _controller.selectedCategoryIndex == 0
         ? 'Artikel Terbaru'
@@ -273,7 +273,7 @@ class _FoodInfoScreenState extends State<FoodInfoScreen> {
     );
   }
 
-  // Tampilan placeholder saat pencarian tidak ditemukan
+  /// Tampilan placeholder saat pencarian tidak ditemukan
   Widget _buildEmptySearchState() {
     return const AppEmptyState(
       icon: Icons.menu_book_outlined,

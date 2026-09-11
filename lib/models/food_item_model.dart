@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-/// Model katalog makanan dan informasi kandungan nutrisi (TKPI Kemenkes RI).
+//// Model katalog makanan dan informasi kandungan nutrisi (TKPI Kemenkes RI).
 class FoodItemModel {
   final int? id;
   final String name;

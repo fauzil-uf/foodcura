@@ -12,7 +12,7 @@ import '../profile/widgets/privacy_security_modal.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 
-// Layar registrasi akun baru
+/// Layar registrasi akun baru
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -48,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // Buka modal interaktif Kebijakan Privasi & Keamanan Data
+  /// Buka modal interaktif Kebijakan Privasi & Keamanan Data
   void _openPrivacyPolicy() {
     showModalBottomSheet(
       context: context,
@@ -64,7 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Update UI saat state berubah
+  /// Update UI saat state berubah
   void _onAuthStateChanged() {
     if (mounted) setState(() {});
   }
@@ -78,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // Validasi persetujuan privasi dan daftarkan akun baru ke SQLite
+  /// Validasi persetujuan privasi dan daftarkan akun baru ke SQLite
   Future<void> _register() async {
     if (!_agreedToPrivacy) {
       _showSnackBar(
@@ -122,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // Proses registrasi/login cepat via Google Sign-In
+  /// Proses registrasi/login cepat via Google Sign-In
   Future<void> _handleGoogleSignIn() async {
     final success = await _authController.signInWithGoogle();
 

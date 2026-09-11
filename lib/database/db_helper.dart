@@ -16,7 +16,7 @@ import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../utils/security_helper.dart';
 
-/// Helper database SQLite lokal (CRUD user, makanan, pantry, & notifikasi)
+//// Helper database SQLite lokal (CRUD user, makanan, pantry, & notifikasi)
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
   factory DBHelper() => _instance;
@@ -73,6 +73,35 @@ class DBHelper {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_notifications_pantry ON $tableNotifications(related_pantry_id, user_id);',
       );
+      // Pastikan kolom soft delete dan firestore_id tersedia di table notifications
+      try {
+        await db.execute(
+          'ALTER TABLE $tableNotifications ADD COLUMN is_deleted INTEGER DEFAULT 0;',
+        );
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE $tableNotifications ADD COLUMN firestore_id TEXT;',
+        );
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE $tablePantryItems ADD COLUMN image_url TEXT;',
+        );
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE $tablePantryItems ADD COLUMN firestore_id TEXT;',
+        );
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE $tableFoodLogs ADD COLUMN firestore_id TEXT;',
+        );
+      } catch (_) {}
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_notifications_user_deleted ON $tableNotifications(user_id, is_deleted);',
+      );
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_foods_category ON $tableFoods(category);',
       );
@@ -119,7 +148,9 @@ class DBHelper {
         image_path TEXT NOT NULL,
         time TEXT NOT NULL,
         date TEXT NOT NULL,
-        note TEXT
+        note TEXT,
+        firestore_id TEXT,
+        created_at TEXT NOT NULL
       )
     ''');
     await db.execute('''
@@ -132,6 +163,7 @@ class DBHelper {
         storage TEXT NOT NULL,
         expiry_date TEXT NOT NULL,
         image_url TEXT,
+        firestore_id TEXT,
         is_used INTEGER DEFAULT 0,
         created_at TEXT NOT NULL
       )
@@ -145,7 +177,9 @@ class DBHelper {
         type TEXT NOT NULL,
         icon_type TEXT NOT NULL,
         is_read INTEGER DEFAULT 0,
+        is_deleted INTEGER DEFAULT 0,
         related_pantry_id INTEGER,
+        firestore_id TEXT,
         created_at TEXT NOT NULL
       )
     ''');
@@ -187,27 +221,34 @@ class DBHelper {
       const fallbackCleanImage =
           'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
 
-      await db.rawUpdate('''
-        UPDATE $tableFoodLogs 
-        SET image_path = '$fallbackCleanImage' 
-        WHERE image_path LIKE '%katakabar%' 
-           OR image_path LIKE '%masakapahariini%' 
-           OR image_path LIKE '%bukanarjuna%'
-      ''');
+      try {
+        await db.rawUpdate('''
+          UPDATE $tableFoodLogs 
+          SET image_path = '$fallbackCleanImage' 
+          WHERE image_path LIKE '%katakabar%' 
+             OR image_path LIKE '%masakapahariini%' 
+             OR image_path LIKE '%bukanarjuna%'
+        ''');
+      } catch (_) {}
 
-      await db.rawUpdate('''
-        UPDATE $tablePantryItems 
-        SET image_url = '$fallbackCleanImage' 
-        WHERE image_url LIKE '%katakabar%' 
-           OR image_url LIKE '%masakapahariini%' 
-           OR image_url LIKE '%bukanarjuna%'
-      ''');
+      try {
+        await db.rawUpdate('''
+          UPDATE $tablePantryItems 
+          SET image_url = '$fallbackCleanImage' 
+          WHERE image_url LIKE '%katakabar%' 
+             OR image_url LIKE '%masakapahariini%' 
+             OR image_url LIKE '%bukanarjuna%'
+        ''');
+      } catch (_) {}
 
       await prefs.setBool(syncKey, true);
     } catch (_) {}
   }
 
-  Future<void> _createWelcomeNotifications(Database db, {required int userId}) async {
+  Future<void> _createWelcomeNotifications(
+    Database db, {
+    required int userId,
+  }) async {
     final now = DateTime.now();
     final notifs = [
       NotificationModel(
@@ -278,7 +319,7 @@ class DBHelper {
     }
   }
 
-  // Login user dengan verifikasi password hash SHA-256 (support legacy auto-upgrade)
+  /// Login user dengan verifikasi password hash SHA-256 (support legacy auto-upgrade)
   Future<UserModelSQL?> loginUser(String email, String password) async {
     final db = await database;
     final cleanEmail = email.trim().toLowerCase();
@@ -294,7 +335,8 @@ class DBHelper {
       final storedPassword = userMap['password'] as String? ?? '';
 
       // Cegah bypass login form biasa untuk akun yang terdaftar via Google OAuth
-      final isGoogle = storedPassword == 'google_oauth_user' ||
+      final isGoogle =
+          storedPassword == 'google_oauth_user' ||
           storedPassword.startsWith('GOOGLE_OAUTH_') ||
           storedPassword.startsWith('GOOGLE_AUTH_');
       if (isGoogle) {
@@ -326,7 +368,7 @@ class DBHelper {
     return null;
   }
 
-  // Ambil data profil user yang sedang login
+  /// Ambil data profil user yang sedang login
   Future<UserModelSQL?> getLoggedInUser() async {
     final userId = await getActiveUserId();
     if (userId == null) return null;
@@ -346,7 +388,8 @@ class DBHelper {
       final fbUser = AuthService.instance.currentUser;
       if (fbUser != null &&
           fbUser.email != null &&
-          fbUser.email!.trim().toLowerCase() == user.email.trim().toLowerCase() &&
+          fbUser.email!.trim().toLowerCase() ==
+              user.email.trim().toLowerCase() &&
           fbUser.metadata.creationTime != null) {
         final fbCreationTime = fbUser.metadata.creationTime!;
         final localCreated = DateTime.tryParse(user.createdAt ?? '');
@@ -372,7 +415,7 @@ class DBHelper {
     return user;
   }
 
-  // Cari atau buat akun user baru dari Google Sign-In
+  /// Cari atau buat akun user baru dari Google Sign-In
   Future<UserModelSQL?> findOrCreateGoogleUser(
     String email,
     String name, {
@@ -418,7 +461,8 @@ class DBHelper {
         }
       }
     } else {
-      final trueCreationDate = (creationTime ?? DateTime.now()).toIso8601String();
+      final trueCreationDate = (creationTime ?? DateTime.now())
+          .toIso8601String();
       final secureOAuthToken =
           'GOOGLE_OAUTH_LOCKED_${DateTime.now().microsecondsSinceEpoch}';
       final userMap = {
@@ -446,7 +490,7 @@ class DBHelper {
     return user;
   }
 
-  // Logout user dan bersihkan session SharedPreferences
+  /// Logout user dan bersihkan session SharedPreferences
   Future<void> logoutUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.keyLoggedInUserId);
@@ -458,7 +502,7 @@ class DBHelper {
     PantryUpdateNotifier.instance.notifyPantryChanged();
   }
 
-  // Update informasi profil user (nama & email)
+  /// Update informasi profil user (nama & email)
   Future<bool> updateUser(UserModelSQL user) async {
     if (user.id == null) return false;
     final db = await database;
@@ -475,14 +519,14 @@ class DBHelper {
     return count > 0;
   }
 
-  // Ambil semua daftar pengguna
+  /// Ambil semua daftar pengguna
   Future<List<UserModelSQL>> getAllUsers() async {
     final db = await database;
     final results = await db.query(AppConstants.tableUsers);
     return results.map((map) => UserModelSQL.fromMap(map)).toList();
   }
 
-  // Hapus akun user beserta seluruh data riwayat terkait (cascading batch delete)
+  /// Hapus akun user beserta seluruh data riwayat terkait (cascading batch delete)
   Future<void> deleteUser(int id) async {
     final db = await database;
     final batch = db.batch();
@@ -493,7 +537,7 @@ class DBHelper {
     await batch.commit(noResult: true);
   }
 
-  // Cek ketersediaan/duplikasi email
+  /// Cek ketersediaan/duplikasi email
   Future<bool> isEmailRegistered(String email) async {
     final db = await database;
     final res = await db.query(
@@ -505,7 +549,7 @@ class DBHelper {
     return res.isNotEmpty;
   }
 
-  // Ambil user berdasarkan email (untuk validasi reset password)
+  /// Ambil user berdasarkan email (untuk validasi reset password)
   Future<UserModelSQL?> getUserByEmail(String email) async {
     final db = await database;
     final res = await db.query(
@@ -518,7 +562,7 @@ class DBHelper {
     return UserModelSQL.fromMap(res.first);
   }
 
-  // Perbarui password user berdasarkan email (sinkronisasi reset password)
+  /// Perbarui password user berdasarkan email (sinkronisasi reset password)
   Future<bool> updatePasswordForEmail(String email, String newPassword) async {
     final db = await database;
     final cleanEmail = email.trim().toLowerCase();
@@ -532,7 +576,7 @@ class DBHelper {
     return count > 0;
   }
 
-  // Ganti password user dengan validasi password lama
+  /// Ganti password user dengan validasi password lama
   Future<bool> changePassword({
     required int userId,
     required String oldPassword,
@@ -549,7 +593,8 @@ class DBHelper {
 
     final storedPassword = userResults.first['password'] as String? ?? '';
     // Akun Google tidak memiliki password lokal untuk diubah
-    final isGoogle = storedPassword == 'google_oauth_user' ||
+    final isGoogle =
+        storedPassword == 'google_oauth_user' ||
         storedPassword.startsWith('GOOGLE_OAUTH_') ||
         storedPassword.startsWith('GOOGLE_AUTH_');
     if (isGoogle) {
@@ -572,13 +617,10 @@ class DBHelper {
 
   // --- FOOD CATALOG & LOGS CRUD ---
 
-  // Ambil semua daftar katalog makanan (cepat dengan memanfaatkan index)
+  /// Ambil semua daftar katalog makanan (cepat dengan memanfaatkan index)
   Future<List<FoodItemModel>> getFoodCatalog() async {
     final db = await database;
-    final results = await db.query(
-      tableFoods,
-      orderBy: 'name ASC',
-    );
+    final results = await db.query(tableFoods, orderBy: 'name ASC');
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
   }
 
@@ -613,7 +655,7 @@ class DBHelper {
     }
   }
 
-  // Cari makanan di katalog berdasarkan nama atau kategori
+  /// Cari makanan di katalog berdasarkan nama atau kategori
   Future<List<FoodItemModel>> searchFoodCatalog(
     String query, {
     int? limit,
@@ -630,7 +672,7 @@ class DBHelper {
     return results.map((map) => FoodItemModel.fromMap(map)).toList();
   }
 
-  // Ambil riwayat makanan yang baru dicatat user secara batch O(1) query
+  /// Ambil riwayat makanan yang baru dicatat user secara batch O(1) query
   Future<List<FoodItemModel>> getRecentAddedFoods({
     int limit = 10,
     int? userId,
@@ -684,7 +726,9 @@ class DBHelper {
 
     final catalogByName = {
       for (var row in catalogMatches)
-        (row['name'] as String).trim().toLowerCase(): FoodItemModel.fromMap(row)
+        (row['name'] as String).trim().toLowerCase(): FoodItemModel.fromMap(
+          row,
+        ),
     };
 
     final uniqueItems = <FoodItemModel>[];
@@ -728,7 +772,7 @@ class DBHelper {
     return uniqueItems;
   }
 
-  // Ambil log makanan user per tanggal
+  /// Ambil log makanan user per tanggal
   Future<List<FoodLogModel>> getFoodLogs({String? date, int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
@@ -746,7 +790,7 @@ class DBHelper {
     return results.map((map) => FoodLogModel.fromMap(map)).toList();
   }
 
-  // Simpan catatan makanan baru
+  /// Simpan catatan makanan baru
   Future<int> insertFoodLog(FoodLogModel log) async {
     final db = await database;
     final targetUserId = log.userId ?? await getActiveUserId();
@@ -760,7 +804,7 @@ class DBHelper {
     );
   }
 
-  // Update catatan makanan
+  /// Update catatan makanan
   Future<int> updateFoodLog(FoodLogModel log) async {
     if (log.id == null) return 0;
     final db = await database;
@@ -775,21 +819,22 @@ class DBHelper {
     );
   }
 
-  // Hapus catatan makanan berdasarkan ID
-  Future<int> deleteFoodLog(int id) async {
+  /// Hapus catatan makanan berdasarkan ID
+  Future<int> deleteFoodLog(int id, {int? userId}) async {
     final db = await database;
-    final targetUserId = await getActiveUserId();
-    if (targetUserId == null) return 0;
+    final targetUserId = userId ?? await getActiveUserId();
     return await db.delete(
       tableFoodLogs,
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [id, targetUserId],
+      where: targetUserId != null
+          ? 'id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)'
+          : 'id = ?',
+      whereArgs: targetUserId != null ? [id, targetUserId] : [id],
     );
   }
 
   // --- PANTRY CRUD ---
 
-  // Tambah bahan baru ke inventaris pantry
+  /// Tambah bahan baru ke inventaris pantry
   Future<int> addPantryItem(PantryItemModel item) async {
     final db = await database;
     final targetUserId = item.userId ?? await getActiveUserId();
@@ -804,7 +849,7 @@ class DBHelper {
     return res;
   }
 
-  // Ambil daftar bahan pantry yang belum habis/dipakai
+  /// Ambil daftar bahan pantry yang belum habis/dipakai
   Future<List<PantryItemModel>> getPantryItems({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return [];
@@ -819,7 +864,22 @@ class DBHelper {
     return results.map((map) => PantryItemModel.fromMap(map)).toList();
   }
 
-  // Cari bahan pantry berdasarkan nama
+  /// Ambil seluruh bahan pantry user (termasuk yang is_used = 1) untuk keperluan sinkronisasi
+  Future<List<PantryItemModel>> getAllPantryItemsRaw({int? userId}) async {
+    final targetUserId = userId ?? await getActiveUserId();
+    if (targetUserId == null) return [];
+
+    final db = await database;
+    final results = await db.query(
+      tablePantryItems,
+      where: 'user_id = ?',
+      whereArgs: [targetUserId],
+      orderBy: 'expiry_date ASC',
+    );
+    return results.map((map) => PantryItemModel.fromMap(map)).toList();
+  }
+
+  /// Cari bahan pantry berdasarkan nama
   Future<List<PantryItemModel>> searchPantryItems(
     String query, {
     int? userId,
@@ -837,17 +897,18 @@ class DBHelper {
     return results.map((map) => PantryItemModel.fromMap(map)).toList();
   }
 
-  // Tandai bahan pantry sudah digunakan/habis (+5 Eco Points)
-  Future<int> markPantryItemUsed(int id) async {
+  /// Tandai bahan pantry sudah digunakan/habis (+5 Eco Points)
+  Future<int> markPantryItemUsed(int id, {int? userId}) async {
     final db = await database;
-    final targetUserId = await getActiveUserId();
-    if (targetUserId == null) return 0;
+    final targetUserId = userId ?? await getActiveUserId();
 
     final rows = await db.query(
       tablePantryItems,
       columns: ['expiry_date', 'is_used'],
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [id, targetUserId],
+      where: targetUserId != null
+          ? 'id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)'
+          : 'id = ?',
+      whereArgs: targetUserId != null ? [id, targetUserId] : [id],
       limit: 1,
     );
     if (rows.isEmpty || (rows.first['is_used'] as int?) == 1) return 0;
@@ -855,8 +916,10 @@ class DBHelper {
     final res = await db.update(
       tablePantryItems,
       {'is_used': 1},
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [id, targetUserId],
+      where: targetUserId != null
+          ? 'id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)'
+          : 'id = ?',
+      whereArgs: targetUserId != null ? [id, targetUserId] : [id],
     );
 
     // Eco points hanya diberikan jika bahan dihabiskan sebelum kedaluwarsa
@@ -864,29 +927,36 @@ class DBHelper {
     final expDate = DateTime.tryParse(expStr ?? '');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    if (expDate == null || DateTime(expDate.year, expDate.month, expDate.day).difference(today).inDays >= 0) {
+    if (expDate == null ||
+        DateTime(
+              expDate.year,
+              expDate.month,
+              expDate.day,
+            ).difference(today).inDays >=
+            0) {
       await EcoPointsNotifier.instance.addPoints(5);
     }
     PantryUpdateNotifier.instance.notifyPantryChanged();
     return res;
   }
 
-  // Hapus item bahan dari pantry
-  Future<int> deletePantryItem(int id) async {
+  /// Hapus item bahan dari pantry
+  Future<int> deletePantryItem(int id, {int? userId}) async {
     final db = await database;
-    final targetUserId = await getActiveUserId();
-    if (targetUserId == null) return 0;
+    final targetUserId = userId ?? await getActiveUserId();
 
     final res = await db.delete(
       tablePantryItems,
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [id, targetUserId],
+      where: targetUserId != null
+          ? 'id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)'
+          : 'id = ?',
+      whereArgs: targetUserId != null ? [id, targetUserId] : [id],
     );
     PantryUpdateNotifier.instance.notifyPantryChanged();
     return res;
   }
 
-  // Update data bahan makanan di pantry
+  /// Update data bahan makanan di pantry
   Future<int> updatePantryItem(PantryItemModel item) async {
     if (item.id == null) return 0;
     final db = await database;
@@ -933,7 +1003,7 @@ class DBHelper {
 
   // --- NOTIFICATIONS CRUD ---
 
-  // Simpan notifikasi baru
+  /// Simpan notifikasi baru
   Future<int> addNotification(
     NotificationModel notif, {
     bool syncToCloud = true,
@@ -951,9 +1021,30 @@ class DBHelper {
     // Sinkronisasi notifikasi ke Firestore (latar belakang) jika bukan hasil sync dari cloud
     if (syncToCloud) {
       try {
-        final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        final uid =
+            AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        final cloudDocId = notif.firestoreId ?? 'notif_$res';
         FirestoreService.instance
-            .addNotification(uid, notif.copyWith(id: res, userId: targetUserId))
+            .addNotification(
+              uid,
+              notif.copyWith(
+                id: res,
+                userId: targetUserId,
+                firestoreId: cloudDocId,
+              ),
+            )
+            .then((returnedId) {
+              if (returnedId != null) {
+                db
+                    .update(
+                      tableNotifications,
+                      {'firestore_id': returnedId},
+                      where: 'id = ?',
+                      whereArgs: [res],
+                    )
+                    .ignore();
+              }
+            })
             .ignore();
       } catch (_) {}
     }
@@ -962,7 +1053,7 @@ class DBHelper {
     return res;
   }
 
-  // Perbarui notifikasi yang sudah ada (judul, pesan, status baca, dll.)
+  /// Perbarui notifikasi yang sudah ada (judul, pesan, status baca, dll.)
   Future<int> updateNotification(
     NotificationModel notif, {
     bool syncToCloud = true,
@@ -981,7 +1072,8 @@ class DBHelper {
 
     if (syncToCloud) {
       try {
-        final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        final uid =
+            AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
         FirestoreService.instance
             .addNotification(uid, notif.copyWith(userId: targetUserId))
             .ignore();
@@ -992,7 +1084,7 @@ class DBHelper {
     return res;
   }
 
-  /// Ambil daftar notifikasi user dengan opsi filter kategori
+  /// Ambil daftar notifikasi user dengan opsi filter kategori (hanya yang belum dihapus)
   Future<List<NotificationModel>> getNotifications({
     String? filter,
     int? userId,
@@ -1032,7 +1124,7 @@ class DBHelper {
       }
     }
 
-    final where = ['user_id = ?', ?typeClause].join(' AND ');
+    final where = ['user_id = ?', 'is_deleted = 0', ?typeClause].join(' AND ');
     final results = await db.query(
       tableNotifications,
       where: where,
@@ -1042,8 +1134,23 @@ class DBHelper {
     return results.map((map) => NotificationModel.fromMap(map)).toList();
   }
 
+  /// Ambil seluruh notifikasi user (termasuk yang is_deleted = 1) untuk keperluan resolusi sinkronisasi
+  Future<List<NotificationModel>> getAllNotificationsRaw({int? userId}) async {
+    final targetUserId = userId ?? await getActiveUserId();
+    if (targetUserId == null) return [];
+
+    final db = await database;
+    final results = await db.query(
+      tableNotifications,
+      where: 'user_id = ?',
+      whereArgs: [targetUserId],
+      orderBy: 'created_at DESC',
+    );
+    return results.map((map) => NotificationModel.fromMap(map)).toList();
+  }
+
   /// Tandai notifikasi tertentu sudah dibaca
-  Future<int> markNotificationRead(int id) async {
+  Future<int> markNotificationRead(int id, {String? firestoreId}) async {
     final db = await database;
     final targetUserId = await getActiveUserId();
     if (targetUserId == null) return 0;
@@ -1058,7 +1165,21 @@ class DBHelper {
     // Sinkronisasi status dibaca ke Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
-      FirestoreService.instance.markNotificationRead(uid, 'notif_$id').ignore();
+      String? cloudDocId = firestoreId;
+      if (cloudDocId == null) {
+        final rows = await db.query(
+          tableNotifications,
+          columns: ['firestore_id'],
+          where: 'id = ? AND user_id = ?',
+          whereArgs: [id, targetUserId],
+          limit: 1,
+        );
+        if (rows.isNotEmpty) {
+          cloudDocId = rows.first['firestore_id'] as String?;
+        }
+      }
+      cloudDocId ??= 'notif_$id';
+      FirestoreService.instance.markNotificationRead(uid, cloudDocId).ignore();
     } catch (_) {
       // Supresi aman saat offline atau unauthenticated
     }
@@ -1076,7 +1197,7 @@ class DBHelper {
     final res = await db.update(
       tableNotifications,
       {'is_read': 1},
-      where: 'is_read = 0 AND user_id = ?',
+      where: 'is_read = 0 AND is_deleted = 0 AND user_id = ?',
       whereArgs: [targetUserId],
     );
 
@@ -1092,55 +1213,84 @@ class DBHelper {
     return res;
   }
 
-  /// Hitung jumlah notifikasi yang belum dibaca
+  /// Hitung jumlah notifikasi yang belum dibaca (tidak termasuk yang dihapus)
   Future<int> getUnreadNotificationCount({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
     final db = await database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND user_id = ?',
+      'SELECT COUNT(*) as count FROM $tableNotifications WHERE is_read = 0 AND is_deleted = 0 AND user_id = ?',
       [targetUserId],
     );
     return (result.first['count'] as int?) ?? 0;
   }
 
-  /// Bersihkan notifikasi duplikat di database
+  /// Bersihkan notifikasi duplikat aktif di database
   Future<void> cleanDuplicateNotifications({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return;
 
     final db = await database;
-    await db.rawDelete(
+    await db.rawUpdate(
       '''
-      DELETE FROM $tableNotifications
+      UPDATE $tableNotifications
+      SET is_deleted = 1
       WHERE id NOT IN (
         SELECT MAX(id)
         FROM $tableNotifications
-        WHERE user_id = ?
+        WHERE user_id = ? AND is_deleted = 0
         GROUP BY title, substr(created_at, 1, 10), IFNULL(related_pantry_id, 0)
-      ) AND user_id = ?
+      ) AND user_id = ? AND is_deleted = 0
     ''',
       [targetUserId, targetUserId],
     );
   }
 
-  /// Hapus satu notifikasi berdasarkan ID
-  Future<int> deleteNotification(int id) async {
-    final targetUserId = await getActiveUserId();
-    if (targetUserId == null) return 0;
-
+  /// Hapus satu notifikasi (soft delete) berdasarkan ID
+  Future<int> deleteNotification(
+    int id, {
+    String? firestoreId,
+    int? userId,
+  }) async {
+    final targetUserId = userId ?? await getActiveUserId();
     final db = await database;
-    final res = await db.delete(
+
+    // Ambil firestore_id jika belum diberikan
+    String? cloudDocId = firestoreId;
+    if (cloudDocId == null) {
+      final rows = await db.query(
+        tableNotifications,
+        columns: ['firestore_id', 'user_id'],
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        cloudDocId = rows.first['firestore_id'] as String?;
+      }
+    }
+    cloudDocId ??= 'notif_$id';
+
+    final res = await db.update(
       tableNotifications,
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [id, targetUserId],
+      {'is_deleted': 1},
+      where: targetUserId != null
+          ? 'id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)'
+          : 'id = ?',
+      whereArgs: targetUserId != null ? [id, targetUserId] : [id],
     );
 
-    // Sinkronisasi hapus ke Firestore
+    // Sinkronisasi soft delete ke Firestore
     try {
-      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
-      FirestoreService.instance.deleteNotification(uid, 'notif_$id').ignore();
+      final uid =
+          AuthService.instance.currentUser?.uid ??
+          (targetUserId != null ? 'user_$targetUserId' : null);
+      if (uid != null) {
+        FirestoreService.instance
+            .softDeleteNotification(uid, cloudDocId)
+            .ignore();
+      }
     } catch (_) {
       // Supresi aman saat offline atau unauthenticated
     }
@@ -1149,7 +1299,7 @@ class DBHelper {
     return res;
   }
 
-  /// Hapus beberapa notifikasi sekaligus (batch) berdasarkan daftar ID
+  /// Hapus beberapa notifikasi sekaligus (batch soft delete) berdasarkan daftar ID
   Future<int> deleteNotifications(List<int> ids) async {
     if (ids.isEmpty) return 0;
     final targetUserId = await getActiveUserId();
@@ -1157,17 +1307,33 @@ class DBHelper {
 
     final db = await database;
     final placeholders = List.filled(ids.length, '?').join(',');
-    final res = await db.delete(
+
+    // Ambil mapping doc ids yang valid
+    final rows = await db.query(
       tableNotifications,
-      where: 'id IN ($placeholders) AND user_id = ?',
+      columns: ['id', 'firestore_id'],
+      where: 'id IN ($placeholders) AND (user_id = ? OR user_id = 0 OR user_id IS NULL)',
+      whereArgs: [...ids, targetUserId],
+    );
+    final docIds = rows.map((r) {
+      final fId = r['firestore_id'] as String?;
+      final localId = r['id'];
+      return (fId != null && fId.isNotEmpty) ? fId : 'notif_$localId';
+    }).toList();
+
+    final res = await db.update(
+      tableNotifications,
+      {'is_deleted': 1},
+      where: 'id IN ($placeholders) AND (user_id = ? OR user_id = 0 OR user_id IS NULL)',
       whereArgs: [...ids, targetUserId],
     );
 
-    // Sinkronisasi batch hapus ke Firestore
+    // Sinkronisasi batch soft delete ke Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
-      final docIds = ids.map((id) => 'notif_$id').toList();
-      FirestoreService.instance.deleteNotificationsBatch(uid, docIds).ignore();
+      FirestoreService.instance
+          .softDeleteNotificationsBatch(uid, docIds)
+          .ignore();
     } catch (_) {
       // Supresi aman saat offline atau unauthenticated
     }
@@ -1176,23 +1342,36 @@ class DBHelper {
     return res;
   }
 
-  /// Hapus semua notifikasi terkait item pantry tertentu
+  /// Hapus semua notifikasi terkait item pantry tertentu (soft delete)
   Future<int> deleteNotificationsByPantryId(int pantryId, {int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
     final db = await database;
-    final res = await db.delete(
+    final res = await db.update(
       tableNotifications,
-      where: 'related_pantry_id = ? AND user_id = ?',
+      {'is_deleted': 1},
+      where: 'related_pantry_id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)',
       whereArgs: [pantryId, targetUserId],
     );
+
+    // Sinkronisasi soft delete notifikasi terkait pantry ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance
+          .softDeleteNotificationsByPantryId(uid, pantryId)
+          .ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  /// Hapus notifikasi pengingat jam makan tertentu hari ini
-  Future<int> deleteMealReminderNotifications(String mealType, {int? userId}) async {
+  /// Hapus notifikasi pengingat jam makan tertentu hari ini (soft delete)
+  Future<int> deleteMealReminderNotifications(
+    String mealType, {
+    int? userId,
+  }) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
@@ -1200,8 +1379,23 @@ class DBHelper {
     final todayDateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final db = await database;
-    final res = await db.delete(
+
+    final rows = await db.query(
       tableNotifications,
+      columns: ['id', 'firestore_id'],
+      where:
+          "type = '${NotificationModel.typeMealReminder}' AND (LOWER(title) LIKE ? OR LOWER(message) LIKE ?) AND substr(created_at, 1, 10) = ? AND user_id = ? AND is_deleted = 0",
+      whereArgs: [
+        '%${mealType.toLowerCase()}%',
+        '%${mealType.toLowerCase()}%',
+        todayDateStr,
+        targetUserId,
+      ],
+    );
+
+    final res = await db.update(
+      tableNotifications,
+      {'is_deleted': 1},
       where:
           "type = '${NotificationModel.typeMealReminder}' AND (LOWER(title) LIKE ? OR LOWER(message) LIKE ?) AND substr(created_at, 1, 10) = ? AND user_id = ?",
       whereArgs: [
@@ -1211,12 +1405,31 @@ class DBHelper {
         targetUserId,
       ],
     );
+
+    if (rows.isNotEmpty) {
+      try {
+        final uid =
+            AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        final docIds = rows.map((r) {
+          final fId = r['firestore_id'] as String?;
+          final localId = r['id'];
+          return (fId != null && fId.isNotEmpty) ? fId : 'notif_$localId';
+        }).toList();
+        FirestoreService.instance
+            .softDeleteNotificationsBatch(uid, docIds)
+            .ignore();
+      } catch (_) {}
+    }
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  /// Hapus notifikasi batas nutrisi tertentu hari ini
-  Future<int> deleteNutritionNotifications(String keyword, {int? userId}) async {
+  /// Hapus notifikasi batas nutrisi tertentu hari ini (soft delete)
+  Future<int> deleteNutritionNotifications(
+    String keyword, {
+    int? userId,
+  }) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
@@ -1224,29 +1437,62 @@ class DBHelper {
     final todayDateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final db = await database;
-    final res = await db.delete(
+
+    final rows = await db.query(
       tableNotifications,
+      columns: ['id', 'firestore_id'],
+      where:
+          "type = '${NotificationModel.typeNutritionExcess}' AND title LIKE ? AND substr(created_at, 1, 10) = ? AND user_id = ? AND is_deleted = 0",
+      whereArgs: ['%$keyword%', todayDateStr, targetUserId],
+    );
+
+    final res = await db.update(
+      tableNotifications,
+      {'is_deleted': 1},
       where:
           "type = '${NotificationModel.typeNutritionExcess}' AND title LIKE ? AND substr(created_at, 1, 10) = ? AND user_id = ?",
       whereArgs: ['%$keyword%', todayDateStr, targetUserId],
     );
+
+    if (rows.isNotEmpty) {
+      try {
+        final uid =
+            AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        final docIds = rows.map((r) {
+          final fId = r['firestore_id'] as String?;
+          final localId = r['id'];
+          return (fId != null && fId.isNotEmpty) ? fId : 'notif_$localId';
+        }).toList();
+        FirestoreService.instance
+            .softDeleteNotificationsBatch(uid, docIds)
+            .ignore();
+      } catch (_) {}
+    }
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
 
-  /// Hapus semua notifikasi milik user aktif
+  /// Hapus semua notifikasi milik user aktif (soft delete)
   Future<int> clearAllNotifications({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();
     if (targetUserId == null) return 0;
 
     final db = await database;
-    final res = await db.delete(
+    final res = await db.update(
       tableNotifications,
+      {'is_deleted': 1},
       where: 'user_id = ?',
       whereArgs: [targetUserId],
     );
+
+    // Sinkronisasi soft delete semua notifikasi ke Firestore
+    try {
+      final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+      FirestoreService.instance.softDeleteAllNotifications(uid).ignore();
+    } catch (_) {}
+
     await NotificationNotifier.instance.refresh();
     return res;
   }
 }
-

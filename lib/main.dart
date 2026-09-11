@@ -38,12 +38,12 @@ void main() async {
   runApp(const FoodCuraApp());
 }
 
-/// Root widget aplikasi FoodCura
+//// Root widget aplikasi FoodCura
 class FoodCuraApp extends StatelessWidget {
   const FoodCuraApp({super.key});
 
   @override
-  Widget build(BuildContext context) {  
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,

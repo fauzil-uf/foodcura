@@ -9,7 +9,7 @@ import '../../widgets/app_dialog.dart';
 import '../../widgets/app_food_image.dart';
 import '../../widgets/app_snack_bar.dart';
 
-// Modal detail nutrisi & edit catatan makanan
+/// Modal detail nutrisi & edit catatan makanan
 class FoodDetailModal extends StatefulWidget {
   final FoodLogModel log;
   final FoodTrackerController? controller;
@@ -47,7 +47,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     super.dispose();
   }
 
-  // Tampilkan dialog konfirmasi dan hapus catatan makanan dari database
+  /// Tampilkan dialog konfirmasi dan hapus catatan makanan dari database
   Future<void> _deleteFood() async {
     final confirm = await AppDialog.showConfirmDialog(
       context: context,
@@ -71,11 +71,13 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     }
   }
 
-  // Simpan perubahan catatan kustom pada log makanan ke database
+  /// Simpan perubahan catatan kustom pada log makanan ke database
   Future<void> _saveNote() async {
     if (_currentLog.id != null && !_isSavingNote) {
       setState(() => _isSavingNote = true);
-      final updatedLog = _currentLog.copyWith(note: _noteController.text.trim());
+      final updatedLog = _currentLog.copyWith(
+        note: _noteController.text.trim(),
+      );
       await _controller.updateFoodLog(updatedLog);
       widget.onLogDeleted?.call();
       if (mounted) {
@@ -84,10 +86,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
           _isEditingNote = false;
           _isSavingNote = false;
         });
-        AppSnackBar.showSuccess(
-          context,
-          'Catatan berhasil disimpan',
-        );
+        AppSnackBar.showSuccess(context, 'Catatan berhasil disimpan');
       }
     }
   }
@@ -136,7 +135,11 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
                     ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close, color: AppColors.textGray, size: 22),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textGray,
+                        size: 22,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -406,7 +409,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
     );
   }
 
-  // Kartu metrik ringkas nilai nutrisi per porsi
+  /// Kartu metrik ringkas nilai nutrisi per porsi
   Widget _buildMetricCard(String val, String label, Color valColor) {
     return Expanded(
       child: Container(

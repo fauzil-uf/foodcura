@@ -15,7 +15,7 @@ import '../widgets/app_snack_bar.dart';
 import '../widgets/app_top_bar.dart';
 import 'widgets/quiz_modal.dart';
 
-/// Layar dashboard & ringkasan nutrisi harian.
+//// Layar dashboard & ringkasan nutrisi harian.
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onNavigateToTracker;
   final VoidCallback? onNavigateToPantry;
@@ -78,22 +78,22 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  // Update UI saat data controller berubah
+  /// Update UI saat data controller berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  // Refresh badge unread notifikasi jika ada pembaruan
+  /// Refresh badge unread notifikasi jika ada pembaruan
   void _onNotifChanged() {
     if (mounted) _controller.refreshUnreadCount();
   }
 
-  // Muat ulang data dashboard jika terjadi perubahan di layar lain atau di cloud
+  /// Muat ulang data dashboard jika terjadi perubahan di layar lain atau di cloud
   void _onDataChanged() {
     if (mounted) _controller.loadDashboardData();
   }
 
-  // Buka layar notifikasi dan refresh unread count setelah kembali
+  /// Buka layar notifikasi dan refresh unread count setelah kembali
   void _openNotifications() {
     Navigator.push(
       context,
@@ -101,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     ).then((_) => _controller.refreshUnreadCount());
   }
 
-  // Buka modal kuis interaktif gizi & food waste
+  /// Buka modal kuis interaktif gizi & food waste
   void _startQuiz() {
     showModalBottomSheet(
       context: context,
@@ -111,7 +111,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Buka modal input catat makanan baru
+  /// Buka modal input catat makanan baru
   void _openAddFoodModal({String mealType = 'Makan Siang'}) {
     showModalBottomSheet(
       context: context,
@@ -129,7 +129,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-  // Tandai bahan pantry sudah dimasak dan beri reward poin
+  /// Tandai bahan pantry sudah dimasak dan beri reward poin
   Future<void> _markPantryItemCooked(PantryItemModel item) async {
     if (item.id != null) {
       await _controller.markPantryItemUsed(item.id!);
@@ -143,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  // Sapaan kontekstual berdasarkan waktu saat ini (Pagi, Siang, Sore, Malam)
+  /// Sapaan kontekstual berdasarkan waktu saat ini (Pagi, Siang, Sore, Malam)
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
     if (hour >= 4 && hour < 11) return 'Selamat Pagi';
@@ -211,7 +211,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Sapaan user & streak harian
+  /// Sapaan user & streak harian
   Widget _buildGreetingAndBadges(String userName, String greeting) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Ringkasan nutrisi harian (kalori & makronutrien)
+  /// Ringkasan nutrisi harian (kalori & makronutrien)
   Widget _buildHeroHealthHubCard() {
     final totalCals = _controller.totalCalories;
     final targetCals = _controller.targetCalories;
@@ -558,7 +558,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Mini card indikator makronutrien
+  /// Mini card indikator makronutrien
   Widget _buildMacroPillCard({
     required String label,
     required double current,
@@ -623,7 +623,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Rekomendasi gizi AI Gemini
+  /// Rekomendasi gizi AI Gemini
   Widget _buildAiNutritionCoachCard() {
     return Container(
       width: double.infinity,
@@ -810,7 +810,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Radar pantau bahan pantry yang mendekati kedaluwarsa
+  /// Radar pantau bahan pantry yang mendekati kedaluwarsa
   Widget _buildPantryRadarSection() {
     final urgentList = _controller.urgentPantryItems;
     final segeraList = _controller.segeraPantryItems;
@@ -1135,7 +1135,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Linimasa makanan hari ini
+  /// Linimasa makanan hari ini
   Widget _buildTodayMealsSection() {
     final todayLogs = _controller.todayLogs;
 
@@ -1330,7 +1330,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // Banner mini kuis gizi harian
+  /// Banner mini kuis gizi harian
   Widget _buildMiniQuizBanner() {
     return Container(
       width: double.infinity,

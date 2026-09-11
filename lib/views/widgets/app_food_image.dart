@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import 'app_shimmer.dart';
 
-// Widget gambar makanan efisien dengan dukungan disk/memory caching (CachedNetworkImage), aset lokal, dan fallback aman
+/// Widget gambar makanan efisien dengan dukungan disk/memory caching (CachedNetworkImage), aset lokal, dan fallback aman
 class AppFoodImage extends StatelessWidget {
   final String? imagePath;
   final double width;
@@ -42,8 +42,8 @@ class AppFoodImage extends StatelessWidget {
     final uri = Uri.tryParse(path);
     final isNetwork =
         (path.startsWith('http://') || path.startsWith('https://')) &&
-            uri != null &&
-            uri.hasAuthority;
+        uri != null &&
+        uri.hasAuthority;
 
     final int? cacheW = (width > 0 && width.isFinite)
         ? (width * 2.5).clamp(40, 600).round()

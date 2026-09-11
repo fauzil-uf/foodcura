@@ -1,4 +1,4 @@
-// Path aset gambar dan ikon aplikasi
+/// Path aset gambar dan ikon aplikasi
 class AppImages {
   AppImages._();
 

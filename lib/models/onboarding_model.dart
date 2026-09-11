@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// Model data slide pengenalan fitur aplikasi (Onboarding)
+/// Model data slide pengenalan fitur aplikasi (Onboarding)
 class OnboardingItem {
   final String image;
   final String eyebrow;

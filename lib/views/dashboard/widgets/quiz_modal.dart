@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../controllers/quiz_controller.dart';
 import '../../../models/quiz_model.dart';
 
-// Modal kuis edukasi gizi & food waste (AI + offline)
+/// Modal kuis edukasi gizi & food waste (AI + offline)
 class QuizModal extends StatefulWidget {
   const QuizModal({super.key});
 
@@ -42,17 +42,17 @@ class _QuizModalState extends State<QuizModal> {
     if (mounted) setState(() {});
   }
 
-  // Muat daftar soal kuis dari Gemini AI atau offline fallback
+  /// Muat daftar soal kuis dari Gemini AI atau offline fallback
   Future<void> _fetchQuiz() async {
     await _controller.fetchQuiz();
   }
 
-  // Pilih jawaban dan evaluasi kebenaran jawaban
+  /// Pilih jawaban dan evaluasi kebenaran jawaban
   void _selectAnswer(int index) {
     _controller.selectAnswer(index);
   }
 
-  // Lanjut ke soal berikutnya atau tampilkan layar hasil akhir
+  /// Lanjut ke soal berikutnya atau tampilkan layar hasil akhir
   void _nextQuestion() {
     _controller.nextQuestion();
   }

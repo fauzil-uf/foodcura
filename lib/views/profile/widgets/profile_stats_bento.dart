@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-// Grid ringkasan gamifikasi (Eco Points & streak harian)
+/// Grid ringkasan gamifikasi (Eco Points & streak harian)
 class ProfileStatsBento extends StatelessWidget {
   final int ecoPoints;
   final int streak;

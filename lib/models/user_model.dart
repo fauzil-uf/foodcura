@@ -1,4 +1,4 @@
-/// Model entitas pengguna akun FoodCura di database SQLite lokal.
+//// Model entitas pengguna akun FoodCura di database SQLite lokal.
 class UserModelSQL {
   final int? id;
   final String name;

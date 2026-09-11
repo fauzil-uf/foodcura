@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-// Dialog konfirmasi terstandar untuk seluruh aplikasi
+/// Dialog konfirmasi terstandar untuk seluruh aplikasi
 class AppDialog {
   AppDialog._();
 
-  // Dialog konfirmasi (hapus item, keluar akun, dll)
+  /// Dialog konfirmasi (hapus item, keluar akun, dll)
   static Future<bool> showConfirmDialog({
     required BuildContext context,
     required String title,

@@ -4,13 +4,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-// Service notifikasi lokal sistem (flutter_local_notifications)
+/// Service notifikasi lokal sistem (flutter_local_notifications)
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
-  static const MethodChannel _settingsChannel =
-      MethodChannel('com.fauzil.foodcura/settings');
+  static const MethodChannel _settingsChannel = MethodChannel(
+    'com.fauzil.foodcura/settings',
+  );
 
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -34,11 +35,12 @@ class NotificationService {
       'Peringatan penting untuk bahan yang sudah kedaluwarsa atau tersisa <=1 hari';
 
   static const String warningExpiryChannelId = 'foodcura_expiry_warning';
-  static const String warningExpiryChannelName = 'Pengingat Mendekati Kedaluwarsa';
+  static const String warningExpiryChannelName =
+      'Pengingat Mendekati Kedaluwarsa';
   static const String warningExpiryChannelDesc =
       'Pengingat untuk bahan yang akan kedaluwarsa dalam 2-5 hari ke depan';
 
-  // Inisialisasi local notification & konfigurasi timezone
+  /// Inisialisasi local notification & konfigurasi timezone
   Future<void> init() async {
     if (_initialized) return;
 
@@ -117,8 +119,12 @@ class NotificationService {
           enableVibration: true,
         );
 
-        await androidImplementation.createNotificationChannel(urgentExpiryChannel);
-        await androidImplementation.createNotificationChannel(warningExpiryChannel);
+        await androidImplementation.createNotificationChannel(
+          urgentExpiryChannel,
+        );
+        await androidImplementation.createNotificationChannel(
+          warningExpiryChannel,
+        );
       }
 
       _initialized = true;
@@ -127,7 +133,7 @@ class NotificationService {
     }
   }
 
-  // Konfigurasi zona waktu lokal perangkat
+  /// Konfigurasi zona waktu lokal perangkat
   void _configureLocalTimeZone() {
     try {
       final offsetHours = DateTime.now().timeZoneOffset.inHours;
@@ -154,7 +160,7 @@ class NotificationService {
     }
   }
 
-  // Minta izin notifikasi (Android 13+ / iOS)
+  /// Minta izin notifikasi (Android 13+ / iOS)
   Future<bool> requestPermissions() async {
     try {
       final androidImplementation = _localNotifications
@@ -163,7 +169,8 @@ class NotificationService {
           >();
 
       if (androidImplementation != null) {
-        final granted = await androidImplementation.requestNotificationsPermission();
+        final granted = await androidImplementation
+            .requestNotificationsPermission();
         return granted ?? false;
       }
 
@@ -186,7 +193,7 @@ class NotificationService {
     return false;
   }
 
-  // Cek apakah izin notifikasi aktif di sistem
+  /// Cek apakah izin notifikasi aktif di sistem
   Future<bool> areNotificationsEnabled() async {
     try {
       final androidImplementation = _localNotifications
@@ -202,7 +209,7 @@ class NotificationService {
     return true;
   }
 
-  // Buka pengaturan notifikasi aplikasi di level OS Android
+  /// Buka pengaturan notifikasi aplikasi di level OS Android
   Future<void> openNotificationSettings() async {
     try {
       await _settingsChannel.invokeMethod('openNotificationSettings');
@@ -211,7 +218,7 @@ class NotificationService {
     }
   }
 
-  // Buka pengaturan izin exact alarm (Android 12+)
+  /// Buka pengaturan izin exact alarm (Android 12+)
   Future<void> openExactAlarmSettings() async {
     try {
       await _settingsChannel.invokeMethod('openExactAlarmSettings');
@@ -220,11 +227,12 @@ class NotificationService {
     }
   }
 
-  // Cek apakah sistem mengizinkan exact alarm (Android 12+)
+  /// Cek apakah sistem mengizinkan exact alarm (Android 12+)
   Future<bool> canScheduleExactAlarms() async {
     try {
-      final res =
-          await _settingsChannel.invokeMethod<bool>('canScheduleExactAlarms');
+      final res = await _settingsChannel.invokeMethod<bool>(
+        'canScheduleExactAlarms',
+      );
       return res ?? true;
     } catch (e) {
       debugPrint('Error checking exact alarm status: $e');
@@ -232,11 +240,12 @@ class NotificationService {
     }
   }
 
-  // Cek apakah app dikecualikan dari battery optimization
+  /// Cek apakah app dikecualikan dari battery optimization
   Future<bool> isBatteryOptimizationIgnored() async {
     try {
-      final res = await _settingsChannel
-          .invokeMethod<bool>('isBatteryOptimizationIgnored');
+      final res = await _settingsChannel.invokeMethod<bool>(
+        'isBatteryOptimizationIgnored',
+      );
       return res ?? true;
     } catch (e) {
       debugPrint('Error checking battery optimization: $e');
@@ -244,7 +253,7 @@ class NotificationService {
     }
   }
 
-  // Buka halaman daftar battery optimization di OS (user pilih FoodCura → Unrestricted)
+  /// Buka halaman daftar battery optimization di OS (user pilih FoodCura → Unrestricted)
   Future<void> openBatteryOptimizationSettings() async {
     try {
       await _settingsChannel.invokeMethod('openBatteryOptimizationSettings');
@@ -253,7 +262,7 @@ class NotificationService {
     }
   }
 
-  // Tampilkan notifikasi push sistem instan
+  /// Tampilkan notifikasi push sistem instan
   Future<void> showSystemNotification({
     required int id,
     required String title,
@@ -270,17 +279,17 @@ class NotificationService {
     final targetChannelName = (targetChannelId == mealChannelId)
         ? mealChannelName
         : (targetChannelId == urgentExpiryChannelId)
-            ? urgentExpiryChannelName
-            : (targetChannelId == warningExpiryChannelId)
-                ? warningExpiryChannelName
-                : channelName;
+        ? urgentExpiryChannelName
+        : (targetChannelId == warningExpiryChannelId)
+        ? warningExpiryChannelName
+        : channelName;
     final targetChannelDesc = (targetChannelId == mealChannelId)
         ? mealChannelDescription
         : (targetChannelId == urgentExpiryChannelId)
-            ? urgentExpiryChannelDesc
-            : (targetChannelId == warningExpiryChannelId)
-                ? warningExpiryChannelDesc
-                : channelDescription;
+        ? urgentExpiryChannelDesc
+        : (targetChannelId == warningExpiryChannelId)
+        ? warningExpiryChannelDesc
+        : channelDescription;
 
     final androidDetails = AndroidNotificationDetails(
       targetChannelId,
@@ -291,9 +300,10 @@ class NotificationService {
       visibility: NotificationVisibility.public,
       category: (targetChannelId == mealChannelId)
           ? AndroidNotificationCategory.reminder
-          : (targetChannelId == urgentExpiryChannelId || targetChannelId == warningExpiryChannelId)
-              ? AndroidNotificationCategory.alarm
-              : AndroidNotificationCategory.recommendation,
+          : (targetChannelId == urgentExpiryChannelId ||
+                targetChannelId == warningExpiryChannelId)
+          ? AndroidNotificationCategory.alarm
+          : AndroidNotificationCategory.recommendation,
       showWhen: true,
       enableVibration: true,
       playSound: true,
@@ -325,7 +335,7 @@ class NotificationService {
     }
   }
 
-  // Jadwalkan notifikasi berulang harian yang berjalan walau aplikasi ditutup
+  /// Jadwalkan notifikasi berulang harian yang berjalan walau aplikasi ditutup
   Future<void> scheduleDailyMealNotification({
     required int id,
     required String title,
@@ -438,7 +448,7 @@ class NotificationService {
     }
   }
 
-  // Minta izin exact alarm secara eksplisit (jika diperlukan pada Android 13/14+)
+  /// Minta izin exact alarm secara eksplisit (jika diperlukan pada Android 13/14+)
   Future<bool?> requestExactAlarmsPermission() async {
     try {
       final androidPlugin = _localNotifications
@@ -454,7 +464,7 @@ class NotificationService {
     return null;
   }
 
-  // Jadwalkan notifikasi di masa depan (AlarmManager sistem Android)
+  /// Jadwalkan notifikasi di masa depan (AlarmManager sistem Android)
   Future<void> scheduleFutureNotification({
     required int id,
     required String title,
@@ -565,8 +575,7 @@ class NotificationService {
     }
   }
 
-
-  // Jadwalkan notifikasi expire harian per-bahan dengan channel sesuai urgensi
+  /// Jadwalkan notifikasi expire harian per-bahan dengan channel sesuai urgensi
   Future<void> scheduleDailyExpiryNotification({
     required int id,
     required String title,
@@ -581,8 +590,12 @@ class NotificationService {
     if (!_initialized) return;
 
     final isUrgent = channelId == urgentExpiryChannelId;
-    final targetChannelName = isUrgent ? urgentExpiryChannelName : warningExpiryChannelName;
-    final targetChannelDesc = isUrgent ? urgentExpiryChannelDesc : warningExpiryChannelDesc;
+    final targetChannelName = isUrgent
+        ? urgentExpiryChannelName
+        : warningExpiryChannelName;
+    final targetChannelDesc = isUrgent
+        ? urgentExpiryChannelDesc
+        : warningExpiryChannelDesc;
     final importance = isUrgent ? Importance.max : Importance.high;
     final priority = isUrgent ? Priority.max : Priority.high;
 
@@ -680,7 +693,8 @@ class NotificationService {
       }
     }
   }
-  // Batalkan alarm/notifikasi untuk item pantry tertentu
+
+  /// Batalkan alarm/notifikasi untuk item pantry tertentu
   Future<void> cancelPantryNotifications(int pantryId) async {
     // ID scheme lama (200000+) â€” backward compatibility
     final idLegacy1 = 200000 + (pantryId * 10) + 1;
@@ -695,7 +709,7 @@ class NotificationService {
     await cancelNotification(20000 + pantryId);
   }
 
-  // Batalkan notifikasi atau alarm tertentu
+  /// Batalkan notifikasi atau alarm tertentu
   Future<void> cancelNotification(int id) async {
     if (!_initialized) {
       await init();
@@ -708,7 +722,8 @@ class NotificationService {
       debugPrint('Error cancelling notification: $e');
     }
   }
-  // Batalkan semua notifikasi dan alarm yang sedang aktif
+
+  /// Batalkan semua notifikasi dan alarm yang sedang aktif
   Future<void> cancelAllNotifications() async {
     if (!_initialized) {
       await init();

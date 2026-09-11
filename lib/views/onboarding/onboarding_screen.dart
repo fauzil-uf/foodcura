@@ -9,7 +9,7 @@ import '../navigation/main_navigation_screen.dart';
 
 import '../../models/onboarding_model.dart';
 
-// Layar pengenalan fitur awal (onboarding carousel)
+/// Layar pengenalan fitur awal (onboarding carousel)
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 

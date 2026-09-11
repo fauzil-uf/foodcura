@@ -6,7 +6,8 @@ import '../constants/api_constants.dart';
 import '../models/quiz_model.dart';
 import 'connectivity_service.dart';
 
-// Service integrasi Gemini AI (kuis nutrisi & saran gizi harian)
+/// Service integrasi Google Gemini AI untuk pembuatan kuis nutrisi edukatif
+//// dan analisis cerdas pola asupan gizi harian pengguna.
 class GeminiService {
   static final GeminiService instance = GeminiService._();
   GeminiService._();
@@ -182,6 +183,9 @@ class GeminiService {
     }).toList();
   }
 
+  /// Menghasilkan 5 butir soal kuis edukatif seputar nutrisi & pencegahan food waste.
+  /// Menggunakan REST API Google Gemini jika perangkat terhubung ke internet dan API key tersedia,
+  /// serta otomatis fallback ke kumpulan soal offline kurasi jika offline.
   Future<List<QuizQuestion>> generateQuiz() async {
     final apiKey = ApiConstants.geminiApiKey.trim();
 
@@ -279,7 +283,8 @@ Kembalikan HANYA array JSON murni:
     return _buildOfflineFallback();
   }
 
-  // Evaluasi nutrisi harian oleh AI Coach
+  /// Mengevaluasi asupan kalori dan makronutrien harian pengguna dan menghasilkan
+  /// saran pola makan personal dari AI Nutrition Coach (atau rule-based fallback saat offline).
   Future<String> evaluateDailyNutrition({
     required int calories,
     required double protein,

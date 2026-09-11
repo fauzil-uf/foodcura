@@ -11,7 +11,7 @@ import '../navigation/main_navigation_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../../services/reminder_service.dart';
 
-// Layar splash pembuka dengan estetika ultra-premium, pencahayaan ambient hidup, dan kilau cahaya sinematik
+/// Layar splash pembuka dengan estetika ultra-premium, pencahayaan ambient hidup, dan kilau cahaya sinematik
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -266,9 +266,9 @@ class _SplashScreenState extends State<SplashScreen>
                                     AppColors.mintAccent.withValues(
                                       alpha: 0.32 * pulse,
                                     ),
-                                    const Color(0xFF34D399).withValues(
-                                      alpha: 0.12 * pulse,
-                                    ),
+                                    const Color(
+                                      0xFF34D399,
+                                    ).withValues(alpha: 0.12 * pulse),
                                     Colors.transparent,
                                   ],
                                   stops: const [0.0, 0.55, 1.0],
@@ -297,9 +297,9 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF041208).withValues(
-                                  alpha: 0.65,
-                                ),
+                                color: const Color(
+                                  0xFF041208,
+                                ).withValues(alpha: 0.65),
                                 blurRadius: 36,
                                 spreadRadius: 2,
                                 offset: const Offset(0, 18),
@@ -314,7 +314,9 @@ class _SplashScreenState extends State<SplashScreen>
                               ),
                             ],
                           ),
-                          padding: const EdgeInsets.all(1.5), // Fine beveled glass edge
+                          padding: const EdgeInsets.all(
+                            1.5,
+                          ), // Fine beveled glass edge
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(30.5),
@@ -336,7 +338,8 @@ class _SplashScreenState extends State<SplashScreen>
                                     child: AnimatedBuilder(
                                       animation: _shimmerAnimation,
                                       builder: (context, _) {
-                                        final double val = _shimmerAnimation.value;
+                                        final double val =
+                                            _shimmerAnimation.value;
                                         return Container(
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
@@ -351,12 +354,24 @@ class _SplashScreenState extends State<SplashScreen>
                                                 1.0,
                                               ],
                                               colors: [
-                                                Colors.white.withValues(alpha: 0.0),
-                                                Colors.white.withValues(alpha: 0.08),
-                                                Colors.white.withValues(alpha: 0.48),
-                                                Colors.white.withValues(alpha: 0.65),
-                                                Colors.white.withValues(alpha: 0.12),
-                                                Colors.white.withValues(alpha: 0.0),
+                                                Colors.white.withValues(
+                                                  alpha: 0.0,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.08,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.48,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.65,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.12,
+                                                ),
+                                                Colors.white.withValues(
+                                                  alpha: 0.0,
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -419,9 +434,9 @@ class _SplashScreenState extends State<SplashScreen>
                                     AppColors.mintAccent.withValues(
                                       alpha: 0.22 * pulse,
                                     ),
-                                    const Color(0xFF34D399).withValues(
-                                      alpha: 0.08 * pulse,
-                                    ),
+                                    const Color(
+                                      0xFF34D399,
+                                    ).withValues(alpha: 0.08 * pulse),
                                     Colors.transparent,
                                   ],
                                   radius: 0.85,
@@ -469,18 +484,14 @@ class _SplashScreenState extends State<SplashScreen>
                                   return LinearGradient(
                                     begin: Alignment(val - 0.9, -0.2),
                                     end: Alignment(val + 0.9, 0.2),
-                                    stops: const [
-                                      0.0,
-                                      0.35,
-                                      0.50,
-                                      0.65,
-                                      1.0,
-                                    ],
+                                    stops: const [0.0, 0.35, 0.50, 0.65, 1.0],
                                     colors: [
                                       Colors.transparent,
                                       Colors.white.withValues(alpha: 0.2),
                                       Colors.white, // Diamond Specular Core
-                                      const Color(0xFFBAF7D0), // Iridescent Emerald Glint
+                                      const Color(
+                                        0xFFBAF7D0,
+                                      ), // Iridescent Emerald Glint
                                       Colors.transparent,
                                     ],
                                   ).createShader(bounds);
@@ -531,8 +542,10 @@ class _SplashScreenState extends State<SplashScreen>
                   child: AnimatedBuilder(
                     animation: _shimmerController,
                     builder: (context, _) {
-                      final double progress =
-                          _shimmerController.value.clamp(0.0, 1.0);
+                      final double progress = _shimmerController.value.clamp(
+                        0.0,
+                        1.0,
+                      );
                       return Container(
                         width: 52,
                         height: 3,
@@ -546,10 +559,7 @@ class _SplashScreenState extends State<SplashScreen>
                           height: 3,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [
-                                AppColors.mintAccent,
-                                Colors.white,
-                              ],
+                              colors: [AppColors.mintAccent, Colors.white],
                             ),
                             borderRadius: BorderRadius.circular(999),
                             boxShadow: [

@@ -7,7 +7,7 @@ import 'app_notifiers.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
 
-/// Status hasil sinkronisasi Cloud
+//// Status hasil sinkronisasi Cloud
 class SyncResult {
   final bool success;
   final int pantrySynced;
@@ -26,7 +26,7 @@ class SyncResult {
 
 /// Service sinkronisasi dua arah antara database lokal (SQLite) dan Cloud Firestore.
 /// Mendukung Offline-First: SQLite tetap menjadi sumber data utama yang cepat,
-/// sementara Cloud Firestore menjadi cadangan terpusat dan sinkronisasi multi-perangkat.
+//// sementara Cloud Firestore menjadi cadangan terpusat dan sinkronisasi multi-perangkat.
 class SyncService extends ChangeNotifier {
   static final SyncService instance = SyncService._internal();
   factory SyncService({DBHelper? db, FirestoreService? firestore}) => instance;
@@ -59,7 +59,10 @@ class SyncService extends ChangeNotifier {
   /// Backup seluruh data SQLite lokal pengguna ke Cloud Firestore
   Future<SyncResult> backupAllToCloud({String? explicitUid}) async {
     if (_isSyncing) {
-      return const SyncResult(success: false, message: 'Sinkronisasi sedang berjalan.');
+      return const SyncResult(
+        success: false,
+        message: 'Sinkronisasi sedang berjalan.',
+      );
     }
 
     _isSyncing = true;
@@ -69,7 +72,8 @@ class SyncService extends ChangeNotifier {
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
-      final uid = explicitUid ??
+      final uid =
+          explicitUid ??
           AuthService.instance.currentUser?.uid ??
           (targetUserId != null ? 'user_$targetUserId' : null);
 
@@ -117,15 +121,22 @@ class SyncService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await _firestore.saveUserPreferences(uid, {
         'expiryAlert': prefs.getBool(AppConstants.keyNotifExpiryAlert) ?? true,
-        'nutritionExcess': prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true,
-        'dailyMealLog': prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true,
+        'nutritionExcess':
+            prefs.getBool(AppConstants.keyNotifNutritionExcess) ?? true,
+        'dailyMealLog':
+            prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true,
         'ecoTips': prefs.getBool(AppConstants.keyNotifEcoTips) ?? true,
-        'breakfastEnabled': prefs.getBool(AppConstants.keyNotifBreakfastEnabled) ?? true,
-        'breakfastTime': prefs.getString(AppConstants.keyNotifBreakfastTime) ?? '07:30',
-        'lunchEnabled': prefs.getBool(AppConstants.keyNotifLunchEnabled) ?? true,
+        'breakfastEnabled':
+            prefs.getBool(AppConstants.keyNotifBreakfastEnabled) ?? true,
+        'breakfastTime':
+            prefs.getString(AppConstants.keyNotifBreakfastTime) ?? '07:30',
+        'lunchEnabled':
+            prefs.getBool(AppConstants.keyNotifLunchEnabled) ?? true,
         'lunchTime': prefs.getString(AppConstants.keyNotifLunchTime) ?? '12:30',
-        'dinnerEnabled': prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true,
-        'dinnerTime': prefs.getString(AppConstants.keyNotifDinnerTime) ?? '19:00',
+        'dinnerEnabled':
+            prefs.getBool(AppConstants.keyNotifDinnerEnabled) ?? true,
+        'dinnerTime':
+            prefs.getString(AppConstants.keyNotifDinnerTime) ?? '19:00',
       });
 
       _lastSyncTime = DateTime.now();
@@ -136,11 +147,15 @@ class SyncService extends ChangeNotifier {
         pantrySynced: pantryCount,
         logsSynced: logsCount,
         notifsSynced: notifsCount,
-        message: 'Berhasil mencadangkan $pantryCount bahan, $logsCount catatan makan, dan $notifsCount notifikasi ke cloud.',
+        message:
+            'Berhasil mencadangkan $pantryCount bahan, $logsCount catatan makan, dan $notifsCount notifikasi ke cloud.',
       );
     } catch (e) {
       _lastError = e.toString();
-      return SyncResult(success: false, message: 'Gagal sinkronisasi ke cloud: $e');
+      return SyncResult(
+        success: false,
+        message: 'Gagal sinkronisasi ke cloud: $e',
+      );
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -151,7 +166,10 @@ class SyncService extends ChangeNotifier {
   /// (Sangat berguna saat pengguna login di perangkat baru / instal ulang aplikasi)
   Future<SyncResult> restoreFromCloud({String? explicitUid}) async {
     if (_isSyncing) {
-      return const SyncResult(success: false, message: 'Sinkronisasi sedang berjalan.');
+      return const SyncResult(
+        success: false,
+        message: 'Sinkronisasi sedang berjalan.',
+      );
     }
 
     _isSyncing = true;
@@ -161,7 +179,8 @@ class SyncService extends ChangeNotifier {
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
-      final uid = explicitUid ??
+      final uid =
+          explicitUid ??
           AuthService.instance.currentUser?.uid ??
           (targetUserId != null ? 'user_$targetUserId' : null);
 
@@ -176,7 +195,9 @@ class SyncService extends ChangeNotifier {
       final cloudProfile = await _firestore.getUserProfile(uid);
       if (cloudProfile != null && user != null) {
         final cloudName = cloudProfile['name']?.toString().trim();
-        if (cloudName != null && cloudName.isNotEmpty && cloudName != user.name) {
+        if (cloudName != null &&
+            cloudName.isNotEmpty &&
+            cloudName != user.name) {
           await _db.updateUser(user.copyWith(name: cloudName));
           UserProfileUpdateNotifier.instance.notifyUserChanged();
         }
@@ -192,21 +213,36 @@ class SyncService extends ChangeNotifier {
       }
 
       // 2. Pulihkan Inventaris Pantry
-      final localPantry = await _db.getPantryItems(userId: targetUserId);
+      final localPantry = await _db.getAllPantryItemsRaw(userId: targetUserId);
       final cloudPantry = await _firestore.getPantryItems(uid);
       for (final cItem in cloudPantry) {
-        final existingIndex = localPantry.indexWhere((l) =>
-            (cItem.id != null && l.id == cItem.id) ||
-            (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
-             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim()));
+        final existingIndex = localPantry.indexWhere(
+          (l) =>
+              (cItem.id != null && l.id == cItem.id) ||
+              (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
+                  l.storage.toLowerCase().trim() ==
+                      cItem.storage.toLowerCase().trim()),
+        );
 
         if (existingIndex != -1) {
           final local = localPantry[existingIndex];
-          if (cItem.isUsed && !local.isUsed) {
-            await _db.markPantryItemUsed(local.id!);
+          if (local.isUsed && !cItem.isUsed) {
+            // Pengguna telah menandai bahan ini habis di HP lokal saat offline.
+            // Sebarkan status isUsed ke Cloud agar tidak membangkitkan kembali bahan yang sudah habis.
+            _firestore
+                .updatePantryItem(
+                  uid,
+                  'pantry_${local.id}',
+                  local.copyWith(isUsed: true),
+                )
+                .ignore();
+            continue;
+          } else if (cItem.isUsed && !local.isUsed) {
+            await _db.markPantryItemUsed(local.id!, userId: targetUserId);
             pantryRestored++;
-          } else if (!cItem.isUsed) {
-            final hasChanged = local.quantity != cItem.quantity ||
+          } else if (!cItem.isUsed && !local.isUsed) {
+            final hasChanged =
+                local.quantity != cItem.quantity ||
                 local.name.trim() != cItem.name.trim() ||
                 local.storage != cItem.storage ||
                 local.unit != cItem.unit ||
@@ -215,10 +251,9 @@ class SyncService extends ChangeNotifier {
                 local.expiryDate.day != cItem.expiryDate.day;
 
             if (hasChanged) {
-              await _db.updatePantryItem(cItem.copyWith(
-                id: local.id,
-                userId: targetUserId,
-              ));
+              await _db.updatePantryItem(
+                cItem.copyWith(id: local.id, userId: targetUserId),
+              );
               pantryRestored++;
             }
           }
@@ -233,15 +268,19 @@ class SyncService extends ChangeNotifier {
       final localLogs = await _db.getFoodLogs(userId: targetUserId);
       final cloudLogs = await _firestore.getFoodLogs(uid);
       for (final cLog in cloudLogs) {
-        final existingIndex = localLogs.indexWhere((l) =>
-            (cLog.id != null && l.id == cLog.id) ||
-            (l.foodName.toLowerCase().trim() == cLog.foodName.toLowerCase().trim() &&
-             l.date == cLog.date &&
-             l.mealType == cLog.mealType));
+        final existingIndex = localLogs.indexWhere(
+          (l) =>
+              (cLog.id != null && l.id == cLog.id) ||
+              (l.foodName.toLowerCase().trim() ==
+                      cLog.foodName.toLowerCase().trim() &&
+                  l.date == cLog.date &&
+                  l.mealType == cLog.mealType),
+        );
 
         if (existingIndex != -1) {
           final local = localLogs[existingIndex];
-          final hasChanged = local.foodName != cLog.foodName ||
+          final hasChanged =
+              local.foodName != cLog.foodName ||
               local.calories != cLog.calories ||
               local.protein != cLog.protein ||
               local.carbs != cLog.carbs ||
@@ -249,7 +288,9 @@ class SyncService extends ChangeNotifier {
               local.time != cLog.time ||
               local.note != cLog.note;
           if (hasChanged) {
-            await _db.updateFoodLog(cLog.copyWith(id: local.id, userId: targetUserId));
+            await _db.updateFoodLog(
+              cLog.copyWith(id: local.id, userId: targetUserId),
+            );
             logsRestored++;
           }
         } else {
@@ -258,27 +299,52 @@ class SyncService extends ChangeNotifier {
         }
       }
 
-      // 4. Pulihkan Notifikasi
-      final localNotifs = await _db.getNotifications(userId: targetUserId);
+      // 4. Pulihkan Notifikasi (Hanya notifikasi aktif yang belum dihapus)
+      final localNotifs = await _db.getAllNotificationsRaw(
+        userId: targetUserId,
+      );
       final cloudNotifs = await _firestore.getNotifications(uid);
       for (final cNotif in cloudNotifs) {
-        final existingIndex = localNotifs.indexWhere((l) =>
-            (cNotif.id != null && l.id == cNotif.id) ||
-            (l.title == cNotif.title &&
-             l.createdAt.year == cNotif.createdAt.year &&
-             l.createdAt.month == cNotif.createdAt.month &&
-             l.createdAt.day == cNotif.createdAt.day));
+        if (cNotif.isDeleted) continue;
+
+        final existingIndex = localNotifs.indexWhere(
+          (l) =>
+              (cNotif.firestoreId != null &&
+                  l.firestoreId == cNotif.firestoreId) ||
+              (cNotif.id != null && l.id == cNotif.id) ||
+              (l.title.toLowerCase().trim() ==
+                      cNotif.title.toLowerCase().trim() &&
+                  (l.createdAt.year == cNotif.createdAt.year &&
+                          l.createdAt.month == cNotif.createdAt.month &&
+                          l.createdAt.day == cNotif.createdAt.day ||
+                      l.message.toLowerCase().trim() ==
+                          cNotif.message.toLowerCase().trim())),
+        );
 
         if (existingIndex != -1) {
           final local = localNotifs[existingIndex];
+          if (local.isDeleted) {
+            // Pengguna telah menghapus notifikasi ini secara lokal saat offline.
+            // Sebarkan status soft delete ke Cloud agar Cloud juga terbarui tanpa menghidupkan kembali notifikasi.
+            final cloudDocId =
+                cNotif.firestoreId ?? local.firestoreId ?? 'notif_${local.id}';
+            _firestore.softDeleteNotification(uid, cloudDocId).ignore();
+            continue;
+          }
           if (local.isRead != cNotif.isRead) {
             if (cNotif.isRead && local.id != null) {
-              await _db.markNotificationRead(local.id!);
+              await _db.markNotificationRead(
+                local.id!,
+                firestoreId: cNotif.firestoreId,
+              );
               notifsRestored++;
             }
           }
         } else {
-          await _db.addNotification(cNotif.copyWith(userId: targetUserId));
+          await _db.addNotification(
+            cNotif.copyWith(userId: targetUserId),
+            syncToCloud: false,
+          );
           notifsRestored++;
         }
       }
@@ -288,34 +354,64 @@ class SyncService extends ChangeNotifier {
       if (cloudPrefs != null) {
         final prefs = await SharedPreferences.getInstance();
         if (cloudPrefs.containsKey('expiryAlert')) {
-          await prefs.setBool(AppConstants.keyNotifExpiryAlert, cloudPrefs['expiryAlert'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifExpiryAlert,
+            cloudPrefs['expiryAlert'] == true,
+          );
         }
         if (cloudPrefs.containsKey('nutritionExcess')) {
-          await prefs.setBool(AppConstants.keyNotifNutritionExcess, cloudPrefs['nutritionExcess'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifNutritionExcess,
+            cloudPrefs['nutritionExcess'] == true,
+          );
         }
         if (cloudPrefs.containsKey('dailyMealLog')) {
-          await prefs.setBool(AppConstants.keyNotifDailyMealLog, cloudPrefs['dailyMealLog'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifDailyMealLog,
+            cloudPrefs['dailyMealLog'] == true,
+          );
         }
         if (cloudPrefs.containsKey('ecoTips')) {
-          await prefs.setBool(AppConstants.keyNotifEcoTips, cloudPrefs['ecoTips'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifEcoTips,
+            cloudPrefs['ecoTips'] == true,
+          );
         }
         if (cloudPrefs.containsKey('breakfastEnabled')) {
-          await prefs.setBool(AppConstants.keyNotifBreakfastEnabled, cloudPrefs['breakfastEnabled'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifBreakfastEnabled,
+            cloudPrefs['breakfastEnabled'] == true,
+          );
         }
         if (cloudPrefs.containsKey('breakfastTime')) {
-          await prefs.setString(AppConstants.keyNotifBreakfastTime, cloudPrefs['breakfastTime']?.toString() ?? '07:30');
+          await prefs.setString(
+            AppConstants.keyNotifBreakfastTime,
+            cloudPrefs['breakfastTime']?.toString() ?? '07:30',
+          );
         }
         if (cloudPrefs.containsKey('lunchEnabled')) {
-          await prefs.setBool(AppConstants.keyNotifLunchEnabled, cloudPrefs['lunchEnabled'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifLunchEnabled,
+            cloudPrefs['lunchEnabled'] == true,
+          );
         }
         if (cloudPrefs.containsKey('lunchTime')) {
-          await prefs.setString(AppConstants.keyNotifLunchTime, cloudPrefs['lunchTime']?.toString() ?? '12:30');
+          await prefs.setString(
+            AppConstants.keyNotifLunchTime,
+            cloudPrefs['lunchTime']?.toString() ?? '12:30',
+          );
         }
         if (cloudPrefs.containsKey('dinnerEnabled')) {
-          await prefs.setBool(AppConstants.keyNotifDinnerEnabled, cloudPrefs['dinnerEnabled'] == true);
+          await prefs.setBool(
+            AppConstants.keyNotifDinnerEnabled,
+            cloudPrefs['dinnerEnabled'] == true,
+          );
         }
         if (cloudPrefs.containsKey('dinnerTime')) {
-          await prefs.setString(AppConstants.keyNotifDinnerTime, cloudPrefs['dinnerTime']?.toString() ?? '19:00');
+          await prefs.setString(
+            AppConstants.keyNotifDinnerTime,
+            cloudPrefs['dinnerTime']?.toString() ?? '19:00',
+          );
         }
       }
 
@@ -333,11 +429,15 @@ class SyncService extends ChangeNotifier {
         pantrySynced: pantryRestored,
         logsSynced: logsRestored,
         notifsSynced: notifsRestored,
-        message: 'Berhasil memulihkan $pantryRestored bahan, $logsRestored catatan makan, dan $notifsRestored notifikasi dari cloud.',
+        message:
+            'Berhasil memulihkan $pantryRestored bahan, $logsRestored catatan makan, dan $notifsRestored notifikasi dari cloud.',
       );
     } catch (e) {
       _lastError = e.toString();
-      return SyncResult(success: false, message: 'Gagal memulihkan dari cloud: $e');
+      return SyncResult(
+        success: false,
+        message: 'Gagal memulihkan dari cloud: $e',
+      );
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -349,7 +449,8 @@ class SyncService extends ChangeNotifier {
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
-      final uid = explicitUid ??
+      final uid =
+          explicitUid ??
           AuthService.instance.currentUser?.uid ??
           (targetUserId != null ? 'user_$targetUserId' : null);
 
@@ -360,7 +461,10 @@ class SyncService extends ChangeNotifier {
 
       bool changed = false;
       final cloudName = cloudProfile['name']?.toString().trim();
-      if (cloudName != null && cloudName.isNotEmpty && user != null && user.name != cloudName) {
+      if (cloudName != null &&
+          cloudName.isNotEmpty &&
+          user != null &&
+          user.name != cloudName) {
         await _db.updateUser(user.copyWith(name: cloudName));
         changed = true;
       }
@@ -399,7 +503,8 @@ class SyncService extends ChangeNotifier {
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
-      final uid = explicitUid ??
+      final uid =
+          explicitUid ??
           AuthService.instance.currentUser?.uid ??
           (targetUserId != null ? 'user_$targetUserId' : null);
 
@@ -408,22 +513,37 @@ class SyncService extends ChangeNotifier {
       final cloudPantry = await _firestore.getPantryItems(uid);
       if (cloudPantry.isEmpty) return 0;
 
-      final localPantry = await _db.getPantryItems(userId: targetUserId);
+      final localPantry = await _db.getAllPantryItemsRaw(userId: targetUserId);
       int changeCount = 0;
 
       for (final cItem in cloudPantry) {
-        final existingIndex = localPantry.indexWhere((l) =>
-            (cItem.id != null && l.id == cItem.id) ||
-            (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
-             l.storage.toLowerCase().trim() == cItem.storage.toLowerCase().trim()));
+        final existingIndex = localPantry.indexWhere(
+          (l) =>
+              (cItem.id != null && l.id == cItem.id) ||
+              (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
+                  l.storage.toLowerCase().trim() ==
+                      cItem.storage.toLowerCase().trim()),
+        );
 
         if (existingIndex != -1) {
           final local = localPantry[existingIndex];
-          if (cItem.isUsed && !local.isUsed) {
-            await _db.markPantryItemUsed(local.id!);
+          if (local.isUsed && !cItem.isUsed) {
+            // Pengguna sudah menandai bahan ini habis di HP lokal.
+            // Sebarkan status isUsed ke Cloud agar tidak membangkitkan kembali bahan yang sudah habis.
+            _firestore
+                .updatePantryItem(
+                  uid,
+                  'pantry_${local.id}',
+                  local.copyWith(isUsed: true),
+                )
+                .ignore();
+            continue;
+          } else if (cItem.isUsed && !local.isUsed) {
+            await _db.markPantryItemUsed(local.id!, userId: targetUserId);
             changeCount++;
-          } else if (!cItem.isUsed) {
-            final hasChanged = local.quantity != cItem.quantity ||
+          } else if (!cItem.isUsed && !local.isUsed) {
+            final hasChanged =
+                local.quantity != cItem.quantity ||
                 local.name.trim() != cItem.name.trim() ||
                 local.storage != cItem.storage ||
                 local.unit != cItem.unit ||
@@ -432,10 +552,9 @@ class SyncService extends ChangeNotifier {
                 local.expiryDate.day != cItem.expiryDate.day;
 
             if (hasChanged) {
-              await _db.updatePantryItem(cItem.copyWith(
-                id: local.id,
-                userId: targetUserId,
-              ));
+              await _db.updatePantryItem(
+                cItem.copyWith(id: local.id, userId: targetUserId),
+              );
               changeCount++;
             }
           }
@@ -460,7 +579,8 @@ class SyncService extends ChangeNotifier {
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
-      final uid = explicitUid ??
+      final uid =
+          explicitUid ??
           AuthService.instance.currentUser?.uid ??
           (targetUserId != null ? 'user_$targetUserId' : null);
 
@@ -473,15 +593,19 @@ class SyncService extends ChangeNotifier {
       int changeCount = 0;
 
       for (final cLog in cloudLogs) {
-        final existingIndex = localLogs.indexWhere((l) =>
-            (cLog.id != null && l.id == cLog.id) ||
-            (l.foodName.toLowerCase().trim() == cLog.foodName.toLowerCase().trim() &&
-             l.date == cLog.date &&
-             l.mealType == cLog.mealType));
+        final existingIndex = localLogs.indexWhere(
+          (l) =>
+              (cLog.id != null && l.id == cLog.id) ||
+              (l.foodName.toLowerCase().trim() ==
+                      cLog.foodName.toLowerCase().trim() &&
+                  l.date == cLog.date &&
+                  l.mealType == cLog.mealType),
+        );
 
         if (existingIndex != -1) {
           final local = localLogs[existingIndex];
-          final hasChanged = local.foodName != cLog.foodName ||
+          final hasChanged =
+              local.foodName != cLog.foodName ||
               local.calories != cLog.calories ||
               local.protein != cLog.protein ||
               local.carbs != cLog.carbs ||
@@ -491,7 +615,9 @@ class SyncService extends ChangeNotifier {
               local.mealType != cLog.mealType ||
               local.note != cLog.note;
           if (hasChanged) {
-            await _db.updateFoodLog(cLog.copyWith(id: local.id, userId: targetUserId));
+            await _db.updateFoodLog(
+              cLog.copyWith(id: local.id, userId: targetUserId),
+            );
             changeCount++;
           }
         } else {
@@ -517,7 +643,8 @@ class SyncService extends ChangeNotifier {
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
-      final uid = explicitUid ??
+      final uid =
+          explicitUid ??
           AuthService.instance.currentUser?.uid ??
           (targetUserId != null ? 'user_$targetUserId' : null);
 
@@ -526,20 +653,39 @@ class SyncService extends ChangeNotifier {
       final cloudNotifs = await _firestore.getNotifications(uid);
       if (cloudNotifs.isEmpty) return 0;
 
-      final localNotifs = await _db.getNotifications(userId: targetUserId);
+      final localNotifs = await _db.getAllNotificationsRaw(
+        userId: targetUserId,
+      );
       int changeCount = 0;
 
       for (final cNotif in cloudNotifs) {
-        final existingIndex = localNotifs.indexWhere((l) =>
-            (cNotif.id != null && l.id == cNotif.id) ||
-            (l.title.toLowerCase().trim() == cNotif.title.toLowerCase().trim() &&
-             l.createdAt.year == cNotif.createdAt.year &&
-             l.createdAt.month == cNotif.createdAt.month &&
-             l.createdAt.day == cNotif.createdAt.day));
+        if (cNotif.isDeleted) continue;
+
+        final existingIndex = localNotifs.indexWhere(
+          (l) =>
+              (cNotif.firestoreId != null &&
+                  l.firestoreId == cNotif.firestoreId) ||
+              (cNotif.id != null && l.id == cNotif.id) ||
+              (l.title.toLowerCase().trim() ==
+                      cNotif.title.toLowerCase().trim() &&
+                  (l.createdAt.year == cNotif.createdAt.year &&
+                          l.createdAt.month == cNotif.createdAt.month &&
+                          l.createdAt.day == cNotif.createdAt.day ||
+                      l.message.toLowerCase().trim() ==
+                          cNotif.message.toLowerCase().trim())),
+        );
 
         if (existingIndex != -1) {
           final local = localNotifs[existingIndex];
-          final hasChanged = local.title.trim() != cNotif.title.trim() ||
+          if (local.isDeleted) {
+            final cloudDocId =
+                cNotif.firestoreId ?? local.firestoreId ?? 'notif_${local.id}';
+            _firestore.softDeleteNotification(uid, cloudDocId).ignore();
+            continue;
+          }
+
+          final hasChanged =
+              local.title.trim() != cNotif.title.trim() ||
               local.message.trim() != cNotif.message.trim() ||
               local.isRead != cNotif.isRead ||
               local.type != cNotif.type ||

@@ -8,7 +8,7 @@ import '../../../models/food_item_model.dart';
 import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 
-// Tab waktu makan (Sarapan, Makan Siang, Makan Malam, Camilan)
+/// Tab waktu makan (Sarapan, Makan Siang, Makan Malam, Camilan)
 class FoodMealTab extends StatelessWidget {
   const FoodMealTab({
     super.key,
@@ -280,7 +280,7 @@ class FoodMealTab extends StatelessWidget {
     );
   }
 
-  // Kartu item makanan yang tercatat pada tab waktu makan
+  /// Kartu item makanan yang tercatat pada tab waktu makan
   Widget _buildFoodLogCard(BuildContext context, FoodLogModel log) {
     return GestureDetector(
       onTap: () => onOpenDetail(log),

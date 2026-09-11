@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-// Banner ringkasan peringatan jumlah bahan rawan kedaluwarsa
+/// Banner ringkasan peringatan jumlah bahan rawan kedaluwarsa
 class PantrySummaryAlert extends StatelessWidget {
   final int count;
 

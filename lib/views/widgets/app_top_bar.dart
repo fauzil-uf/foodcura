@@ -4,7 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_images.dart';
 import '../../constants/app_typography.dart';
 
-// Top bar navigasi aplikasi (judul, logo brand, tombol back, lonceng notifikasi)
+/// Top bar navigasi aplikasi (judul, logo brand, tombol back, lonceng notifikasi)
 class AppTopBar extends StatelessWidget {
   final String? title;
   final bool showBrandLogo;

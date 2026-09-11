@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-// Komponen tampilan status kosong terstandar untuk seluruh aplikasi
+/// Komponen tampilan status kosong terstandar untuk seluruh aplikasi
 class AppEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -59,10 +59,7 @@ class AppEmptyState extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(height: 20),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 20), action!],
           ],
         ),
       ),

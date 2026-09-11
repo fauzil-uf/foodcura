@@ -7,7 +7,7 @@ import '../database/db_helper.dart';
 import '../models/notification_model.dart';
 import 'notification_service.dart';
 
-/// Service pemantau batas asupan gizi harian (AKG) & pemicu notifikasi peringatan nutrisi.
+//// Service pemantau batas asupan gizi harian (AKG) & pemicu notifikasi peringatan nutrisi.
 class NutritionService {
   final DBHelper _db;
   final NotificationService _notificationService;
@@ -114,7 +114,10 @@ class NutritionService {
       if (!entry.value) {
         await resetNutrientTracking(targetUserId, entry.key);
         try {
-          await _db.deleteNutritionNotifications(entry.key, userId: targetUserId);
+          await _db.deleteNutritionNotifications(
+            entry.key,
+            userId: targetUserId,
+          );
         } catch (_) {
           // Supresi aman jika notifikasi belum ada di database
         }
@@ -188,7 +191,9 @@ class NutritionService {
           body: singleRule.$3,
         );
       } catch (e) {
-        debugPrint('[NutritionService] Gagal menampilkan notifikasi sistem: $e');
+        debugPrint(
+          '[NutritionService] Gagal menampilkan notifikasi sistem: $e',
+        );
       }
     } else if (newlyExceeded.length > 1) {
       final joinedNutrients = newlyExceeded.join(', ');
@@ -200,7 +205,9 @@ class NutritionService {
               'Asupan $joinedNutrients Anda hari ini telah melebihi batas anjuran harian. Periksa rincian menu Anda di Food Tracker.',
         );
       } catch (e) {
-        debugPrint('[NutritionService] Gagal menampilkan notifikasi multi-nutrisi: $e');
+        debugPrint(
+          '[NutritionService] Gagal menampilkan notifikasi multi-nutrisi: $e',
+        );
       }
     }
 

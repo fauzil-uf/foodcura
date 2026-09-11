@@ -4,7 +4,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../widgets/app_filter_chip_row.dart';
 
-// Header tracker (navigasi tanggal, pencarian, scanner, & tab makan)
+/// Header tracker (navigasi tanggal, pencarian, scanner, & tab makan)
 class FoodTrackerHeader extends StatelessWidget {
   const FoodTrackerHeader({
     super.key,
@@ -111,7 +111,7 @@ class FoodTrackerHeader extends StatelessWidget {
     );
   }
 
-  // Bar navigasi pemilih tanggal (hari kemarin, hari ini, hari esok, & kalender)
+  /// Bar navigasi pemilih tanggal (hari kemarin, hari ini, hari esok, & kalender)
   Widget _buildDateNavigator(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),

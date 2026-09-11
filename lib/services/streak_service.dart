@@ -6,13 +6,13 @@ import '../database/db_helper.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
 
-// Service perhitungan streak harian user
+/// Service perhitungan streak harian user
 class StreakService {
   final DBHelper _db;
 
   StreakService({DBHelper? db}) : _db = db ?? DBHelper();
 
-  // Hitung & simpan streak hari berturut-turut
+  /// Hitung & simpan streak hari berturut-turut
   Future<int> computeAndSaveStreak({int? userId}) async {
     final targetUserId = userId ?? await _db.getActiveUserId();
     if (targetUserId == null) return 0;
@@ -116,12 +116,10 @@ class StreakService {
     // Hal ini krusial untuk mencegah infinite feedback loop dengan Firestore Stream listener.
     if (oldStreak != currentStreak) {
       try {
-        final uid = AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
+        final uid =
+            AuthService.instance.currentUser?.uid ?? 'user_$targetUserId';
         FirestoreService.instance
-            .updateEcoPoints(
-              uid: uid,
-              streakCount: currentStreak,
-            )
+            .updateEcoPoints(uid: uid, streakCount: currentStreak)
             .ignore();
       } catch (_) {}
     }
@@ -129,7 +127,7 @@ class StreakService {
     return currentStreak;
   }
 
-  // Ambil streak tersimpan di SharedPreferences
+  /// Ambil streak tersimpan di SharedPreferences
   Future<int> getSavedStreak({int? userId}) async {
     final targetUserId = userId ?? await _db.getActiveUserId();
     if (targetUserId == null) return 0;

@@ -12,7 +12,7 @@ import '../services/reminder_service.dart';
 import '../services/sync_service.dart';
 import 'mixins/cloud_sync_controller_mixin.dart';
 
-/// Controller inventaris pantry & pemantau kedaluwarsa.
+//// Controller inventaris pantry & pemantau kedaluwarsa.
 class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
   final DBHelper _db;
   final ReminderService _reminderService;
@@ -89,39 +89,17 @@ class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
       final allItems = await _db.getPantryItems();
 
       // Hitung ringkasan status langsung di memori (0.05ms) tanpa query ulang ke SQLite
-      int safe = 0, warning = 0, danger = 0, expired = 0;
-      for (final item in allItems) {
-        final days = item.daysUntilExpiry;
-        if (days < 0) {
-          expired++;
-        } else if (days <= 2) {
-          danger++;
-        } else if (days <= 5) {
-          warning++;
-        } else {
-          safe++;
-        }
-      }
-      _statusCounts = {
-        'safe': safe,
-        'warning': warning,
-        'danger': danger,
-        'expired': expired,
-        'urgent': danger + expired,
-        'segera': warning,
-        'aman': safe,
-        'total': allItems.length,
-      };
+      _updateStatusCountsFromItems(allItems);
 
       // 2. Terapkan filter / pencarian secara in-memory untuk responsivitas instan
       var list = _searchQuery.isNotEmpty
           ? allItems
-              .where(
-                (i) => i.name.toLowerCase().contains(
-                  _searchQuery.toLowerCase().trim(),
-                ),
-              )
-              .toList()
+                .where(
+                  (i) => i.name.toLowerCase().contains(
+                    _searchQuery.toLowerCase().trim(),
+                  ),
+                )
+                .toList()
           : allItems;
 
       if (_selectedFilter != null && _selectedFilter != 'Semua') {
@@ -190,7 +168,9 @@ class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       await FirestoreService.instance.addPantryItem(uid, item.copyWith(id: id));
     } catch (e) {
-      debugPrint('[PantryController] Gagal sync addPantryItem ke Firestore: $e');
+      debugPrint(
+        '[PantryController] Gagal sync addPantryItem ke Firestore: $e',
+      );
     }
     await _reminderService.syncPantryExpiryAlarms();
     await _reminderService.checkExpiryAndCreateNotifications(
@@ -205,19 +185,24 @@ class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
   /// Memperbarui bahan makanan
   Future<void> updatePantryItem(PantryItemModel item) async {
     await _db.updatePantryItem(item);
-    // Sinkronisasi ke Firestore (latar belakang)
+    // Sinkronisasi ke  `(latar belakang)
     try {
       final activeUserId = item.userId ?? await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       final firestoreId = item.firestoreId ?? 'pantry_${item.id}';
       await FirestoreService.instance.updatePantryItem(uid, firestoreId, item);
     } catch (e) {
-      debugPrint('[PantryController] Gagal sync updatePantryItem ke Firestore: $e');
+      debugPrint(
+        '[PantryController] Gagal sync updatePantryItem ke Firestore: $e',
+      );
     }
     if (item.id != null) {
       final userId = item.userId ?? await _db.getActiveUserId();
       if (userId != null) {
-        await _reminderService.clearPantryNotificationTracking(userId, item.id!);
+        await _reminderService.clearPantryNotificationTracking(
+          userId,
+          item.id!,
+        );
       }
       // Selalu bersihkan notifikasi lama bahan ini agar status baru dievaluasi segar tanpa duplikasi
       await _db.deleteNotificationsByPantryId(item.id!);
@@ -232,12 +217,46 @@ class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
     await loadPantryData();
   }
 
+  void _updateStatusCountsFromItems(List<PantryItemModel> items) {
+    int safe = 0, warning = 0, danger = 0, expired = 0;
+    for (final item in items) {
+      final days = item.daysUntilExpiry;
+      if (days < 0) {
+        expired++;
+      } else if (days <= 2) {
+        danger++;
+      } else if (days <= 5) {
+        warning++;
+      } else {
+        safe++;
+      }
+    }
+    _statusCounts = {
+      'safe': safe,
+      'warning': warning,
+      'danger': danger,
+      'expired': expired,
+      'urgent': danger + expired,
+      'segera': warning,
+      'aman': safe,
+      'total': items.length,
+    };
+  }
+
   /// Menandai bahan makanan sudah digunakan
   Future<void> markItemUsed(int id) async {
-    await _db.markPantryItemUsed(id);
+    // Optimistic UI update: langsung hapus dari list lokal agar UI seketika responsif
+    final index = _items.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      _items.removeAt(index);
+      _updateStatusCountsFromItems(_items);
+      notifyListeners();
+    }
+
+    final activeUserId = await _db.getActiveUserId();
+    await _db.markPantryItemUsed(id, userId: activeUserId);
     // Sinkronisasi status terpakai ke Firestore
     try {
-      final activeUserId = await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       await FirestoreService.instance.updatePantryItem(
         uid,
@@ -256,7 +275,7 @@ class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
     } catch (e) {
       debugPrint('[PantryController] Gagal sync markItemUsed ke Firestore: $e');
     }
-    await _db.deleteNotificationsByPantryId(id);
+    await _db.deleteNotificationsByPantryId(id, userId: activeUserId);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
     await NotificationNotifier.instance.refresh();
@@ -265,16 +284,23 @@ class PantryController extends ChangeNotifier with CloudSyncControllerMixin {
 
   /// Menghapus bahan makanan
   Future<void> deleteItem(int id) async {
-    await _db.deletePantryItem(id);
+    // Optimistic UI update: langsung hapus dari list lokal
+    _items.removeWhere((item) => item.id == id);
+    _updateStatusCountsFromItems(_items);
+    notifyListeners();
+
+    final activeUserId = await _db.getActiveUserId();
+    await _db.deletePantryItem(id, userId: activeUserId);
     // Hapus dari Firestore
     try {
-      final activeUserId = await _db.getActiveUserId();
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       await FirestoreService.instance.deletePantryItem(uid, 'pantry_$id');
     } catch (e) {
-      debugPrint('[PantryController] Gagal sync deletePantryItem ke Firestore: $e');
+      debugPrint(
+        '[PantryController] Gagal sync deletePantryItem ke Firestore: $e',
+      );
     }
-    await _db.deleteNotificationsByPantryId(id);
+    await _db.deleteNotificationsByPantryId(id, userId: activeUserId);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
     await NotificationNotifier.instance.refresh();

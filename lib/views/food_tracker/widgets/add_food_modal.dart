@@ -10,7 +10,7 @@ import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 import '../../widgets/app_snack_bar.dart';
 
-// Modal catat makanan baru ke log harian
+/// Modal catat makanan baru ke log harian
 class AddFoodModal extends StatefulWidget {
   final String initialMealType;
   final DateTime? targetDate;
@@ -80,7 +80,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     _loadData();
   }
 
-  // Muat katalog makanan dan riwayat makanan terakhir ditambahkan
+  /// Muat katalog makanan dan riwayat makanan terakhir ditambahkan
   Future<void> _loadData() async {
     final catalog = await _controller.getFoodCatalog();
     final recent =
@@ -98,7 +98,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     }
   }
 
-  // Filter daftar makanan yang ditampilkan berdasarkan kata kunci pencarian
+  /// Filter daftar makanan yang ditampilkan berdasarkan kata kunci pencarian
   void _filterFoods(String query) {
     setState(() {
       final q = query.trim().toLowerCase();
@@ -126,7 +126,7 @@ class _AddFoodModalState extends State<AddFoodModal> {
     });
   }
 
-  // Simpan log makanan baru ke database SQLite
+  /// Simpan log makanan baru ke database SQLite
   Future<void> _saveFoodLog() async {
     if (_selectedFood == null || _isSubmitting) return;
 
@@ -135,10 +135,18 @@ class _AddFoodModalState extends State<AddFoodModal> {
     try {
       final now = DateTime.now();
       final cal = (_selectedFood!.calories * _portion).round();
-      final prot = double.parse((_selectedFood!.protein * _portion).toStringAsFixed(1));
-      final carbs = double.parse((_selectedFood!.carbs * _portion).toStringAsFixed(1));
-      final fat = double.parse((_selectedFood!.fat * _portion).toStringAsFixed(1));
-      final chol = double.parse((_selectedFood!.cholesterol * _portion).toStringAsFixed(1));
+      final prot = double.parse(
+        (_selectedFood!.protein * _portion).toStringAsFixed(1),
+      );
+      final carbs = double.parse(
+        (_selectedFood!.carbs * _portion).toStringAsFixed(1),
+      );
+      final fat = double.parse(
+        (_selectedFood!.fat * _portion).toStringAsFixed(1),
+      );
+      final chol = double.parse(
+        (_selectedFood!.cholesterol * _portion).toStringAsFixed(1),
+      );
       final foodDisplayName = AppFoodFormatter.formatFoodWithPortion(
         _selectedFood!.name,
         _portion,
@@ -233,7 +241,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
                     ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close, color: AppColors.textGray, size: 22),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textGray,
+                        size: 22,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -265,7 +277,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.search, color: AppColors.textGray, size: 20),
+                        const Icon(
+                          Icons.search,
+                          color: AppColors.textGray,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
@@ -329,10 +345,12 @@ class _AddFoodModalState extends State<AddFoodModal> {
                         : ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: _displayedFoods.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 14),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 14),
                             itemBuilder: (context, index) {
                               final food = _displayedFoods[index];
-                              final isSelected = _selectedFood?.name == food.name;
+                              final isSelected =
+                                  _selectedFood?.name == food.name;
                               return GestureDetector(
                                 onTap: () {
                                   setState(() {
@@ -376,15 +394,16 @@ class _AddFoodModalState extends State<AddFoodModal> {
                                         textAlign: TextAlign.center,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: AppTextStyles.subtitleSmall.copyWith(
-                                          fontSize: 11,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : AppColors.textPrimary,
-                                        ),
+                                        style: AppTextStyles.subtitleSmall
+                                            .copyWith(
+                                              fontSize: 11,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500,
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                  : AppColors.textPrimary,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -407,12 +426,13 @@ class _AddFoodModalState extends State<AddFoodModal> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 2.7,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 8,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 2.7,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 8,
+                        ),
                     itemCount: _mealTypes.length,
                     itemBuilder: (context, index) {
                       final meal = _mealTypes[index];
@@ -542,10 +562,11 @@ class _AddFoodModalState extends State<AddFoodModal> {
                                       'P ${(_selectedFood!.protein * _portion).toStringAsFixed(1)}g · K ${(_selectedFood!.carbs * _portion).toStringAsFixed(1)}g · L ${(_selectedFood!.fat * _portion).toStringAsFixed(1)}g',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: AppTextStyles.subtitleSmall.copyWith(
-                                        fontSize: 11,
-                                        color: AppColors.textGray,
-                                      ),
+                                      style: AppTextStyles.subtitleSmall
+                                          .copyWith(
+                                            fontSize: 11,
+                                            color: AppColors.textGray,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -554,7 +575,10 @@ class _AddFoodModalState extends State<AddFoodModal> {
 
                               // Stepper Porsi Elegan
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.background,
                                   borderRadius: BorderRadius.circular(20),
@@ -566,7 +590,9 @@ class _AddFoodModalState extends State<AddFoodModal> {
                                     InkWell(
                                       borderRadius: BorderRadius.circular(20),
                                       onTap: _portion > 0.5
-                                          ? () => setState(() => _portion = _portion - 0.5)
+                                          ? () => setState(
+                                              () => _portion = _portion - 0.5,
+                                            )
                                           : null,
                                       child: Padding(
                                         padding: const EdgeInsets.all(4),
@@ -575,12 +601,16 @@ class _AddFoodModalState extends State<AddFoodModal> {
                                           size: 16,
                                           color: _portion > 0.5
                                               ? AppColors.textPrimary
-                                              : AppColors.textGray.withValues(alpha: 0.3),
+                                              : AppColors.textGray.withValues(
+                                                  alpha: 0.3,
+                                                ),
                                         ),
                                       ),
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                      ),
                                       child: Text(
                                         '${_portion % 1 == 0 ? _portion.toInt() : _portion}',
                                         style: AppTextStyles.bodySmall.copyWith(
@@ -592,7 +622,9 @@ class _AddFoodModalState extends State<AddFoodModal> {
                                     InkWell(
                                       borderRadius: BorderRadius.circular(20),
                                       onTap: _portion < 10.0
-                                          ? () => setState(() => _portion = _portion + 0.5)
+                                          ? () => setState(
+                                              () => _portion = _portion + 0.5,
+                                            )
                                           : null,
                                       child: const Padding(
                                         padding: EdgeInsets.all(4),
@@ -610,7 +642,10 @@ class _AddFoodModalState extends State<AddFoodModal> {
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.mintTint,
                               borderRadius: BorderRadius.circular(10),
@@ -655,7 +690,9 @@ class _AddFoodModalState extends State<AddFoodModal> {
                       ),
                       Text(
                         '${_noteController.text.length}/100',
-                        style: AppTextStyles.subtitleSmall.copyWith(fontSize: 11),
+                        style: AppTextStyles.subtitleSmall.copyWith(
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -693,16 +730,20 @@ class _AddFoodModalState extends State<AddFoodModal> {
                     height: 48,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: (_selectedFood == null || _isSubmitting)
+                        backgroundColor:
+                            (_selectedFood == null || _isSubmitting)
                             ? AppColors.surfaceContainerHigh
                             : AppColors.primary,
-                        foregroundColor: (_selectedFood == null || _isSubmitting)
+                        foregroundColor:
+                            (_selectedFood == null || _isSubmitting)
                             ? AppColors.textGray
                             : Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
-                        elevation: (_selectedFood == null || _isSubmitting) ? 0 : 1,
+                        elevation: (_selectedFood == null || _isSubmitting)
+                            ? 0
+                            : 1,
                       ),
                       onPressed: (_selectedFood == null || _isSubmitting)
                           ? null

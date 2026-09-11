@@ -18,8 +18,9 @@ import '../services/streak_service.dart';
 import '../services/sync_service.dart';
 import 'mixins/cloud_sync_controller_mixin.dart';
 
-/// Controller pencatatan makanan, tracking nutrisi, & batas AKG
-class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin {
+//// Controller pencatatan makanan, tracking nutrisi, & batas AKG
+class FoodTrackerController extends ChangeNotifier
+    with CloudSyncControllerMixin {
   final DBHelper _db;
   final NutritionService _nutritionService;
   final StreakService _streakService;
@@ -75,14 +76,18 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
   List<FoodLogModel> get filteredLogs => _selectedTabIndex == 0
       ? _allLogs
       : _allLogs
-          .where((l) =>
-              l.mealType.trim().toLowerCase() ==
-              _tabs[_selectedTabIndex].trim().toLowerCase())
-          .toList();
+            .where(
+              (l) =>
+                  l.mealType.trim().toLowerCase() ==
+                  _tabs[_selectedTabIndex].trim().toLowerCase(),
+            )
+            .toList();
 
   /// Helper: mendapatkan log berdasarkan nama meal type secara generik.
   List<FoodLogModel> logsForMeal(String mealType) => _allLogs
-      .where((l) => l.mealType.trim().toLowerCase() == mealType.trim().toLowerCase())
+      .where(
+        (l) => l.mealType.trim().toLowerCase() == mealType.trim().toLowerCase(),
+      )
       .toList();
 
   int get totalCalories => _allLogs.fold(0, (sum, log) => sum + log.calories);
@@ -144,8 +149,11 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
   bool get canGoNextDay {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final current =
-        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final current = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
     return current.isBefore(today);
   }
 
@@ -253,8 +261,9 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
   /// Menambahkan log makanan baru ke database dan memicu evaluasi AKG
   Future<NotificationModel?> addFoodLog(FoodLogModel log) async {
     final activeUserId = log.userId ?? await _db.getActiveUserId();
-    final logWithUser =
-        activeUserId != null ? log.copyWith(userId: activeUserId) : log;
+    final logWithUser = activeUserId != null
+        ? log.copyWith(userId: activeUserId)
+        : log;
     final id = await _db.insertFoodLog(logWithUser);
     final logWithId = logWithUser.copyWith(id: id);
 
@@ -263,7 +272,9 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       await FirestoreService.instance.addFoodLog(uid, logWithId);
     } catch (e) {
-      debugPrint('[FoodTrackerController] Gagal sync addFoodLog ke Firestore: $e');
+      debugPrint(
+        '[FoodTrackerController] Gagal sync addFoodLog ke Firestore: $e',
+      );
     }
 
     final todayStr = AppDateFormatter.formatToday();
@@ -283,7 +294,8 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
 
     // Sinkronkan tab aktif agar beralih ke jenis makan yang baru ditambahkan
     final mealIndex = _tabs.indexWhere(
-      (t) => t.trim().toLowerCase() == logWithUser.mealType.trim().toLowerCase(),
+      (t) =>
+          t.trim().toLowerCase() == logWithUser.mealType.trim().toLowerCase(),
     );
     if (mealIndex != -1 && _selectedTabIndex != 0) {
       _selectedTabIndex = mealIndex;
@@ -296,8 +308,9 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
   /// Memperbarui log makanan yang sudah ada
   Future<NotificationModel?> updateFoodLog(FoodLogModel log) async {
     final activeUserId = log.userId ?? await _db.getActiveUserId();
-    final logWithUser =
-        activeUserId != null ? log.copyWith(userId: activeUserId) : log;
+    final logWithUser = activeUserId != null
+        ? log.copyWith(userId: activeUserId)
+        : log;
     await _db.updateFoodLog(logWithUser);
 
     // Sinkronisasi update ke Firestore
@@ -305,7 +318,9 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       await FirestoreService.instance.addFoodLog(uid, logWithUser);
     } catch (e) {
-      debugPrint('[FoodTrackerController] Gagal sync updateFoodLog ke Firestore: $e');
+      debugPrint(
+        '[FoodTrackerController] Gagal sync updateFoodLog ke Firestore: $e',
+      );
     }
 
     final todayStr = AppDateFormatter.formatToday();
@@ -328,25 +343,34 @@ class FoodTrackerController extends ChangeNotifier with CloudSyncControllerMixin
 
   /// Menghapus log makanan berdasarkan id
   Future<void> deleteFoodLog(int id) async {
+    // Optimistic UI update: hapus seketika dari RAM agar UI instan merespons
+    _allLogs.removeWhere((l) => l.id == id);
+    _calculateWarnings();
+    notifyListeners();
+
     final activeUserId = await _db.getActiveUserId();
     final logs = await _db.getFoodLogs(userId: activeUserId);
     final targetLog = logs.where((l) => l.id == id).firstOrNull;
 
-    await _db.deleteFoodLog(id);
+    await _db.deleteFoodLog(id, userId: activeUserId);
 
     // Hapus dari Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
       await FirestoreService.instance.deleteFoodLog(uid, 'foodlog_$id');
     } catch (e) {
-      debugPrint('[FoodTrackerController] Gagal sync deleteFoodLog ke Firestore: $e');
+      debugPrint(
+        '[FoodTrackerController] Gagal sync deleteFoodLog ke Firestore: $e',
+      );
     }
 
     if (targetLog != null && activeUserId != null) {
       final todayStr = AppDateFormatter.formatToday();
       if (targetLog.date == todayStr) {
-        final remainingLogs =
-            await _db.getFoodLogs(date: todayStr, userId: activeUserId);
+        final remainingLogs = await _db.getFoodLogs(
+          date: todayStr,
+          userId: activeUserId,
+        );
         final hasRemainingForMeal = remainingLogs.any(
           (l) => l.mealType.toLowerCase() == targetLog.mealType.toLowerCase(),
         );

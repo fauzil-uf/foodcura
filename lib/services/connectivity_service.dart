@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
-/// Layanan terpusat untuk memantau status jaringan (Online/Offline) secara real-time.
+//// Layanan terpusat untuk memantau status jaringan (Online/Offline) secara real-time.
 class ConnectivityService {
   static final ConnectivityService instance = ConnectivityService._();
   ConnectivityService._();

@@ -12,7 +12,7 @@ import '../profile/profile_screen.dart';
 import '../../services/app_update_service.dart';
 import '../../services/reminder_service.dart';
 
-// Kerangka navigasi utama (bottom navigation bar)
+/// Kerangka navigasi utama (bottom navigation bar)
 class MainNavigationScreen extends StatefulWidget {
   final int initialTab;
 
@@ -65,7 +65,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     await NotificationNotifier.instance.refresh();
   }
 
-  // Tangani perpindahan tab aktif dan sinkronkan refresh badge notifikasi
+  /// Tangani perpindahan tab aktif dan sinkronkan refresh badge notifikasi
   void _onTabTapped(int index) {
     if (_currentIndex != index) {
       setState(() {
@@ -88,15 +88,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       _loadedTabs.contains(1)
           ? const FoodTrackerScreen()
           : const SizedBox.shrink(),
-      _loadedTabs.contains(2)
-          ? const PantryScreen()
-          : const SizedBox.shrink(),
+      _loadedTabs.contains(2) ? const PantryScreen() : const SizedBox.shrink(),
       _loadedTabs.contains(3)
           ? const FoodInfoScreen()
           : const SizedBox.shrink(),
-      _loadedTabs.contains(4)
-          ? const ProfileScreen()
-          : const SizedBox.shrink(),
+      _loadedTabs.contains(4) ? const ProfileScreen() : const SizedBox.shrink(),
     ];
 
     const double bottomPosition = 14.0;

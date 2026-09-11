@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/article_model.dart';
 import '../../widgets/app_food_image.dart';
 
-// Kartu baris daftar artikel edukasi gizi & food waste
+/// Kartu baris daftar artikel edukasi gizi & food waste
 class ArticleListItem extends StatelessWidget {
   final ArticleModel article;
   final VoidCallback onTap;

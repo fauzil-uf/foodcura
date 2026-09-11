@@ -6,7 +6,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/pantry_item_model.dart';
 import '../../widgets/app_food_image.dart';
 
-// Kartu item bahan pantry dengan progress bar kedaluwarsa & tombol aksi
+/// Kartu item bahan pantry dengan progress bar kedaluwarsa & tombol aksi
 class PantryItemCard extends StatelessWidget {
   final PantryItemModel item;
   final VoidCallback onTap;

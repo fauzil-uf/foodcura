@@ -116,7 +116,10 @@ void main() {
       expect(resEmpty, isFalse);
       expect(auth.errorMessage, contains('Isi semua field'));
 
-      final resInvalidFormat = await auth.login('invalid-email-address', 'somepass');
+      final resInvalidFormat = await auth.login(
+        'invalid-email-address',
+        'somepass',
+      );
       expect(resInvalidFormat, isFalse);
       expect(auth.errorMessage, contains('Format email tidak valid'));
     });
@@ -206,9 +209,15 @@ void main() {
       );
       const portion = 2.0;
       final scaledCalories = (baseFood.calories * portion).round();
-      final scaledProtein = double.parse((baseFood.protein * portion).toStringAsFixed(1));
-      final scaledFat = double.parse((baseFood.fat * portion).toStringAsFixed(1));
-      final scaledCholesterol = double.parse((baseFood.cholesterol * portion).toStringAsFixed(1));
+      final scaledProtein = double.parse(
+        (baseFood.protein * portion).toStringAsFixed(1),
+      );
+      final scaledFat = double.parse(
+        (baseFood.fat * portion).toStringAsFixed(1),
+      );
+      final scaledCholesterol = double.parse(
+        (baseFood.cholesterol * portion).toStringAsFixed(1),
+      );
 
       expect(scaledCalories, equals(148));
       expect(scaledProtein, equals(12.6));
@@ -279,46 +288,49 @@ void main() {
       expect(expiryGrouped.containsKey('aman'), isTrue);
     });
 
-    test('PantryItemModel status transitions when date changes between 10 days, 7 days, and 1 day', () {
-      final now = DateTime.now();
-      final item10Days = PantryItemModel(
-        name: 'Apel',
-        quantity: 2,
-        unit: 'buah',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 10)),
-        createdAt: now,
-      );
-      expect(item10Days.daysUntilExpiry, equals(10));
-      expect(item10Days.expiryStatus, equals('aman'));
+    test(
+      'PantryItemModel status transitions when date changes between 10 days, 7 days, and 1 day',
+      () {
+        final now = DateTime.now();
+        final item10Days = PantryItemModel(
+          name: 'Apel',
+          quantity: 2,
+          unit: 'buah',
+          storage: 'Kulkas',
+          expiryDate: now.add(const Duration(days: 10)),
+          createdAt: now,
+        );
+        expect(item10Days.daysUntilExpiry, equals(10));
+        expect(item10Days.expiryStatus, equals('aman'));
 
-      final item7Days = PantryItemModel(
-        name: 'Apel',
-        quantity: 2,
-        unit: 'buah',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 7)),
-        createdAt: now,
-      );
-      expect(item7Days.daysUntilExpiry, equals(7));
-      expect(item7Days.expiryStatus, equals('aman'));
+        final item7Days = PantryItemModel(
+          name: 'Apel',
+          quantity: 2,
+          unit: 'buah',
+          storage: 'Kulkas',
+          expiryDate: now.add(const Duration(days: 7)),
+          createdAt: now,
+        );
+        expect(item7Days.daysUntilExpiry, equals(7));
+        expect(item7Days.expiryStatus, equals('aman'));
 
-      // Baik 10 hari maupun 7 hari sama-sama > 5 hari (zona aman), tidak memicu notifikasi kedaluwarsa
-      expect(item10Days.daysUntilExpiry > 5, isTrue);
-      expect(item7Days.daysUntilExpiry > 5, isTrue);
+        // Baik 10 hari maupun 7 hari sama-sama > 5 hari (zona aman), tidak memicu notifikasi kedaluwarsa
+        expect(item10Days.daysUntilExpiry > 5, isTrue);
+        expect(item7Days.daysUntilExpiry > 5, isTrue);
 
-      final item1Day = PantryItemModel(
-        name: 'Apel',
-        quantity: 2,
-        unit: 'buah',
-        storage: 'Kulkas',
-        expiryDate: now.add(const Duration(days: 1)),
-        createdAt: now,
-      );
-      expect(item1Day.daysUntilExpiry, equals(1));
-      expect(item1Day.expiryStatus, equals('urgent'));
-      expect(item1Day.daysUntilExpiry <= 5, isTrue);
-    });
+        final item1Day = PantryItemModel(
+          name: 'Apel',
+          quantity: 2,
+          unit: 'buah',
+          storage: 'Kulkas',
+          expiryDate: now.add(const Duration(days: 1)),
+          createdAt: now,
+        );
+        expect(item1Day.daysUntilExpiry, equals(1));
+        expect(item1Day.expiryStatus, equals('urgent'));
+        expect(item1Day.daysUntilExpiry <= 5, isTrue);
+      },
+    );
   });
 
   group('QuizController tests', () {
@@ -443,62 +455,79 @@ void main() {
       expect(parsedFromMap.cholesterol, equals(85.0));
     });
 
-    test('UserModelSQL creation date preserves true creation date from Firebase', () {
-      final trueCreationDate = DateTime(2026, 8, 26, 10, 30);
-      final user = UserModelSQL(
-        id: 1,
-        name: 'Fauzil',
-        email: 'fauzil3710@gmail.com',
-        password: 'google_oauth_user',
-        createdAt: trueCreationDate.toIso8601String(),
-      );
-      expect(user.createdAt, equals('2026-08-26T10:30:00.000'));
-      expect(user.isGoogleAccount, isTrue);
+    test(
+      'UserModelSQL creation date preserves true creation date from Firebase',
+      () {
+        final trueCreationDate = DateTime(2026, 8, 26, 10, 30);
+        final user = UserModelSQL(
+          id: 1,
+          name: 'Fauzil',
+          email: 'fauzil3710@gmail.com',
+          password: 'google_oauth_user',
+          createdAt: trueCreationDate.toIso8601String(),
+        );
+        expect(user.createdAt, equals('2026-08-26T10:30:00.000'));
+        expect(user.isGoogleAccount, isTrue);
 
-      const standardUser = UserModelSQL(
-        id: 2,
-        name: 'Standard',
-        email: 'standard@example.com',
-        password: 'hashed_password_string',
-      );
-      expect(standardUser.isGoogleAccount, isFalse);
+        const standardUser = UserModelSQL(
+          id: 2,
+          name: 'Standard',
+          email: 'standard@example.com',
+          password: 'hashed_password_string',
+        );
+        expect(standardUser.isGoogleAccount, isFalse);
 
-      final parsedDate = DateTime.parse(user.createdAt!);
-      expect(parsedDate.year, equals(2026));
-      expect(parsedDate.month, equals(8));
-      expect(parsedDate.day, equals(26));
-    });
+        final parsedDate = DateTime.parse(user.createdAt!);
+        expect(parsedDate.year, equals(2026));
+        expect(parsedDate.month, equals(8));
+        expect(parsedDate.day, equals(26));
+      },
+    );
   });
 
   group('FoodTrackerController date integrity and bounds tests', () {
-    test('canGoNextDay is false when selectedDate is today and nextDay does not advance', () {
-      final tracker = FoodTrackerController();
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      tracker.setSelectedDate(today);
+    test(
+      'canGoNextDay is false when selectedDate is today and nextDay does not advance',
+      () {
+        final tracker = FoodTrackerController();
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        tracker.setSelectedDate(today);
 
-      expect(tracker.canGoNextDay, isFalse);
-      tracker.nextDay();
-      expect(tracker.selectedDate.day, equals(today.day));
-      expect(tracker.canGoNextDay, isFalse);
-    });
+        expect(tracker.canGoNextDay, isFalse);
+        tracker.nextDay();
+        expect(tracker.selectedDate.day, equals(today.day));
+        expect(tracker.canGoNextDay, isFalse);
+      },
+    );
 
-    test('canGoNextDay is true when selectedDate is yesterday and nextDay advances to today', () {
-      final tracker = FoodTrackerController();
-      final now = DateTime.now();
-      final yesterday = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
-      tracker.setSelectedDate(yesterday);
+    test(
+      'canGoNextDay is true when selectedDate is yesterday and nextDay advances to today',
+      () {
+        final tracker = FoodTrackerController();
+        final now = DateTime.now();
+        final yesterday = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(const Duration(days: 1));
+        tracker.setSelectedDate(yesterday);
 
-      expect(tracker.canGoNextDay, isTrue);
-      tracker.nextDay();
-      expect(tracker.selectedDate.day, equals(now.day));
-      expect(tracker.canGoNextDay, isFalse);
-    });
+        expect(tracker.canGoNextDay, isTrue);
+        tracker.nextDay();
+        expect(tracker.selectedDate.day, equals(now.day));
+        expect(tracker.canGoNextDay, isFalse);
+      },
+    );
 
     test('setSelectedDate clamps future date to today', () {
       final tracker = FoodTrackerController();
       final now = DateTime.now();
-      final futureDate = DateTime(now.year, now.month, now.day).add(const Duration(days: 30));
+      final futureDate = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).add(const Duration(days: 30));
       tracker.setSelectedDate(futureDate);
 
       expect(tracker.selectedDate.year, equals(now.year));
@@ -542,18 +571,45 @@ void main() {
       expect(firestoreMap['is_read'], isTrue);
     });
 
-    test('NutritionService constants and system notif IDs match specification', () {
-      expect(
-        NutritionService.allNutrientKeywords,
-        containsAll(['Lemak', 'Kalori', 'Kolesterol', 'Karbohidrat', 'Protein']),
-      );
-      expect(NutritionService.getSystemNotifId('Lemak'), equals(NutritionService.systemNotifIdFat));
-      expect(NutritionService.getSystemNotifId('Kalori'), equals(NutritionService.systemNotifIdCalories));
-      expect(NutritionService.getSystemNotifId('Kolesterol'), equals(NutritionService.systemNotifIdCholesterol));
-      expect(NutritionService.getSystemNotifId('Karbohidrat'), equals(NutritionService.systemNotifIdCarbs));
-      expect(NutritionService.getSystemNotifId('Protein'), equals(NutritionService.systemNotifIdProtein));
-      expect(NutritionService.getSystemNotifId('Unknown'), equals(NutritionService.systemNotifIdMultiNutrient));
-    });
+    test(
+      'NutritionService constants and system notif IDs match specification',
+      () {
+        expect(
+          NutritionService.allNutrientKeywords,
+          containsAll([
+            'Lemak',
+            'Kalori',
+            'Kolesterol',
+            'Karbohidrat',
+            'Protein',
+          ]),
+        );
+        expect(
+          NutritionService.getSystemNotifId('Lemak'),
+          equals(NutritionService.systemNotifIdFat),
+        );
+        expect(
+          NutritionService.getSystemNotifId('Kalori'),
+          equals(NutritionService.systemNotifIdCalories),
+        );
+        expect(
+          NutritionService.getSystemNotifId('Kolesterol'),
+          equals(NutritionService.systemNotifIdCholesterol),
+        );
+        expect(
+          NutritionService.getSystemNotifId('Karbohidrat'),
+          equals(NutritionService.systemNotifIdCarbs),
+        );
+        expect(
+          NutritionService.getSystemNotifId('Protein'),
+          equals(NutritionService.systemNotifIdProtein),
+        );
+        expect(
+          NutritionService.getSystemNotifId('Unknown'),
+          equals(NutritionService.systemNotifIdMultiNutrient),
+        );
+      },
+    );
 
     test('ReminderService meal notif IDs and helper match specification', () {
       expect(

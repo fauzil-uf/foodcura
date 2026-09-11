@@ -9,7 +9,7 @@ import '../../services/auth_service.dart';
 ///
 /// Mengenkapsulasi listener status autentikasi, stream cloud realtime, dan
 /// mekanisme debounce sinkronisasi secara terpusat agar lapisan View tidak
-/// berinteraksi langsung dengan backend streams (mematuhi prinsip MVC dan Reusability).
+//// berinteraksi langsung dengan backend streams (mematuhi prinsip MVC dan Reusability).
 mixin CloudSyncControllerMixin on ChangeNotifier {
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<dynamic>? _cloudSubscription;
@@ -73,7 +73,9 @@ mixin CloudSyncControllerMixin on ChangeNotifier {
         },
       );
     } catch (e) {
-      debugPrint('[CloudSyncControllerMixin] Gagal menginisialisasi stream: $e');
+      debugPrint(
+        '[CloudSyncControllerMixin] Gagal menginisialisasi stream: $e',
+      );
     }
   }
 

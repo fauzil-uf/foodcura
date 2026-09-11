@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-// Tips pengawetan & cegah food waste bahan dapur
+/// Tips pengawetan & cegah food waste bahan dapur
 class PantryTipsCard extends StatelessWidget {
   const PantryTipsCard({super.key});
 

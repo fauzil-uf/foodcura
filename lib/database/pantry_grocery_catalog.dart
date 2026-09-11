@@ -1,7 +1,7 @@
 import '../models/pantry_ingredient_model.dart';
 
 /// Katalog bahan baku mentah, produk olahan, sembako, kaleng & bumbu dapur (Pantry).
-/// Berisi gambar visual online HD, perkiraan masa simpan standar, dan lokasi simpan.
+//// Berisi gambar visual online HD, perkiraan masa simpan standar, dan lokasi simpan.
 class PantryGroceryCatalog {
   static const List<PantryIngredientModel> ingredients = [
     // Susu, Telur & Olahan Dairy

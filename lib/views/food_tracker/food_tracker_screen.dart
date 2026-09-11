@@ -17,7 +17,7 @@ import 'widgets/food_search_results.dart';
 import 'widgets/food_summary_card.dart';
 import 'widgets/food_tracker_header.dart';
 
-/// Layar pelacak nutrisi & log makanan harian.
+//// Layar pelacak nutrisi & log makanan harian.
 class FoodTrackerScreen extends StatefulWidget {
   final int initialTabIndex;
 
@@ -59,32 +59,32 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     super.dispose();
   }
 
-  // Update tampilan saat state controller berubah
+  /// Update tampilan saat state controller berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  // Muat ulang daftar makanan jika ada bahan pantry yang baru dimasak
+  /// Muat ulang daftar makanan jika ada bahan pantry yang baru dimasak
   void _onPantryChanged() {
     if (mounted) _controller.loadData();
   }
 
-  // Muat ulang daftar makanan jika ada catatan makan baru ditambahkan/diubah
+  /// Muat ulang daftar makanan jika ada catatan makan baru ditambahkan/diubah
   void _onFoodLogsChanged() {
     if (mounted) _refreshData();
   }
 
-  // Refresh badge notifikasi unread jika ada notifikasi baru
+  /// Refresh badge notifikasi unread jika ada notifikasi baru
   void _onNotifChanged() {
     if (mounted) _controller.refreshUnreadCount();
   }
 
-  // Ambil data log makanan untuk tanggal yang sedang dipilih
+  /// Ambil data log makanan untuk tanggal yang sedang dipilih
   Future<void> _refreshData() async {
     await _controller.loadData();
   }
 
-  // Buka layar notifikasi
+  /// Buka layar notifikasi
   void _openNotifications() {
     Navigator.push(
       context,
@@ -92,12 +92,12 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     ).then((_) => _controller.refreshUnreadCount());
   }
 
-  // Filter katalog makanan berdasarkan query input pencarian
+  /// Filter katalog makanan berdasarkan query input pencarian
   void _onSearchChanged(String query) {
     _controller.searchCatalog(query);
   }
 
-  // Buka modal input catat makanan baru untuk jenis makan tertentu
+  /// Buka modal input catat makanan baru untuk jenis makan tertentu
   void _openAddFoodModal(String mealType) {
     showModalBottomSheet(
       context: context,
@@ -117,7 +117,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     });
   }
 
-  // Modal telusuri semua katalog makanan
+  /// Modal telusuri semua katalog makanan
   void _openAllCatalogModal(String mealType) {
     showModalBottomSheet(
       context: context,
@@ -136,7 +136,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     });
   }
 
-  // Modal detail & edit makanan
+  /// Modal detail & edit makanan
   void _openDetailModal(FoodLogModel log) {
     showModalBottomSheet(
       context: context,
@@ -154,7 +154,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     });
   }
 
-  // Placeholder scanner makanan
+  /// Placeholder scanner makanan
   void _openFoodScanner() {
     AppSnackBar.showInfo(
       context,
@@ -162,7 +162,7 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
     );
   }
 
-  // Quick add makanan (dengan anti-spam)
+  /// Quick add makanan (dengan anti-spam)
   Future<void> _quickAddFood(FoodItemModel food, String mealType) async {
     if (_recentlyAddedFoodNames.contains(food.name)) return;
 
@@ -259,12 +259,15 @@ class _FoodTrackerScreenState extends State<FoodTrackerScreen> {
                               onBack: () => _controller.setSelectedTab(0),
                               onDateTap: () async {
                                 final now = DateTime.now();
-                                final today =
-                                    DateTime(now.year, now.month, now.day);
+                                final today = DateTime(
+                                  now.year,
+                                  now.month,
+                                  now.day,
+                                );
                                 final picked = await showDatePicker(
                                   context: context,
-                                  initialDate: _controller.selectedDate
-                                          .isAfter(today)
+                                  initialDate:
+                                      _controller.selectedDate.isAfter(today)
                                       ? today
                                       : _controller.selectedDate,
                                   firstDate: DateTime(2020),

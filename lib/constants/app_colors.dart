@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Palet warna dan token tema desain aplikasi FoodCura.
+//// Palet warna dan token tema desain aplikasi FoodCura.
 class AppColors {
   AppColors._();
 

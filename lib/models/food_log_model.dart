@@ -1,4 +1,4 @@
-/// Model catatan konsumsi makanan harian pengguna (Food Tracker).
+//// Model catatan konsumsi makanan harian pengguna (Food Tracker).
 class FoodLogModel {
   final int? id;
   final int? userId;
@@ -52,6 +52,7 @@ class FoodLogModel {
     return {
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (firestoreId != null) 'firestore_id': firestoreId,
       'food_name': foodName,
       'meal_type': mealType,
       'calories': calories,

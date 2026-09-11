@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/food_item_model.dart';
 import '../../widgets/app_food_image.dart';
 
-// Hasil pencarian makanan dari katalog
+/// Hasil pencarian makanan dari katalog
 class FoodSearchResults extends StatelessWidget {
   const FoodSearchResults({
     super.key,

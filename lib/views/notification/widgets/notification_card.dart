@@ -4,7 +4,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/notification_model.dart';
 
-// Kartu item notifikasi dengan ikon tipe, status belum dibaca, dan badge kategori
+/// Kartu item notifikasi dengan ikon tipe, status belum dibaca, dan badge kategori
 class NotificationCard extends StatelessWidget {
   final NotificationModel notif;
   final bool isEarlier;
@@ -40,13 +40,15 @@ class NotificationCard extends StatelessWidget {
       case NotificationModel.typeExpiryWarning:
         final lowerTitle = notif.title.toLowerCase();
         final lowerMsg = notif.message.toLowerCase();
-        final isUrgent = lowerTitle.contains('hari ini') ||
+        final isUrgent =
+            lowerTitle.contains('hari ini') ||
             lowerTitle.contains('besok') ||
             lowerTitle.contains('telah') ||
             lowerTitle.contains('lewat') ||
             lowerMsg.contains('1 hari') ||
             lowerTitle.contains('urgent');
-        final isWarning = lowerTitle.contains('mendekati') ||
+        final isWarning =
+            lowerTitle.contains('mendekati') ||
             lowerMsg.contains('2 hari') ||
             lowerMsg.contains('3 hari') ||
             lowerMsg.contains('4 hari');
@@ -166,7 +168,9 @@ class NotificationCard extends StatelessWidget {
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : AppColors.textGray.withValues(alpha: 0.5),
+                                      : AppColors.textGray.withValues(
+                                          alpha: 0.5,
+                                        ),
                                   width: 2,
                                 ),
                               ),

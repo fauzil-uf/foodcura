@@ -9,7 +9,7 @@ import '../../../models/pantry_item_model.dart';
 import '../../widgets/app_food_image.dart';
 import '../../widgets/app_snack_bar.dart';
 
-/// Modal tambah atau edit stok bahan pantry.
+//// Modal tambah atau edit stok bahan pantry.
 class AddPantryItemModal extends StatefulWidget {
   final VoidCallback? onItemAdded;
   final PantryItemModel? itemToEdit;
@@ -105,7 +105,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     super.dispose();
   }
 
-  // Cari saran bahan otomatis dari database katalog pantry lokal
+  /// Cari saran bahan otomatis dari database katalog pantry lokal
   void _searchIngredients(String query) {
     if (query.trim().length < 2) {
       setState(() {
@@ -122,7 +122,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     });
   }
 
-  // Isi form otomatis saat user memilih salah satu saran bahan
+  /// Isi form otomatis saat user memilih salah satu saran bahan
   void _selectIngredient(PantryIngredientModel ing) {
     setState(() {
       _nameController.text = ing.name;
@@ -143,7 +143,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     });
   }
 
-  // Buka dialog pemilih tanggal kedaluwarsa
+  /// Buka dialog pemilih tanggal kedaluwarsa
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -170,7 +170,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     }
   }
 
-  // Validasi input dan simpan item bahan baru atau perubahan data ke database
+  /// Validasi input dan simpan item bahan baru atau perubahan data ke database
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final quantityText = _quantityController.text.trim();
@@ -238,7 +238,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
     }
   }
 
-  // Tampilkan notifikasi error validasi formulir
+  /// Tampilkan notifikasi error validasi formulir
   void _showError(String message) {
     AppSnackBar.showError(context, message);
   }
@@ -350,9 +350,7 @@ class _AddPantryItemModalState extends State<AddPantryItemModal> {
                                 ),
                               ),
                               onPressed: () {
-                                final matches = _controller.searchCatalog(
-                                  name,
-                                );
+                                final matches = _controller.searchCatalog(name);
                                 if (matches.isNotEmpty) {
                                   _selectIngredient(matches.first);
                                 }

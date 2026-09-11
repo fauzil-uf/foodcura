@@ -10,7 +10,7 @@ import 'auth_service.dart';
 import 'firestore_service.dart';
 import 'notification_service.dart';
 
-/// Service pemantau kedaluwarsa bahan pantry & reminder jam makan harian
+//// Service pemantau kedaluwarsa bahan pantry & reminder jam makan harian
 class ReminderService {
   final DBHelper _db;
   final NotificationService _notificationService;
@@ -34,8 +34,12 @@ class ReminderService {
   /// Mendapatkan ID notifikasi sistem Android berdasarkan tipe waktu makan
   static int getMealSystemNotifId(String mealType) {
     if (mealType.contains(mealTypeBreakfast)) return mealNotifIdBreakfast;
-    if (mealType.contains(mealTypeLunch) || mealType.contains('Siang')) return mealNotifIdLunch;
-    if (mealType.contains(mealTypeDinner) || mealType.contains('Malam')) return mealNotifIdDinner;
+    if (mealType.contains(mealTypeLunch) || mealType.contains('Siang')) {
+      return mealNotifIdLunch;
+    }
+    if (mealType.contains(mealTypeDinner) || mealType.contains('Malam')) {
+      return mealNotifIdDinner;
+    }
     return 10000;
   }
 
@@ -75,7 +79,7 @@ class ReminderService {
   static DateTime? _lastMealAlarmSync;
   static DateTime? _lastPantryAlarmSync;
 
-  // Cek masa simpan bahan pantry & buat notifikasi
+  /// Cek masa simpan bahan pantry & buat notifikasi
   Future<void> checkExpiryAndCreateNotifications({
     int? userId,
     bool force = false,
@@ -172,7 +176,9 @@ class ReminderService {
                 body: message,
               );
             } catch (e) {
-              debugPrint('[ReminderService] Gagal menampilkan notifikasi pantry H-30: $e');
+              debugPrint(
+                '[ReminderService] Gagal menampilkan notifikasi pantry H-30: $e',
+              );
             }
           }
         }
@@ -210,7 +216,8 @@ class ReminderService {
           // Cek di database untuk mencegah double-insert jika ada eksekusi simultan
           final existing = await db.query(
             DBHelper.tableNotifications,
-            where: 'related_pantry_id = ? AND title = ? AND created_at >= ? AND user_id = ?',
+            where:
+                'related_pantry_id = ? AND title = ? AND created_at >= ? AND user_id = ?',
             whereArgs: [item.id, title, todayStart, targetUserId],
           );
 
@@ -241,7 +248,9 @@ class ReminderService {
                     : NotificationService.warningExpiryChannelId,
               );
             } catch (e) {
-              debugPrint('[ReminderService] Gagal menampilkan notifikasi kedaluwarsa pantry: $e');
+              debugPrint(
+                '[ReminderService] Gagal menampilkan notifikasi kedaluwarsa pantry: $e',
+              );
             }
           } else {
             await prefs.setString(dailyNotifKey, todayDateStr);
@@ -255,7 +264,10 @@ class ReminderService {
   }
 
   /// Mencatat bahwa notifikasi bahan pantry telah dihapus/dismissed oleh pengguna hari ini
-  Future<void> recordDismissedPantryNotification(int userId, int pantryId) async {
+  Future<void> recordDismissedPantryNotification(
+    int userId,
+    int pantryId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final todayDateStr =
@@ -377,7 +389,9 @@ class ReminderService {
                 channelIdOverride: NotificationService.mealChannelId,
               );
             } catch (e) {
-              debugPrint('[ReminderService] Gagal menampilkan notifikasi jadwal makan: $e');
+              debugPrint(
+                '[ReminderService] Gagal menampilkan notifikasi jadwal makan: $e',
+              );
             }
           } else {
             await prefs.setString(dailyNotifKey, todayDateStr);
@@ -390,7 +404,10 @@ class ReminderService {
   }
 
   /// Mencatat bahwa notifikasi pengingat jam makan telah dihapus oleh pengguna hari ini
-  Future<void> recordDismissedMealNotification(int userId, String mealType) async {
+  Future<void> recordDismissedMealNotification(
+    int userId,
+    String mealType,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final todayDateStr =
@@ -427,7 +444,8 @@ class ReminderService {
 
     for (var i = 0; i < mealConfigs.length; i++) {
       final meal = mealConfigs[i];
-      if (mealType.contains(meal['type']!) || meal['type']!.contains(mealType)) {
+      if (mealType.contains(meal['type']!) ||
+          meal['type']!.contains(mealType)) {
         final isEnabled = prefs.getBool(meal['enabledKey']!) ?? true;
         final systemNotifId = getMealSystemNotifId(meal['type']!);
         if (!isEnabled) {
@@ -439,8 +457,9 @@ class ReminderService {
             prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
         final parts = timeStr.split(':');
         final targetHour = int.tryParse(parts[0]) ?? 12;
-        final targetMinute =
-            parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+        final targetMinute = parts.length > 1
+            ? (int.tryParse(parts[1]) ?? 0)
+            : 0;
 
         await _notificationService.scheduleDailyMealNotification(
           id: systemNotifId,
@@ -454,8 +473,6 @@ class ReminderService {
       }
     }
   }
-
-
 
   /// Memuat seluruh preferensi notifikasi pengguna dari local storage
   Future<Map<String, dynamic>> loadNotificationSettings() async {
@@ -492,7 +509,9 @@ class ReminderService {
     required String dinnerTime,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final oldBreakfastTime = prefs.getString(AppConstants.keyNotifBreakfastTime);
+    final oldBreakfastTime = prefs.getString(
+      AppConstants.keyNotifBreakfastTime,
+    );
     final oldLunchTime = prefs.getString(AppConstants.keyNotifLunchTime);
     final oldDinnerTime = prefs.getString(AppConstants.keyNotifDinnerTime);
     final oldBreakfastEnabled =
@@ -519,7 +538,8 @@ class ReminderService {
     // Sinkronisasi preferensi pengguna ke Firestore (latar belakang)
     try {
       final activeUserId = await _db.getActiveUserId();
-      final uid = AuthService.instance.currentUser?.uid ??
+      final uid =
+          AuthService.instance.currentUser?.uid ??
           (activeUserId != null ? 'user_$activeUserId' : null);
       if (uid != null) {
         FirestoreService.instance.saveUserPreferences(uid, {
@@ -697,12 +717,10 @@ class ReminderService {
         }
       }
 
-      final timeStr =
-          prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
+      final timeStr = prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
       final parts = timeStr.split(':');
       final targetHour = int.tryParse(parts[0]) ?? 12;
-      final targetMinute =
-          parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final targetMinute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
 
       await _notificationService.scheduleDailyMealNotification(
         id: systemNotifId,

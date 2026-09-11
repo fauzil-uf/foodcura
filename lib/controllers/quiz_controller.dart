@@ -4,7 +4,7 @@ import '../models/quiz_model.dart';
 import '../services/app_notifiers.dart';
 import '../services/gemini_service.dart';
 
-/// Controller kuis edukasi gizi & reward Eco Points.
+//// Controller kuis edukasi gizi & reward Eco Points.
 class QuizController extends ChangeNotifier {
   final GeminiService _geminiService;
 

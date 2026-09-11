@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-// Tips harian gizi & pencegahan limbah pangan (Food Rescue)
+/// Tips harian gizi & pencegahan limbah pangan (Food Rescue)
 class DailyTipCard extends StatelessWidget {
   const DailyTipCard({super.key});
 

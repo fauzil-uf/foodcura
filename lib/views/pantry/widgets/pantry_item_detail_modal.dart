@@ -10,7 +10,7 @@ import '../../widgets/app_food_image.dart';
 import '../../widgets/app_snack_bar.dart';
 import 'add_pantry_item_modal.dart';
 
-// Modal detail & aksi bahan makanan pantry
+/// Modal detail & aksi bahan makanan pantry
 class PantryItemDetailModal extends StatefulWidget {
   final PantryItemModel item;
   final PantryController? controller;
@@ -38,7 +38,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     _currentItem = widget.item;
   }
 
-  // Tandai bahan telah dimasak & tambahkan Eco Points
+  /// Tandai bahan telah dimasak & tambahkan Eco Points
   Future<void> _markAsUsed() async {
     if (_currentItem.id != null) {
       final savedItem = _currentItem;
@@ -61,7 +61,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     }
   }
 
-  // Tampilkan dialog konfirmasi hapus bahan dari pantry
+  /// Tampilkan dialog konfirmasi hapus bahan dari pantry
   Future<void> _confirmDelete() async {
     final confirm = await AppDialog.showConfirmDialog(
       context: context,
@@ -86,7 +86,7 @@ class _PantryItemDetailModalState extends State<PantryItemDetailModal> {
     }
   }
 
-  // Buka modal untuk mengubah data nama, jumlah, atau masa simpan bahan
+  /// Buka modal untuk mengubah data nama, jumlah, atau masa simpan bahan
   void _openEditModal() {
     Navigator.pop(context); // Tutup modal detail terlebih dahulu
     showModalBottomSheet(

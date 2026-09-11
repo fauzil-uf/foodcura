@@ -10,8 +10,9 @@ import '../services/reminder_service.dart';
 import '../services/sync_service.dart';
 import 'mixins/cloud_sync_controller_mixin.dart';
 
-/// Controller daftar notifikasi & filter status baca.
-class NotificationController extends ChangeNotifier with CloudSyncControllerMixin {
+//// Controller daftar notifikasi & filter status baca.
+class NotificationController extends ChangeNotifier
+    with CloudSyncControllerMixin {
   final DBHelper _db;
   final ReminderService _reminderService;
 
@@ -137,12 +138,26 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
   /// Menandai satu notifikasi sudah dibaca
   Future<void> markRead(NotificationModel notif) async {
     if (notif.id == null || notif.isRead) return;
-    await _db.markNotificationRead(notif.id!);
+    // Optimistic update: langsung ubah status baca di memori RAM
+    final idx = _notifications.indexWhere((n) => n.id == notif.id);
+    if (idx != -1) {
+      _notifications[idx] = _notifications[idx].copyWith(isRead: true);
+      _unreadCount = (_unreadCount - 1).clamp(0, 9999);
+      notifyListeners();
+    }
+
+    await _db.markNotificationRead(notif.id!, firestoreId: notif.firestoreId);
     await loadNotifications();
   }
 
   /// Menandai seluruh notifikasi sudah dibaca
   Future<void> markAllRead() async {
+    // Optimistic update: langsung tandai semua baca di memori RAM
+    _notifications =
+        _notifications.map((n) => n.copyWith(isRead: true)).toList();
+    _unreadCount = 0;
+    notifyListeners();
+
     await _db.markAllNotificationsRead();
     await loadNotifications();
   }
@@ -150,10 +165,19 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
   /// Menghapus satu notifikasi (misal saat di-swipe)
   Future<void> deleteNotification(NotificationModel notif) async {
     if (notif.id == null) return;
+    final notifId = notif.id!;
+    // Optimistic removal: hapus dari list lokal agar UI langsung responsif dan tidak flicker/rebound
+    _notifications.removeWhere((n) => n.id == notifId);
+    _selectedNotificationIds.remove(notifId);
+    notifyListeners();
+
     final userId = notif.userId ?? await _db.getActiveUserId();
     await _handleNotificationDismissal(notif, userId);
-    await _db.deleteNotification(notif.id!);
-    _selectedNotificationIds.remove(notif.id!);
+    await _db.deleteNotification(
+      notifId,
+      firestoreId: notif.firestoreId,
+      userId: userId,
+    );
     await loadNotifications();
   }
 
@@ -163,13 +187,16 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
     for (final notif in _notifications) {
       await _handleNotificationDismissal(notif, userId, rescheduleMeal: false);
     }
+    _notifications.clear();
+    _selectedNotificationIds.clear();
+    notifyListeners();
+
     await _db.clearAllNotifications();
     try {
       await NotificationService.instance.cancelAllNotifications();
       await _reminderService.syncMealAlarms();
       await _reminderService.syncPantryExpiryAlarms(userId: userId);
     } catch (_) {}
-    _selectedNotificationIds.clear();
     await loadNotifications();
   }
 
@@ -181,15 +208,19 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
         .where((n) => n.id != null && _selectedNotificationIds.contains(n.id))
         .toList();
 
+    final idsToDelete = selectedList.map((n) => n.id!).toList();
+    _notifications.removeWhere(
+      (n) => n.id != null && idsToDelete.contains(n.id),
+    );
+    _selectedNotificationIds.clear();
+    notifyListeners();
+
     final userId = await _db.getActiveUserId();
     for (final notif in selectedList) {
       await _handleNotificationDismissal(notif, userId);
     }
 
-    final idsToDelete = selectedList.map((n) => n.id!).toList();
     await _db.deleteNotifications(idsToDelete);
-
-    _selectedNotificationIds.clear();
     await loadNotifications();
   }
 
@@ -212,6 +243,26 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
           notif.relatedPantryId!,
         );
       } catch (_) {}
+    } else if (notif.type == NotificationModel.typeExpiryWarning) {
+      // Jika relatedPantryId null (misal hasil migrasi lama atau cloud sync),
+      // cocokkan nama bahan di title dengan stok pantry aktif agar reminder tidak re-create
+      try {
+        final pantryItems = await _db.getPantryItems(userId: userId);
+        for (final item in pantryItems) {
+          if (item.id != null &&
+              item.name.isNotEmpty &&
+              notif.title.toLowerCase().contains(item.name.toLowerCase())) {
+            await _reminderService.recordDismissedPantryNotification(
+              userId,
+              item.id!,
+            );
+            await NotificationService.instance.cancelPantryNotifications(
+              item.id!,
+            );
+            break;
+          }
+        }
+      } catch (_) {}
     } else if (notif.type == NotificationModel.typeMealReminder) {
       final lowerTitle = notif.title.toLowerCase();
       final lowerMsg = notif.message.toLowerCase();
@@ -230,7 +281,9 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
             await NotificationService.instance.cancelNotification(systemId);
           } catch (_) {}
           if (rescheduleMeal) {
-            await _reminderService.rescheduleMealAlarmForTomorrow(meal['type']!);
+            await _reminderService.rescheduleMealAlarmForTomorrow(
+              meal['type']!,
+            );
           }
         }
       }
@@ -262,7 +315,8 @@ class NotificationController extends ChangeNotifier with CloudSyncControllerMixi
   /// Memulai sinkronisasi otomatis stream notifikasi Cloud Firestore ke SQLite lokal.
   void startCloudSync() {
     initCloudSyncSubscription<List<NotificationModel>>(
-      streamFactory: (uid) => FirestoreService.instance.streamNotifications(uid),
+      streamFactory: (uid) =>
+          FirestoreService.instance.streamNotifications(uid),
       onDataTriggered: () => syncCloudNotifications(),
     );
   }

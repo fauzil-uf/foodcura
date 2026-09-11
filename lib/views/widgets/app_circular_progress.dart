@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
 
-// Widget cincin progres melingkar untuk ringkasan kalori dan nutrisi
+/// Widget cincin progres melingkar untuk ringkasan kalori dan nutrisi
 class AppCircularProgress extends StatelessWidget {
   final double progress;
   final double size;
@@ -46,7 +46,7 @@ class AppCircularProgress extends StatelessWidget {
   }
 }
 
-// CustomPainter untuk menggambar ring progres kalori dan makronutrien
+/// CustomPainter untuk menggambar ring progres kalori dan makronutrien
 class AppCircularProgressPainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -60,7 +60,7 @@ class AppCircularProgressPainter extends CustomPainter {
     this.strokeWidth = 9.0,
   });
 
-  // Gambar lingkaran latar belakang dan busur progres
+  /// Gambar lingkaran latar belakang dan busur progres
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);

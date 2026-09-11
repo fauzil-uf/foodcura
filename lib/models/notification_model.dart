@@ -1,6 +1,6 @@
 import '../constants/app_date_formatter.dart';
 
-/// Model notifikasi aplikasi (peringatan kedaluwarsa, nutrisi, tips, sistem)
+//// Model notifikasi aplikasi (peringatan kedaluwarsa, nutrisi, tips, sistem)
 class NotificationModel {
   /// Tipe-tipe notifikasi
   static const String typeExpiryWarning = 'expiry_warning';
@@ -33,6 +33,7 @@ class NotificationModel {
   final String type;
   final String iconType;
   final bool isRead;
+  final bool isDeleted;
   final int? relatedPantryId;
   final DateTime createdAt;
 
@@ -45,6 +46,7 @@ class NotificationModel {
     required this.type,
     required this.iconType,
     this.isRead = false,
+    this.isDeleted = false,
     this.relatedPantryId,
     required this.createdAt,
   });
@@ -65,11 +67,13 @@ class NotificationModel {
     return {
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (firestoreId != null) 'firestore_id': firestoreId,
       'title': title,
       'message': message,
       'type': type,
       'icon_type': iconType,
       'is_read': isRead ? 1 : 0,
+      'is_deleted': isDeleted ? 1 : 0,
       'related_pantry_id': relatedPantryId,
       'created_at': createdAt.toIso8601String(),
     };
@@ -84,6 +88,7 @@ class NotificationModel {
       'type': type,
       'icon_type': iconType,
       'is_read': isRead,
+      'is_deleted': isDeleted,
       'related_pantry_id': relatedPantryId,
       'created_at': createdAt.toIso8601String(),
     };
@@ -104,6 +109,9 @@ class NotificationModel {
     final rawIsRead = map['is_read'];
     final isReadBool = rawIsRead == 1 || rawIsRead == true;
 
+    final rawIsDeleted = map['is_deleted'];
+    final isDeletedBool = rawIsDeleted == 1 || rawIsDeleted == true;
+
     return NotificationModel(
       id: map['id'] as int?,
       userId: map['user_id'] as int?,
@@ -113,6 +121,7 @@ class NotificationModel {
       type: (map['type'] ?? typeSystem) as String,
       iconType: (map['icon_type'] ?? iconInfo) as String,
       isRead: isReadBool,
+      isDeleted: isDeletedBool,
       relatedPantryId: map['related_pantry_id'] as int?,
       createdAt: parsedDate,
     );
@@ -127,6 +136,7 @@ class NotificationModel {
     String? type,
     String? iconType,
     bool? isRead,
+    bool? isDeleted,
     int? relatedPantryId,
     DateTime? createdAt,
   }) {
@@ -139,6 +149,7 @@ class NotificationModel {
       type: type ?? this.type,
       iconType: iconType ?? this.iconType,
       isRead: isRead ?? this.isRead,
+      isDeleted: isDeleted ?? this.isDeleted,
       relatedPantryId: relatedPantryId ?? this.relatedPantryId,
       createdAt: createdAt ?? this.createdAt,
     );

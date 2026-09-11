@@ -8,7 +8,7 @@ import '../services/notification_service.dart';
 import '../services/preference_handler.dart';
 import '../services/sync_service.dart';
 
-// Controller state autentikasi (login, register, logout, session user)
+/// Controller state autentikasi (login, register, logout, session user)
 class AuthController extends ChangeNotifier {
   final DBHelper _db;
 
@@ -67,36 +67,64 @@ class AuthController extends ChangeNotifier {
               password: password,
             );
           }
-          final uid = AuthService.instance.currentUser?.uid ?? 'user_${user.id}';
-          FirestoreService.instance.saveUserProfile(
-            uid: uid,
-            email: user.email,
-            name: user.name,
-          ).ignore();
+          final uid =
+              AuthService.instance.currentUser?.uid ?? 'user_${user.id}';
+          FirestoreService.instance
+              .saveUserProfile(uid: uid, email: user.email, name: user.name)
+              .ignore();
           SyncService.instance.restoreFromCloud(explicitUid: uid).ignore();
         } catch (_) {}
         return true;
       }
 
-      // 2. Jika verifikasi lokal gagal, periksa apakah password baru saja di-reset via email Firebase
+      // 2. Jika verifikasi lokal gagal, periksa apakah akun terdaftar di Firebase Auth (misal: ganti HP / reset password)
       final fbCred = await AuthService.instance.signInWithEmailPassword(
         email: cleanEmail,
         password: password,
       );
       if (fbCred != null && fbCred.user != null) {
-        // Password baru di Firebase valid! Sinkronkan kata sandi baru ke SQLite lokal
+        // Kredensial Firebase valid! Coba perbarui password lokal jika akun sudah ada
         await _db.updatePasswordForEmail(cleanEmail, password);
         user = await _db.loginUser(cleanEmail, password);
+
+        // Jika akun belum ada di SQLite lokal (misal: login pertama kali di HP baru),
+        // ambil data profil dari Cloud Firestore / Firebase Auth lalu buatkan akun lokal otomatis
+        if (user == null) {
+          final cloudProfile = await FirestoreService.instance.getUserProfile(
+            fbCred.user!.uid,
+          );
+          final userName =
+              cloudProfile?['name']?.toString().trim() ??
+              fbCred.user!.displayName?.trim() ??
+              cleanEmail.split('@').first;
+          final creationTime =
+              fbCred.user!.metadata.creationTime?.toIso8601String() ??
+              DateTime.now().toIso8601String();
+
+          final newUser = UserModelSQL(
+            name: userName.isNotEmpty ? userName : 'Pengguna FoodCura',
+            email: cleanEmail,
+            password: password,
+            createdAt: creationTime,
+          );
+          await _db.registerUser(newUser);
+          user = await _db.loginUser(cleanEmail, password);
+        }
+
         if (user != null) {
           _currentUser = user;
           _setLoading(false);
           try {
-            FirestoreService.instance.saveUserProfile(
-              uid: fbCred.user!.uid,
-              email: user.email,
-              name: user.name,
-            ).ignore();
-            SyncService.instance.restoreFromCloud(explicitUid: fbCred.user!.uid).ignore();
+            FirestoreService.instance
+                .saveUserProfile(
+                  uid: fbCred.user!.uid,
+                  email: user.email,
+                  name: user.name,
+                )
+                .ignore();
+            SyncService.instance
+                .restoreFromCloud(explicitUid: fbCred.user!.uid)
+                .ignore();
           } catch (_) {}
           return true;
         }
@@ -159,11 +187,13 @@ class AuthController extends ChangeNotifier {
             password: password,
           );
           if (fbCred?.user != null) {
-            FirestoreService.instance.saveUserProfile(
-              uid: fbCred!.user!.uid,
-              email: cleanEmail,
-              name: cleanName,
-            ).ignore();
+            FirestoreService.instance
+                .saveUserProfile(
+                  uid: fbCred!.user!.uid,
+                  email: cleanEmail,
+                  name: cleanName,
+                )
+                .ignore();
           }
         } catch (_) {}
 
@@ -215,12 +245,15 @@ class AuthController extends ChangeNotifier {
       if (success) {
         _currentUser = updated;
         try {
-          final uid = AuthService.instance.currentUser?.uid ?? 'user_${updated.id}';
-          FirestoreService.instance.saveUserProfile(
-            uid: uid,
-            email: updated.email,
-            name: updated.name,
-          ).ignore();
+          final uid =
+              AuthService.instance.currentUser?.uid ?? 'user_${updated.id}';
+          FirestoreService.instance
+              .saveUserProfile(
+                uid: uid,
+                email: updated.email,
+                name: updated.name,
+              )
+              .ignore();
         } catch (_) {}
       }
       _setLoading(false);
@@ -300,12 +333,12 @@ class AuthController extends ChangeNotifier {
         _currentUser = user;
         _setLoading(false);
         try {
-          FirestoreService.instance.saveUserProfile(
-            uid: fbUser.uid,
-            email: email,
-            name: name,
-          ).ignore();
-          SyncService.instance.restoreFromCloud(explicitUid: fbUser.uid).ignore();
+          FirestoreService.instance
+              .saveUserProfile(uid: fbUser.uid, email: email, name: name)
+              .ignore();
+          SyncService.instance
+              .restoreFromCloud(explicitUid: fbUser.uid)
+              .ignore();
         } catch (_) {}
         return true;
       }

@@ -6,7 +6,7 @@ import '../../../controllers/profile_controller.dart';
 import '../../../models/user_model.dart';
 import '../../widgets/app_snack_bar.dart';
 
-// Modal lembar bawah untuk mengedit nama lengkap dan alamat email akun profil pengguna.
+/// Modal lembar bawah untuk mengedit nama lengkap dan alamat email akun profil pengguna.
 class EditProfileModal extends StatefulWidget {
   final UserModelSQL? user;
   final ProfileController controller;
@@ -213,7 +213,9 @@ class _EditProfileModalState extends State<EditProfileModal> {
                 labelText: 'Alamat Email',
                 labelStyle: AppTextStyles.subtitleSmall,
                 prefixIcon: Icon(
-                  isGoogle ? Icons.lock_outline_rounded : Icons.mail_outline_rounded,
+                  isGoogle
+                      ? Icons.lock_outline_rounded
+                      : Icons.mail_outline_rounded,
                   color: isGoogle ? AppColors.textGraySoft : AppColors.primary,
                 ),
                 filled: true,

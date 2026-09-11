@@ -17,7 +17,7 @@ import '../services/reminder_service.dart';
 import '../services/streak_service.dart';
 import '../services/sync_service.dart';
 
-/// Controller dashboard / home (ringkasan kalori, nutrisi, radar pantry, & saran AI).
+//// Controller dashboard / home (ringkasan kalori, nutrisi, radar pantry, & saran AI).
 class DashboardController extends ChangeNotifier {
   final DBHelper _db;
   final GeminiService _gemini;
@@ -177,8 +177,8 @@ class DashboardController extends ChangeNotifier {
   /// Meminta izin notifikasi sistem jika pengguna belum mengaktifkannya
   Future<void> requestNotificationPermissionsIfFirstTime() async {
     try {
-      final allowed =
-          await NotificationService.instance.areNotificationsEnabled();
+      final allowed = await NotificationService.instance
+          .areNotificationsEnabled();
       if (!allowed) {
         await NotificationService.instance.requestPermissions();
       }

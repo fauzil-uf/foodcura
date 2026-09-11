@@ -11,7 +11,7 @@ import '../services/streak_service.dart';
 import '../services/sync_service.dart';
 import 'mixins/cloud_sync_controller_mixin.dart';
 
-/// Controller profil pengguna, statistik (Eco Points, streak), & pengaturan akun.
+//// Controller profil pengguna, statistik (Eco Points, streak), & pengaturan akun.
 class ProfileController extends ChangeNotifier with CloudSyncControllerMixin {
   final DBHelper _db;
   final StreakService _streakService;
@@ -168,7 +168,8 @@ class ProfileController extends ChangeNotifier with CloudSyncControllerMixin {
 
         // Sinkronisasi profil ke Firestore
         try {
-          final uid = AuthService.instance.currentUser?.uid ?? 'user_${_user!.id}';
+          final uid =
+              AuthService.instance.currentUser?.uid ?? 'user_${_user!.id}';
           await FirestoreService.instance.saveUserProfile(
             uid: uid,
             email: cleanEmail,

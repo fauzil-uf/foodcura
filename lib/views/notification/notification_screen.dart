@@ -11,7 +11,7 @@ import '../widgets/app_top_bar.dart';
 import 'widgets/notification_card.dart';
 import 'widgets/notification_info_tip.dart';
 
-/// Layar pusat notifikasi (peringatan kedaluwarsa & nutrisi).
+//// Layar pusat notifikasi (peringatan kedaluwarsa & nutrisi).
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -40,17 +40,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     super.dispose();
   }
 
-  // Update tampilan saat status baca atau filter berubah
+  /// Update tampilan saat status baca atau filter berubah
   void _onControllerChanged() {
     if (mounted) setState(() {});
   }
 
-  // Ganti filter kategori notifikasi
+  /// Ganti filter kategori notifikasi
   void _onFilterChanged(int index) {
     _controller.setFilter(index);
   }
 
-  // Tandai seluruh notifikasi telah dibaca
+  /// Tandai seluruh notifikasi telah dibaca
   Future<void> _markAllRead() async {
     await _controller.markAllRead();
     if (mounted) {
@@ -58,12 +58,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  // Tandai satu notifikasi tertentu telah dibaca
+  /// Tandai satu notifikasi tertentu telah dibaca
   Future<void> _markRead(NotificationModel notif) async {
     await _controller.markRead(notif);
   }
 
-  // Hapus satu notifikasi saat di-swipe
+  /// Hapus satu notifikasi saat di-swipe
   Future<void> _deleteNotification(NotificationModel notif) async {
     await _controller.deleteNotification(notif);
     if (mounted) {
@@ -71,7 +71,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  // Dialog konfirmasi hapus notifikasi terpilih
+  /// Dialog konfirmasi hapus notifikasi terpilih
   Future<void> _confirmDeleteSelected() async {
     final count = _controller.selectedCount;
     if (count == 0) return;
@@ -92,14 +92,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal', style: TextStyle(color: AppColors.textGray)),
+            child: const Text(
+              'Batal',
+              style: TextStyle(color: AppColors.textGray),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.urgent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
             child: const Text('Hapus'),
           ),
@@ -115,12 +120,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  // Header kontekstual saat masuk mode multi-seleksi
+  /// Header kontekstual saat masuk mode multi-seleksi
   Widget _buildSelectionTopBar() {
     final visibleCount = _controller.notifications
         .where((n) => n.id != null)
         .length;
-    final isAllSelected = _controller.selectedCount > 0 &&
+    final isAllSelected =
+        _controller.selectedCount > 0 &&
         _controller.selectedCount == visibleCount;
 
     return Container(
@@ -278,95 +284,96 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ],
                 ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: AppFilterChipRow(
-                filters: _filters,
-                selectedIndex: _selectedFilter,
-                onChanged: _onFilterChanged,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: AppFilterChipRow(
+                  filters: _filters,
+                  selectedIndex: _selectedFilter,
+                  onChanged: _onFilterChanged,
+                ),
               ),
-            ),
 
-            Expanded(
-              child: _controller.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
+              Expanded(
+                child: _controller.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : RefreshIndicator(
                         color: AppColors.primary,
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: AppColors.primary,
-                      onRefresh: () => _controller.syncCloudNotifications(),
-                      child: _controller.notifications.isEmpty
-                          ? const SingleChildScrollView(
-                              physics: AlwaysScrollableScrollPhysics(),
-                              child: AppEmptyState(
-                                icon: Icons.notifications_none_rounded,
-                                title: 'Tidak Ada Notifikasi',
-                                message:
-                                    'Belum ada notifikasi saat ini.\nKami akan memberitahumu jika ada hal penting.',
-                              ),
-                            )
-                          : SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (_controller
-                                      .groupedNotifications['Hari Ini']!
-                                      .isNotEmpty) ...[
-                                    _buildSectionLabel('Hari Ini'),
-                                    const SizedBox(height: 10),
-                                    ..._controller
+                        onRefresh: () => _controller.syncCloudNotifications(),
+                        child: _controller.notifications.isEmpty
+                            ? const SingleChildScrollView(
+                                physics: AlwaysScrollableScrollPhysics(),
+                                child: AppEmptyState(
+                                  icon: Icons.notifications_none_rounded,
+                                  title: 'Tidak Ada Notifikasi',
+                                  message:
+                                      'Belum ada notifikasi saat ini.\nKami akan memberitahumu jika ada hal penting.',
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (_controller
                                         .groupedNotifications['Hari Ini']!
-                                        .map(
-                                          (n) => _buildDismissibleItem(
-                                            n,
-                                            isEarlier: false,
+                                        .isNotEmpty) ...[
+                                      _buildSectionLabel('Hari Ini'),
+                                      const SizedBox(height: 10),
+                                      ..._controller
+                                          .groupedNotifications['Hari Ini']!
+                                          .map(
+                                            (n) => _buildDismissibleItem(
+                                              n,
+                                              isEarlier: false,
+                                            ),
                                           ),
-                                        ),
-                                    const SizedBox(height: 16),
-                                  ],
+                                      const SizedBox(height: 16),
+                                    ],
 
-                                  if (_controller
-                                      .groupedNotifications['Sebelumnya']!
-                                      .isNotEmpty) ...[
-                                    _buildSectionLabel('Sebelumnya'),
-                                    const SizedBox(height: 10),
-                                    ..._controller
+                                    if (_controller
                                         .groupedNotifications['Sebelumnya']!
-                                        .map(
-                                          (n) => _buildDismissibleItem(
-                                            n,
-                                            isEarlier: true,
+                                        .isNotEmpty) ...[
+                                      _buildSectionLabel('Sebelumnya'),
+                                      const SizedBox(height: 10),
+                                      ..._controller
+                                          .groupedNotifications['Sebelumnya']!
+                                          .map(
+                                            (n) => _buildDismissibleItem(
+                                              n,
+                                              isEarlier: true,
+                                            ),
                                           ),
-                                        ),
-                                    const SizedBox(height: 16),
-                                  ],
+                                      const SizedBox(height: 16),
+                                    ],
 
-                                  const NotificationInfoTip(),
-                                  const SizedBox(height: 32),
-                                ],
+                                    const NotificationInfoTip(),
+                                    const SizedBox(height: 32),
+                                  ],
+                                ),
                               ),
-                            ),
-                    ),
-            ),
-          ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  // Item notifikasi yang bisa di-swipe ke kiri untuk menghapus atau dipilih lewat multi-select
+  /// Item notifikasi yang bisa di-swipe ke kiri untuk menghapus atau dipilih lewat multi-select
   Widget _buildDismissibleItem(
     NotificationModel notif, {
     required bool isEarlier,
   }) {
-    final isSelected = notif.id != null &&
+    final isSelected =
+        notif.id != null &&
         _controller.selectedNotificationIds.contains(notif.id);
 
     return Dismissible(
@@ -394,11 +401,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ),
             ),
             SizedBox(width: 8),
-            Icon(
-              Icons.delete_outline_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
+            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
           ],
         ),
       ),
@@ -426,7 +429,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  // Label pembatas kelompok waktu notifikasi
+  /// Label pembatas kelompok waktu notifikasi
   Widget _buildSectionLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),

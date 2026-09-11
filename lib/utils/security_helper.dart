@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
-/// Helper hashing & verifikasi password (SHA-256 + salt)
+//// Helper hashing & verifikasi password (SHA-256 + salt)
 class SecurityHelper {
   SecurityHelper._();
 

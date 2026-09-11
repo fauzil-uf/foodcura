@@ -10,7 +10,7 @@ import '../widgets/app_top_bar.dart';
 
 import '../../models/help_faq_model.dart';
 
-/// Layar pusat bantuan pengguna yang menyajikan pencarian FAQ interaktif, kategori panduan, dan kanal kontak dukungan pelanggan.
+//// Layar pusat bantuan pengguna yang menyajikan pencarian FAQ interaktif, kategori panduan, dan kanal kontak dukungan pelanggan.
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
 
@@ -164,7 +164,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     );
   }
 
-  // Modal kontak bantuan tim support pelanggan (WhatsApp, Email, Telepon)
+  /// Modal kontak bantuan tim support pelanggan (WhatsApp, Email, Telepon)
   Widget _buildContactModal(BuildContext ctx) {
     return Container(
       decoration: const BoxDecoration(

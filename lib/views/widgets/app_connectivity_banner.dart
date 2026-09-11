@@ -8,7 +8,7 @@ import '../../constants/app_typography.dart';
 import '../../services/connectivity_service.dart';
 
 /// Floating Connectivity Banner ala Google Chrome di bagian atas layar.
-/// Menampilkan indikator saat perangkat offline dan pita pemulihan saat kembali online.
+//// Menampilkan indikator saat perangkat offline dan pita pemulihan saat kembali online.
 class AppConnectivityBanner extends StatefulWidget {
   final Widget child;
 
@@ -115,16 +115,18 @@ class _AppConnectivityBannerState extends State<AppConnectivityBanner> {
   }
 
   Widget _buildBannerCard(bool isOffline) {
-    final Color bgColor =
-        isOffline ? const Color(0xFF2C2416) : const Color(0xFF133821);
-    final Color borderColor =
-        isOffline ? const Color(0xFFE68A2E) : AppColors.mintAccent;
-    final IconData icon =
-        isOffline ? Icons.wifi_off_rounded : Icons.check_circle_rounded;
-    final String message =
-        isOffline
-            ? 'Anda sedang offline • Berjalan dalam mode lokal'
-            : 'Koneksi pulih • Sinkronisasi & AI aktif';
+    final Color bgColor = isOffline
+        ? const Color(0xFF2C2416)
+        : const Color(0xFF133821);
+    final Color borderColor = isOffline
+        ? const Color(0xFFE68A2E)
+        : AppColors.mintAccent;
+    final IconData icon = isOffline
+        ? Icons.wifi_off_rounded
+        : Icons.check_circle_rounded;
+    final String message = isOffline
+        ? 'Anda sedang offline • Berjalan dalam mode lokal'
+        : 'Koneksi pulih • Sinkronisasi & AI aktif';
 
     return Center(
       child: Material(

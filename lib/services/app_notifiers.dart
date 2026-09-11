@@ -5,7 +5,7 @@ import '../database/db_helper.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
 
-// Notifier jumlah notifikasi belum dibaca
+/// Notifier jumlah notifikasi belum dibaca
 class NotificationNotifier extends ValueNotifier<int> {
   static final NotificationNotifier instance = NotificationNotifier._();
   NotificationNotifier._() : super(0);
@@ -16,7 +16,7 @@ class NotificationNotifier extends ValueNotifier<int> {
   }
 }
 
-// Notifier Eco Points pengguna
+/// Notifier Eco Points pengguna
 class EcoPointsNotifier extends ValueNotifier<int> {
   static final EcoPointsNotifier instance = EcoPointsNotifier._();
   EcoPointsNotifier._() : super(0);
@@ -47,7 +47,9 @@ class EcoPointsNotifier extends ValueNotifier<int> {
     try {
       final uid = AuthService.instance.currentUser?.uid;
       if (uid != null) {
-        FirestoreService.instance.updateEcoPoints(uid: uid, ecoPoints: updated).ignore();
+        FirestoreService.instance
+            .updateEcoPoints(uid: uid, ecoPoints: updated)
+            .ignore();
       }
     } catch (_) {}
   }
@@ -66,7 +68,7 @@ class EcoPointsNotifier extends ValueNotifier<int> {
   }
 }
 
-// Notifier event perubahan data pantry
+/// Notifier event perubahan data pantry
 class PantryUpdateNotifier extends ValueNotifier<int> {
   static final PantryUpdateNotifier instance = PantryUpdateNotifier._();
   PantryUpdateNotifier._() : super(0);
@@ -76,7 +78,7 @@ class PantryUpdateNotifier extends ValueNotifier<int> {
   }
 }
 
-// Notifier event perubahan catatan makan (Food Logs)
+/// Notifier event perubahan catatan makan (Food Logs)
 class FoodLogUpdateNotifier extends ValueNotifier<int> {
   static final FoodLogUpdateNotifier instance = FoodLogUpdateNotifier._();
   FoodLogUpdateNotifier._() : super(0);
@@ -86,9 +88,10 @@ class FoodLogUpdateNotifier extends ValueNotifier<int> {
   }
 }
 
-// Notifier event perubahan data profil pengguna
+/// Notifier event perubahan data profil pengguna
 class UserProfileUpdateNotifier extends ValueNotifier<int> {
-  static final UserProfileUpdateNotifier instance = UserProfileUpdateNotifier._();
+  static final UserProfileUpdateNotifier instance =
+      UserProfileUpdateNotifier._();
   UserProfileUpdateNotifier._() : super(0);
 
   void notifyUserChanged() {

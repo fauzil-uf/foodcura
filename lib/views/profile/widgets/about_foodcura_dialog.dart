@@ -5,7 +5,7 @@ import '../../../constants/app_constants.dart';
 import '../../../constants/app_images.dart';
 import '../../../constants/app_typography.dart';
 
-// Dialog informasi dan identitas aplikasi FoodCura
+/// Dialog informasi dan identitas aplikasi FoodCura
 class AboutFoodCuraDialog extends StatelessWidget {
   const AboutFoodCuraDialog({super.key});
 

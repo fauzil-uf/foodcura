@@ -10,8 +10,8 @@
 [![Firebase](https://img.shields.io/badge/Firebase-%23039BE5.svg?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com)
 [![SQLite](https://img.shields.io/badge/SQLite-%2307405E.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Google Gemini AI](https://img.shields.io/badge/Google%20Gemini%20AI-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)](https://ai.google.dev)
-[![Version](https://img.shields.io/badge/Version-v2.3.1-blue?style=for-the-badge)](pubspec.yaml)
-[![Tests](https://img.shields.io/badge/Tests-75%20Passed-2ea44f?style=for-the-badge&logo=flutter&logoColor=white)](test/)
+[![Version](https://img.shields.io/badge/Version-v2.3.5-blue?style=for-the-badge)](pubspec.yaml)
+[![Tests](https://img.shields.io/badge/Tests-94%20Passed-2ea44f?style=for-the-badge&logo=flutter&logoColor=white)](test/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](#-kontribusi--pedoman-pengembangan)
 
@@ -311,7 +311,16 @@ Kontribusi dari komunitas sangat terbuka! Jika Anda ingin berkontribusi:
 
 ## 📋 Changelog
 
-### **v2.3.1** — Network Resilience, In-App Updates, UI Modularization & Gemini 3.6+ Alignment *(Current)*
+### **v2.3.5** — Notification Soft Delete Architecture & Cloud Sync Resilience *(Current)*
+#### [Added]
+* **Arsitektur Soft Delete Notifikasi End-to-End**:
+  - Implementasi penuh pola Soft Delete pada notifikasi (`is_deleted = true`) di SQLite lokal ([db_helper.dart](lib/database/db_helper.dart)) dan Cloud Firestore ([firestore_service.dart](lib/services/firestore_service.dart)) meniru keandalan fitur Pantry.
+  - Penambahan kolom `is_deleted` dan `firestore_id` dengan migrasi in-place aman tanpa mereset data pengguna.
+  - Penambahan penanganan offline sync resolution di [sync_service.dart](lib/services/sync_service.dart) dengan `getAllNotificationsRaw` untuk mencegah kebangkitan notifikasi lama (*ghost notifications*) saat restore.
+* **Pembaruan Versi**:
+  - Menaikkan versi aplikasi menjadi `version: 2.3.5+14` di [pubspec.yaml](pubspec.yaml) dan [app_constants.dart](lib/constants/app_constants.dart).
+
+### **v2.3.1** — Network Resilience, In-App Updates, UI Modularization & Gemini 3.6+ Alignment
 #### [Added]
 * **Pemantauan Jaringan Real-Time & Floating Connectivity Banner**:
   - Implementasi [ConnectivityService](lib/services/connectivity_service.dart) berbasis stream [`connectivity_plus`](https://pub.dev/packages/connectivity_plus) untuk mendeteksi perubahan status koneksi internet secara real-time.

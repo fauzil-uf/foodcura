@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-// Service integrasi Firebase Auth & Google Sign-In
+/// Service integrasi Firebase Auth & Google Sign-In
 class AuthService {
   static final AuthService instance = AuthService._internal();
   factory AuthService() => instance;
@@ -27,7 +27,7 @@ class AuthService {
   Stream<User?> get authStateChanges =>
       _auth?.authStateChanges() ?? const Stream.empty();
 
-  // Kirim link reset password ke email user
+  /// Kirim link reset password ke email user
   Future<void> sendPasswordReset(String email) async {
     final cleanEmail = email.trim();
     if (cleanEmail.isEmpty) {
@@ -57,7 +57,7 @@ class AuthService {
     }
   }
 
-  // Registrasi user email/password ke Firebase Auth (untuk sinkronisasi reset email)
+  /// Registrasi user email/password ke Firebase Auth (untuk sinkronisasi reset email)
   Future<UserCredential?> createFirebaseUser({
     required String email,
     required String password,
@@ -74,7 +74,7 @@ class AuthService {
     }
   }
 
-  // Verifikasi login ke Firebase Auth dengan email/password (untuk sinkronisasi password baru setelah reset)
+  /// Verifikasi login ke Firebase Auth dengan email/password (untuk sinkronisasi password baru setelah reset)
   Future<UserCredential?> signInWithEmailPassword({
     required String email,
     required String password,
@@ -91,7 +91,7 @@ class AuthService {
     }
   }
 
-  // Login menggunakan akun Google
+  /// Login menggunakan akun Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
       // 1. Memulai dialog interaktif Google Sign-In
@@ -133,7 +133,7 @@ class AuthService {
     }
   }
 
-  // Sign out dari Firebase & Google
+  /// Sign out dari Firebase & Google
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();

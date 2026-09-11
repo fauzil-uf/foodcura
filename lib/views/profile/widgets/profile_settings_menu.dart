@@ -5,7 +5,7 @@ import '../../../constants/app_constants.dart';
 import '../../../constants/app_typography.dart';
 import '../help_center_screen.dart';
 
-// Kelompok menu pengaturan akun, keamanan & privasi, serta logout
+/// Kelompok menu pengaturan akun, keamanan & privasi, serta logout
 class ProfileSettingsMenu extends StatelessWidget {
   final VoidCallback onEditProfile;
   final VoidCallback onNotificationSettings;

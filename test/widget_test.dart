@@ -91,66 +91,67 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('FoodCura v2.3.1'), findsOneWidget);
+    expect(find.text('FoodCura v2.3.5'), findsOneWidget);
     expect(find.text('Lihat Lisensi Open Source'), findsOneWidget);
     expect(find.text('Tutup'), findsOneWidget);
   });
 
-  testWidgets('AppWheelTimePickerSheet renders and selects preset time correctly', (
-    WidgetTester tester,
-  ) async {
-    String? selectedResult;
+  testWidgets(
+    'AppWheelTimePickerSheet renders and selects preset time correctly',
+    (WidgetTester tester) async {
+      String? selectedResult;
 
-    tester.view.physicalSize = const Size(800, 1200);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () async {
-                selectedResult = await AppWheelTimePickerSheet.show(
-                  context: context,
-                  initialTime: '07:30',
-                  title: 'Atur Waktu Sarapan',
-                  presets: ['06:30', '07:00', '07:30', '08:00'],
-                );
-              },
-              child: const Text('Open Picker'),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () async {
+                  selectedResult = await AppWheelTimePickerSheet.show(
+                    context: context,
+                    initialTime: '07:30',
+                    title: 'Atur Waktu Sarapan',
+                    presets: ['06:30', '07:00', '07:30', '08:00'],
+                  );
+                },
+                child: const Text('Open Picker'),
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    // Tap button to open sheet
-    await tester.tap(find.text('Open Picker'));
-    await tester.pumpAndSettle();
+      // Tap button to open sheet
+      await tester.tap(find.text('Open Picker'));
+      await tester.pumpAndSettle();
 
-    // Verify Title & Initial Time Display
-    expect(find.text('Atur Waktu Sarapan'), findsOneWidget);
-    expect(find.text('07:30 WIB'), findsOneWidget);
-    expect(find.text('06:30'), findsOneWidget);
-    expect(find.text('08:00'), findsOneWidget);
+      // Verify Title & Initial Time Display
+      expect(find.text('Atur Waktu Sarapan'), findsOneWidget);
+      expect(find.text('07:30 WIB'), findsOneWidget);
+      expect(find.text('06:30'), findsOneWidget);
+      expect(find.text('08:00'), findsOneWidget);
 
-    // Tap preset '08:00'
-    await tester.tap(find.text('08:00'));
-    await tester.pumpAndSettle();
+      // Tap preset '08:00'
+      await tester.tap(find.text('08:00'));
+      await tester.pumpAndSettle();
 
-    // Verify time display updated
-    expect(find.text('08:00 WIB'), findsOneWidget);
+      // Verify time display updated
+      expect(find.text('08:00 WIB'), findsOneWidget);
 
-    // Tap 'Terapkan'
-    await tester.tap(find.text('Terapkan'));
-    await tester.pumpAndSettle();
+      // Tap 'Terapkan'
+      await tester.tap(find.text('Terapkan'));
+      await tester.pumpAndSettle();
 
-    expect(selectedResult, equals('08:00'));
-  });
+      expect(selectedResult, equals('08:00'));
+    },
+  );
 
   testWidgets('SplashScreen renders logo, typography and tagline properly', (
     WidgetTester tester,
@@ -186,23 +187,24 @@ void main() {
     expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
   });
 
-  testWidgets('AppFoodImage renders cached network image widget for online URLs', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: AppFoodImage(
-            imagePath: 'https://images.unsplash.com/photo-example.jpg',
-            width: 80,
-            height: 80,
+  testWidgets(
+    'AppFoodImage renders cached network image widget for online URLs',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AppFoodImage(
+              imagePath: 'https://images.unsplash.com/photo-example.jpg',
+              width: 80,
+              height: 80,
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.byType(AppFoodImage), findsOneWidget);
-  });
+      expect(find.byType(AppFoodImage), findsOneWidget);
+    },
+  );
 
   testWidgets('AppShimmer and AppShimmerCard render properly', (
     WidgetTester tester,
@@ -226,36 +228,43 @@ void main() {
     expect(find.byType(AppShimmerCard), findsOneWidget);
   });
 
-  testWidgets('AppConnectivityBanner responds to online/offline state transitions', (
-    WidgetTester tester,
-  ) async {
-    // Start with online state
-    ConnectivityService.instance.setMockOnline(true);
+  testWidgets(
+    'AppConnectivityBanner responds to online/offline state transitions',
+    (WidgetTester tester) async {
+      // Start with online state
+      ConnectivityService.instance.setMockOnline(true);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: const Scaffold(body: Center(child: Text('Main Content'))),
-        builder: (context, child) => AppConnectivityBanner(child: child!),
-      ),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const Scaffold(body: Center(child: Text('Main Content'))),
+          builder: (context, child) => AppConnectivityBanner(child: child!),
+        ),
+      );
+      await tester.pump();
 
-    // Verify main content is visible
-    expect(find.text('Main Content'), findsOneWidget);
+      // Verify main content is visible
+      expect(find.text('Main Content'), findsOneWidget);
 
-    // Simulate going offline
-    ConnectivityService.instance.setMockOnline(false);
-    await tester.pump(const Duration(milliseconds: 400));
+      // Simulate going offline
+      ConnectivityService.instance.setMockOnline(false);
+      await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Anda sedang offline • Berjalan dalam mode lokal'), findsOneWidget);
+      expect(
+        find.text('Anda sedang offline • Berjalan dalam mode lokal'),
+        findsOneWidget,
+      );
 
-    // Simulate coming back online
-    ConnectivityService.instance.setMockOnline(true);
-    await tester.pump(const Duration(milliseconds: 400));
+      // Simulate coming back online
+      ConnectivityService.instance.setMockOnline(true);
+      await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Koneksi pulih • Sinkronisasi & AI aktif'), findsOneWidget);
+      expect(
+        find.text('Koneksi pulih • Sinkronisasi & AI aktif'),
+        findsOneWidget,
+      );
 
-    // Advance past dismiss timer
-    await tester.pump(const Duration(seconds: 4));
-  });
+      // Advance past dismiss timer
+      await tester.pump(const Duration(seconds: 4));
+    },
+  );
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// Komponen terpusat untuk efek loading skeleton (Shimmer) berpalet hangat khas FoodCura.
+//// Komponen terpusat untuk efek loading skeleton (Shimmer) berpalet hangat khas FoodCura.
 class AppShimmer extends StatelessWidget {
   final Widget child;
   final Color? baseColor;
@@ -28,7 +28,7 @@ class AppShimmer extends StatelessWidget {
   }
 }
 
-/// Kotak skeleton shimmer dengan radius sudut melengkung
+//// Kotak skeleton shimmer dengan radius sudut melengkung
 class AppShimmerBox extends StatelessWidget {
   final double width;
   final double height;
@@ -59,7 +59,7 @@ class AppShimmerBox extends StatelessWidget {
   }
 }
 
-/// Template skeleton kartu list untuk katalog makanan, pantry, dan artikel
+//// Template skeleton kartu list untuk katalog makanan, pantry, dan artikel
 class AppShimmerCard extends StatelessWidget {
   final double height;
 

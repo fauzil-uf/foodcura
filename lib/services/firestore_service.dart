@@ -8,7 +8,7 @@ import '../models/notification_model.dart';
 import '../models/pantry_item_model.dart';
 
 /// Service utama untuk interaksi dengan Cloud Firestore di FoodCura.
-/// Dirancang modular, offline-friendly, dan toleran terhadap kegagalan jaringan.
+//// Dirancang modular, offline-friendly, dan toleran terhadap kegagalan jaringan.
 class FirestoreService {
   static final FirestoreService instance = FirestoreService._internal();
   factory FirestoreService() => instance;
@@ -18,7 +18,9 @@ class FirestoreService {
     try {
       return FirebaseFirestore.instance;
     } catch (e) {
-      debugPrint('[FirestoreService] FirebaseFirestore belum terinisialisasi: $e');
+      debugPrint(
+        '[FirestoreService] FirebaseFirestore belum terinisialisasi: $e',
+      );
       return null;
     }
   }
@@ -72,7 +74,9 @@ class FirestoreService {
       final collection = firestore.collection(colFoods);
 
       for (final food in foods) {
-        final docRef = collection.doc('food_${food.id ?? food.name.hashCode.abs()}');
+        final docRef = collection.doc(
+          'food_${food.id ?? food.name.hashCode.abs()}',
+        );
         batch.set(docRef, {
           'id': food.id,
           'name': food.name,
@@ -88,7 +92,9 @@ class FirestoreService {
       }
 
       await batch.commit();
-      debugPrint('[FirestoreService] Berhasil seeding ${foods.length} makanan ke Firestore');
+      debugPrint(
+        '[FirestoreService] Berhasil seeding ${foods.length} makanan ke Firestore',
+      );
     } catch (e) {
       debugPrint('[FirestoreService] Gagal seeding foods ke Firestore: $e');
     }
@@ -166,10 +172,10 @@ class FirestoreService {
       if (ecoPoints != null) data['eco_points'] = ecoPoints;
       if (streakCount != null) data['streak_count'] = streakCount;
 
-      await firestore.collection(colUsers).doc(uid).set(
-        data,
-        SetOptions(merge: true),
-      );
+      await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .set(data, SetOptions(merge: true));
     } catch (e) {
       debugPrint('[FirestoreService] Gagal memperbarui eco points ($uid): $e');
     }
@@ -212,7 +218,11 @@ class FirestoreService {
   }
 
   /// Memperbarui status atau data item pantry di Firestore
-  Future<void> updatePantryItem(String uid, String firestoreId, PantryItemModel item) async {
+  Future<void> updatePantryItem(
+    String uid,
+    String firestoreId,
+    PantryItemModel item,
+  ) async {
     final firestore = _firestore;
     if (firestore == null) return;
 
@@ -223,17 +233,19 @@ class FirestoreService {
           .collection(colPantryItems)
           .doc(firestoreId)
           .set({
-        'name': item.name,
-        'quantity': item.quantity,
-        'unit': item.unit,
-        'storage': item.storage,
-        'expiry_date': item.expiryDate.toIso8601String(),
-        'image_url': item.imageUrl ?? '',
-        'is_used': item.isUsed,
-        'updated_at': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+            'name': item.name,
+            'quantity': item.quantity,
+            'unit': item.unit,
+            'storage': item.storage,
+            'expiry_date': item.expiryDate.toIso8601String(),
+            'image_url': item.imageUrl ?? '',
+            'is_used': item.isUsed,
+            'updated_at': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal memperbarui pantry item ($firestoreId): $e');
+      debugPrint(
+        '[FirestoreService] Gagal memperbarui pantry item ($firestoreId): $e',
+      );
     }
   }
 
@@ -250,7 +262,9 @@ class FirestoreService {
           .doc(firestoreId)
           .delete();
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal menghapus pantry item ($firestoreId): $e');
+      debugPrint(
+        '[FirestoreService] Gagal menghapus pantry item ($firestoreId): $e',
+      );
     }
   }
 
@@ -258,8 +272,15 @@ class FirestoreService {
   static String _normalizeStorage(dynamic val) {
     final s = val?.toString().toLowerCase().trim() ?? '';
     if (s.contains('freezer') || s.contains('beku')) return 'Freezer';
-    if (s.contains('kulkas') || s.contains('chiller') || s.contains('fridge') || s.contains('refrigerator')) return 'Kulkas';
-    if (s.contains('lemari') || s.contains('kering') || s.contains('dry')) return 'Lemari Kering';
+    if (s.contains('kulkas') ||
+        s.contains('chiller') ||
+        s.contains('fridge') ||
+        s.contains('refrigerator')) {
+      return 'Kulkas';
+    }
+    if (s.contains('lemari') || s.contains('kering') || s.contains('dry')) {
+      return 'Lemari Kering';
+    }
     if (s.contains('ruang') || s.contains('room')) return 'Suhu Ruang';
     return 'Kulkas';
   }
@@ -314,7 +335,8 @@ class FirestoreService {
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
-        final rawId = (data['id'] as num?)?.toInt() ??
+        final rawId =
+            (data['id'] as num?)?.toInt() ??
             (doc.id.startsWith('pantry_')
                 ? int.tryParse(doc.id.replaceFirst('pantry_', ''))
                 : null);
@@ -323,13 +345,19 @@ class FirestoreService {
           id: rawId,
           name: data['name']?.toString() ?? data['nama']?.toString() ?? '',
           quantity: _parseDouble(data['quantity'] ?? data['jumlah'], 1.0),
-          unit: data['unit']?.toString() ?? data['satuan']?.toString() ?? 'buah',
+          unit:
+              data['unit']?.toString() ?? data['satuan']?.toString() ?? 'buah',
           storage: _normalizeStorage(data['storage'] ?? data['penyimpanan']),
           expiryDate: _parseDateTime(
-            data['expiry_date'] ?? data['expiryDate'] ?? data['kadaluwarsa'] ?? data['kedaluwarsa'],
+            data['expiry_date'] ??
+                data['expiryDate'] ??
+                data['kadaluwarsa'] ??
+                data['kedaluwarsa'],
             DateTime.now().add(const Duration(days: 7)),
           ),
-          imageUrl: (data['image_url'] as String?)?.isEmpty == true ? null : data['image_url'] as String?,
+          imageUrl: (data['image_url'] as String?)?.isEmpty == true
+              ? null
+              : data['image_url'] as String?,
           isUsed: _parseBool(data['is_used'] ?? data['isUsed'], false),
           createdAt: _parseDateTime(
             data['created_at'] ?? data['createdAt'],
@@ -354,32 +382,43 @@ class FirestoreService {
         .collection(colPantryItems)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        final rawId = (data['id'] as num?)?.toInt() ??
-            (doc.id.startsWith('pantry_')
-                ? int.tryParse(doc.id.replaceFirst('pantry_', ''))
-                : null);
-        return PantryItemModel(
-          firestoreId: doc.id,
-          id: rawId,
-          name: data['name']?.toString() ?? data['nama']?.toString() ?? '',
-          quantity: _parseDouble(data['quantity'] ?? data['jumlah'], 1.0),
-          unit: data['unit']?.toString() ?? data['satuan']?.toString() ?? 'buah',
-          storage: _normalizeStorage(data['storage'] ?? data['penyimpanan']),
-          expiryDate: _parseDateTime(
-            data['expiry_date'] ?? data['expiryDate'] ?? data['kadaluwarsa'] ?? data['kedaluwarsa'],
-            DateTime.now().add(const Duration(days: 7)),
-          ),
-          imageUrl: (data['image_url'] as String?)?.isEmpty == true ? null : data['image_url'] as String?,
-          isUsed: _parseBool(data['is_used'] ?? data['isUsed'], false),
-          createdAt: _parseDateTime(
-            data['created_at'] ?? data['createdAt'],
-            DateTime.now(),
-          ),
-        );
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data();
+            final rawId =
+                (data['id'] as num?)?.toInt() ??
+                (doc.id.startsWith('pantry_')
+                    ? int.tryParse(doc.id.replaceFirst('pantry_', ''))
+                    : null);
+            return PantryItemModel(
+              firestoreId: doc.id,
+              id: rawId,
+              name: data['name']?.toString() ?? data['nama']?.toString() ?? '',
+              quantity: _parseDouble(data['quantity'] ?? data['jumlah'], 1.0),
+              unit:
+                  data['unit']?.toString() ??
+                  data['satuan']?.toString() ??
+                  'buah',
+              storage: _normalizeStorage(
+                data['storage'] ?? data['penyimpanan'],
+              ),
+              expiryDate: _parseDateTime(
+                data['expiry_date'] ??
+                    data['expiryDate'] ??
+                    data['kadaluwarsa'] ??
+                    data['kedaluwarsa'],
+                DateTime.now().add(const Duration(days: 7)),
+              ),
+              imageUrl: (data['image_url'] as String?)?.isEmpty == true
+                  ? null
+                  : data['image_url'] as String?,
+              isUsed: _parseBool(data['is_used'] ?? data['isUsed'], false),
+              createdAt: _parseDateTime(
+                data['created_at'] ?? data['createdAt'],
+                DateTime.now(),
+              ),
+            );
+          }).toList();
+        });
   }
 
   // ===========================================================================
@@ -434,7 +473,9 @@ class FirestoreService {
           .doc(firestoreId)
           .delete();
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal menghapus food log ($firestoreId): $e');
+      debugPrint(
+        '[FirestoreService] Gagal menghapus food log ($firestoreId): $e',
+      );
     }
   }
 
@@ -468,7 +509,9 @@ class FirestoreService {
         );
       }).toList();
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal mengambil food logs untuk $date: $e');
+      debugPrint(
+        '[FirestoreService] Gagal mengambil food logs untuk $date: $e',
+      );
       return [];
     }
   }
@@ -487,22 +530,46 @@ class FirestoreService {
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
-        final rawId = (data['id'] as num?)?.toInt() ??
+        final rawId =
+            (data['id'] as num?)?.toInt() ??
             (doc.id.startsWith('foodlog_')
                 ? int.tryParse(doc.id.replaceFirst('foodlog_', ''))
                 : null);
         return FoodLogModel(
           id: rawId,
           firestoreId: doc.id,
-          foodName: data['food_name']?.toString() ?? data['foodName']?.toString() ?? data['nama']?.toString() ?? '',
-          mealType: data['meal_type']?.toString() ?? data['mealType']?.toString() ?? data['kategori']?.toString() ?? 'Lainnya',
-          calories: (data['calories'] ?? data['kalori'] as num?)?.toInt() ?? _parseDouble(data['calories'] ?? data['kalori'], 0.0).toInt(),
+          foodName:
+              data['food_name']?.toString() ??
+              data['foodName']?.toString() ??
+              data['nama']?.toString() ??
+              '',
+          mealType:
+              data['meal_type']?.toString() ??
+              data['mealType']?.toString() ??
+              data['kategori']?.toString() ??
+              'Lainnya',
+          calories:
+              (data['calories'] ?? data['kalori'] as num?)?.toInt() ??
+              _parseDouble(data['calories'] ?? data['kalori'], 0.0).toInt(),
           protein: _parseDouble(data['protein'], 0.0),
-          carbs: _parseDouble(data['carbs'] ?? data['karbo'] ?? data['karbohidrat'], 0.0),
+          carbs: _parseDouble(
+            data['carbs'] ?? data['karbo'] ?? data['karbohidrat'],
+            0.0,
+          ),
           fat: _parseDouble(data['fat'] ?? data['lemak'], 0.0),
-          cholesterol: _parseDouble(data['cholesterol'] ?? data['kolesterol'], 0.0),
-          imagePath: data['image_path']?.toString() ?? data['imagePath']?.toString() ?? '',
-          time: data['time']?.toString() ?? data['waktu']?.toString() ?? data['jam']?.toString() ?? '',
+          cholesterol: _parseDouble(
+            data['cholesterol'] ?? data['kolesterol'],
+            0.0,
+          ),
+          imagePath:
+              data['image_path']?.toString() ??
+              data['imagePath']?.toString() ??
+              '',
+          time:
+              data['time']?.toString() ??
+              data['waktu']?.toString() ??
+              data['jam']?.toString() ??
+              '',
           date: data['date']?.toString() ?? data['tanggal']?.toString() ?? '',
           note: data['note']?.toString() ?? data['catatan']?.toString(),
         );
@@ -524,29 +591,54 @@ class FirestoreService {
         .collection(colFoodLogs)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        final rawId = (data['id'] as num?)?.toInt() ??
-            (doc.id.startsWith('foodlog_')
-                ? int.tryParse(doc.id.replaceFirst('foodlog_', ''))
-                : null);
-        return FoodLogModel(
-          id: rawId,
-          firestoreId: doc.id,
-          foodName: data['food_name']?.toString() ?? data['foodName']?.toString() ?? data['nama']?.toString() ?? '',
-          mealType: data['meal_type']?.toString() ?? data['mealType']?.toString() ?? data['kategori']?.toString() ?? 'Lainnya',
-          calories: (data['calories'] ?? data['kalori'] as num?)?.toInt() ?? _parseDouble(data['calories'] ?? data['kalori'], 0.0).toInt(),
-          protein: _parseDouble(data['protein'], 0.0),
-          carbs: _parseDouble(data['carbs'] ?? data['karbo'] ?? data['karbohidrat'], 0.0),
-          fat: _parseDouble(data['fat'] ?? data['lemak'], 0.0),
-          cholesterol: _parseDouble(data['cholesterol'] ?? data['kolesterol'], 0.0),
-          imagePath: data['image_path']?.toString() ?? data['imagePath']?.toString() ?? '',
-          time: data['time']?.toString() ?? data['waktu']?.toString() ?? data['jam']?.toString() ?? '',
-          date: data['date']?.toString() ?? data['tanggal']?.toString() ?? '',
-          note: data['note']?.toString() ?? data['catatan']?.toString(),
-        );
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data();
+            final rawId =
+                (data['id'] as num?)?.toInt() ??
+                (doc.id.startsWith('foodlog_')
+                    ? int.tryParse(doc.id.replaceFirst('foodlog_', ''))
+                    : null);
+            return FoodLogModel(
+              id: rawId,
+              firestoreId: doc.id,
+              foodName:
+                  data['food_name']?.toString() ??
+                  data['foodName']?.toString() ??
+                  data['nama']?.toString() ??
+                  '',
+              mealType:
+                  data['meal_type']?.toString() ??
+                  data['mealType']?.toString() ??
+                  data['kategori']?.toString() ??
+                  'Lainnya',
+              calories:
+                  (data['calories'] ?? data['kalori'] as num?)?.toInt() ??
+                  _parseDouble(data['calories'] ?? data['kalori'], 0.0).toInt(),
+              protein: _parseDouble(data['protein'], 0.0),
+              carbs: _parseDouble(
+                data['carbs'] ?? data['karbo'] ?? data['karbohidrat'],
+                0.0,
+              ),
+              fat: _parseDouble(data['fat'] ?? data['lemak'], 0.0),
+              cholesterol: _parseDouble(
+                data['cholesterol'] ?? data['kolesterol'],
+                0.0,
+              ),
+              imagePath:
+                  data['image_path']?.toString() ??
+                  data['imagePath']?.toString() ??
+                  '',
+              time:
+                  data['time']?.toString() ??
+                  data['waktu']?.toString() ??
+                  data['jam']?.toString() ??
+                  '',
+              date:
+                  data['date']?.toString() ?? data['tanggal']?.toString() ?? '',
+              note: data['note']?.toString() ?? data['catatan']?.toString(),
+            );
+          }).toList();
+        });
   }
 
   // ===========================================================================
@@ -559,7 +651,8 @@ class FirestoreService {
     if (firestore == null) return null;
 
     try {
-      final docId = notif.id != null ? 'notif_${notif.id}' : null;
+      final docId =
+          notif.firestoreId ?? (notif.id != null ? 'notif_${notif.id}' : null);
       final collection = firestore
           .collection(colUsers)
           .doc(uid)
@@ -572,7 +665,9 @@ class FirestoreService {
       }, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal menambahkan notifikasi ke Firestore: $e');
+      debugPrint(
+        '[FirestoreService] Gagal menambahkan notifikasi ke Firestore: $e',
+      );
       return null;
     }
   }
@@ -589,11 +684,13 @@ class FirestoreService {
           .collection(colNotifications)
           .doc(notifDocId)
           .set({
-        'is_read': true,
-        'updated_at': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+            'is_read': true,
+            'updated_at': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal menandai notif dibaca ($notifDocId): $e');
+      debugPrint(
+        '[FirestoreService] Gagal menandai notif dibaca ($notifDocId): $e',
+      );
     }
   }
 
@@ -623,8 +720,8 @@ class FirestoreService {
     }
   }
 
-  /// Menghapus satu notifikasi dari Firestore
-  Future<void> deleteNotification(String uid, String notifDocId) async {
+  /// Menandai satu notifikasi telah dihapus (soft delete) di Firestore
+  Future<void> softDeleteNotification(String uid, String notifDocId) async {
     final firestore = _firestore;
     if (firestore == null) return;
 
@@ -634,14 +731,28 @@ class FirestoreService {
           .doc(uid)
           .collection(colNotifications)
           .doc(notifDocId)
-          .delete();
+          .set({
+            'is_deleted': true,
+            'deleted_at': FieldValue.serverTimestamp(),
+            'updated_at': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal menghapus notif ($notifDocId): $e');
+      debugPrint(
+        '[FirestoreService] Gagal soft delete notif ($notifDocId): $e',
+      );
     }
   }
 
-  /// Menghapus sejumlah notifikasi secara batch dari Firestore
-  Future<void> deleteNotificationsBatch(String uid, List<String> notifDocIds) async {
+  /// Alias deleteNotification tetap dipertahankan untuk kompatibilitas, mengarah ke soft delete
+  Future<void> deleteNotification(String uid, String notifDocId) async {
+    await softDeleteNotification(uid, notifDocId);
+  }
+
+  /// Menandai sejumlah notifikasi telah dihapus (batch soft delete) di Firestore
+  Future<void> softDeleteNotificationsBatch(
+    String uid,
+    List<String> notifDocIds,
+  ) async {
     final firestore = _firestore;
     if (firestore == null || notifDocIds.isEmpty) return;
 
@@ -653,15 +764,97 @@ class FirestoreService {
             .doc(uid)
             .collection(colNotifications)
             .doc(docId);
-        batch.delete(ref);
+        batch.set(ref, {
+          'is_deleted': true,
+          'deleted_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
       }
       await batch.commit();
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal batch delete notifikasi: $e');
+      debugPrint('[FirestoreService] Gagal batch soft delete notifikasi: $e');
     }
   }
 
-  /// Mengambil semua daftar notifikasi dari Firestore
+  /// Alias deleteNotificationsBatch tetap dipertahankan
+  Future<void> deleteNotificationsBatch(
+    String uid,
+    List<String> notifDocIds,
+  ) async {
+    await softDeleteNotificationsBatch(uid, notifDocIds);
+  }
+
+  /// Menandai semua notifikasi milik user telah dihapus (soft delete) di Firestore
+  Future<void> softDeleteAllNotifications(String uid) async {
+    final firestore = _firestore;
+    if (firestore == null) return;
+
+    try {
+      final snapshot = await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colNotifications)
+          .get();
+
+      final batch = firestore.batch();
+      int count = 0;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['is_deleted'] == true) continue;
+        batch.set(doc.reference, {
+          'is_deleted': true,
+          'deleted_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        count++;
+      }
+      if (count > 0) {
+        await batch.commit();
+      }
+    } catch (e) {
+      debugPrint('[FirestoreService] Gagal soft delete semua notifikasi: $e');
+    }
+  }
+
+  /// Menandai notifikasi terkait pantryId tertentu telah dihapus (soft delete) di Firestore
+  Future<void> softDeleteNotificationsByPantryId(
+    String uid,
+    int pantryId,
+  ) async {
+    final firestore = _firestore;
+    if (firestore == null) return;
+
+    try {
+      final snapshot = await firestore
+          .collection(colUsers)
+          .doc(uid)
+          .collection(colNotifications)
+          .where('related_pantry_id', isEqualTo: pantryId)
+          .get();
+
+      final batch = firestore.batch();
+      int count = 0;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['is_deleted'] == true) continue;
+        batch.set(doc.reference, {
+          'is_deleted': true,
+          'deleted_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        count++;
+      }
+      if (count > 0) {
+        await batch.commit();
+      }
+    } catch (e) {
+      debugPrint(
+        '[FirestoreService] Gagal soft delete notifikasi pantry ($pantryId): $e',
+      );
+    }
+  }
+
+  /// Mengambil semua daftar notifikasi aktif dari Firestore (melewati is_deleted: true)
   Future<List<NotificationModel>> getNotifications(String uid) async {
     final firestore = _firestore;
     if (firestore == null) return [];
@@ -673,32 +866,60 @@ class FirestoreService {
           .collection(colNotifications)
           .get();
 
-      return snapshot.docs.map((doc) {
-        final d = doc.data();
-        final rawId = (d['id'] as num?)?.toInt() ??
-            int.tryParse(doc.id) ??
-            (doc.id.startsWith('notif_')
-                ? int.tryParse(doc.id.replaceFirst('notif_', ''))
-                : null);
-        return NotificationModel(
-          id: rawId,
-          firestoreId: doc.id,
-          title: (d['title'] ?? d['judul'] ?? d['name'] ?? '').toString(),
-          message: (d['message'] ?? d['pesan'] ?? d['body'] ?? d['deskripsi'] ?? d['isi'] ?? '').toString(),
-          type: (d['type'] ?? d['tipe'] ?? d['kategori'] ?? 'system').toString(),
-          iconType: (d['icon_type'] ?? d['iconType'] ?? d['icon'] ?? 'info').toString(),
-          isRead: d['is_read'] == true || d['isRead'] == true || d['dibaca'] == true || d['read'] == true,
-          relatedPantryId: ((d['related_pantry_id'] ?? d['relatedPantryId']) as num?)?.toInt(),
-          createdAt: _parseDateTime(d['created_at'] ?? d['createdAt'] ?? d['tanggal'], DateTime.now()),
-        );
-      }).toList();
+      return snapshot.docs
+          .where((doc) {
+            final d = doc.data();
+            return d['is_deleted'] != true;
+          })
+          .map((doc) {
+            final d = doc.data();
+            final rawId =
+                (d['id'] as num?)?.toInt() ??
+                int.tryParse(doc.id) ??
+                (doc.id.startsWith('notif_')
+                    ? int.tryParse(doc.id.replaceFirst('notif_', ''))
+                    : null);
+            return NotificationModel(
+              id: rawId,
+              firestoreId: doc.id,
+              title: (d['title'] ?? d['judul'] ?? d['name'] ?? '').toString(),
+              message:
+                  (d['message'] ??
+                          d['pesan'] ??
+                          d['body'] ??
+                          d['deskripsi'] ??
+                          d['isi'] ??
+                          '')
+                      .toString(),
+              type: (d['type'] ?? d['tipe'] ?? d['kategori'] ?? 'system')
+                  .toString(),
+              iconType: (d['icon_type'] ?? d['iconType'] ?? d['icon'] ?? 'info')
+                  .toString(),
+              isRead:
+                  d['is_read'] == true ||
+                  d['isRead'] == true ||
+                  d['dibaca'] == true ||
+                  d['read'] == true,
+              isDeleted: false,
+              relatedPantryId:
+                  ((d['related_pantry_id'] ?? d['relatedPantryId']) as num?)
+                      ?.toInt(),
+              createdAt: _parseDateTime(
+                d['created_at'] ?? d['createdAt'] ?? d['tanggal'],
+                DateTime.now(),
+              ),
+            );
+          })
+          .toList();
     } catch (e) {
-      debugPrint('[FirestoreService] Gagal mengambil notifikasi dari cloud: $e');
+      debugPrint(
+        '[FirestoreService] Gagal mengambil notifikasi dari cloud: $e',
+      );
       return [];
     }
   }
 
-  /// Stream realtime untuk notifikasi user
+  /// Stream realtime untuk notifikasi aktif user
   Stream<List<NotificationModel>> streamNotifications(String uid) {
     final firestore = _firestore;
     if (firestore == null) return const Stream.empty();
@@ -709,26 +930,54 @@ class FirestoreService {
         .collection(colNotifications)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final d = doc.data();
-        final rawId = (d['id'] as num?)?.toInt() ??
-            int.tryParse(doc.id) ??
-            (doc.id.startsWith('notif_')
-                ? int.tryParse(doc.id.replaceFirst('notif_', ''))
-                : null);
-        return NotificationModel(
-          id: rawId,
-          firestoreId: doc.id,
-          title: (d['title'] ?? d['judul'] ?? d['name'] ?? '').toString(),
-          message: (d['message'] ?? d['pesan'] ?? d['body'] ?? d['deskripsi'] ?? d['isi'] ?? '').toString(),
-          type: (d['type'] ?? d['tipe'] ?? d['kategori'] ?? 'system').toString(),
-          iconType: (d['icon_type'] ?? d['iconType'] ?? d['icon'] ?? 'info').toString(),
-          isRead: d['is_read'] == true || d['isRead'] == true || d['dibaca'] == true || d['read'] == true,
-          relatedPantryId: ((d['related_pantry_id'] ?? d['relatedPantryId']) as num?)?.toInt(),
-          createdAt: _parseDateTime(d['created_at'] ?? d['createdAt'] ?? d['tanggal'], DateTime.now()),
-        );
-      }).toList();
-    });
+          return snapshot.docs
+              .where((doc) {
+                final d = doc.data();
+                return d['is_deleted'] != true;
+              })
+              .map((doc) {
+                final d = doc.data();
+                final rawId =
+                    (d['id'] as num?)?.toInt() ??
+                    int.tryParse(doc.id) ??
+                    (doc.id.startsWith('notif_')
+                        ? int.tryParse(doc.id.replaceFirst('notif_', ''))
+                        : null);
+                return NotificationModel(
+                  id: rawId,
+                  firestoreId: doc.id,
+                  title: (d['title'] ?? d['judul'] ?? d['name'] ?? '')
+                      .toString(),
+                  message:
+                      (d['message'] ??
+                              d['pesan'] ??
+                              d['body'] ??
+                              d['deskripsi'] ??
+                              d['isi'] ??
+                              '')
+                          .toString(),
+                  type: (d['type'] ?? d['tipe'] ?? d['kategori'] ?? 'system')
+                      .toString(),
+                  iconType:
+                      (d['icon_type'] ?? d['iconType'] ?? d['icon'] ?? 'info')
+                          .toString(),
+                  isRead:
+                      d['is_read'] == true ||
+                      d['isRead'] == true ||
+                      d['dibaca'] == true ||
+                      d['read'] == true,
+                  isDeleted: false,
+                  relatedPantryId:
+                      ((d['related_pantry_id'] ?? d['relatedPantryId']) as num?)
+                          ?.toInt(),
+                  createdAt: _parseDateTime(
+                    d['created_at'] ?? d['createdAt'] ?? d['tanggal'],
+                    DateTime.now(),
+                  ),
+                );
+              })
+              .toList();
+        });
   }
 
   // ===========================================================================
@@ -792,7 +1041,9 @@ class FirestoreService {
       }
 
       await batch.commit();
-      debugPrint('[FirestoreService] Berhasil seeding ${articles.length} artikel ke Firestore');
+      debugPrint(
+        '[FirestoreService] Berhasil seeding ${articles.length} artikel ke Firestore',
+      );
     } catch (e) {
       debugPrint('[FirestoreService] Gagal seeding artikel ke Firestore: $e');
     }
@@ -803,7 +1054,10 @@ class FirestoreService {
   // ===========================================================================
 
   /// Menyimpan preferensi pengguna (jam makan, toggle alert) ke Firestore
-  Future<void> saveUserPreferences(String uid, Map<String, dynamic> preferences) async {
+  Future<void> saveUserPreferences(
+    String uid,
+    Map<String, dynamic> preferences,
+  ) async {
     final firestore = _firestore;
     if (firestore == null) return;
 

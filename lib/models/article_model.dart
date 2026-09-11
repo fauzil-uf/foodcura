@@ -1,4 +1,4 @@
-// Model data artikel edukasi gizi & food waste
+/// Model data artikel edukasi gizi & food waste
 class ArticleModel {
   final int id;
   final String title;

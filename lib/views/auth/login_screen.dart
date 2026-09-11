@@ -14,7 +14,7 @@ import '../widgets/app_text_field.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
-// Layar login akun
+/// Layar login akun
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -68,12 +68,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  // Update UI saat status loading atau auth berubah
+  /// Update UI saat status loading atau auth berubah
   void _onAuthStateChanged() {
     if (mounted) setState(() {});
   }
 
-  // Helper menampilkan pesan feedback
+  /// Helper menampilkan pesan feedback
   void _showSnackBar(String message, {bool isError = true}) {
     if (!mounted) return;
     if (isError) {
@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Proses autentikasi login lokal
+  /// Proses autentikasi login lokal
   Future<void> _login() async {
     if (_lockoutSeconds > 0) {
       _showSnackBar(
@@ -137,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Proses login menggunakan akun Google
+  /// Proses login menggunakan akun Google
   Future<void> _handleGoogleSignIn() async {
     final success = await _authController.signInWithGoogle();
 
@@ -271,7 +271,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 elevation: 3,
                               ),
-                              onPressed: (_authController.isLoading ||
+                              onPressed:
+                                  (_authController.isLoading ||
                                       _lockoutSeconds > 0)
                                   ? null
                                   : _login,

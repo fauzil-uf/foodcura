@@ -8,7 +8,7 @@ import '../../../controllers/profile_controller.dart';
 import '../../../models/user_model.dart';
 import '../../widgets/app_snack_bar.dart';
 
-// Modal lembar bawah untuk mengganti kata sandi akun pengguna.
+/// Modal lembar bawah untuk mengganti kata sandi akun pengguna.
 class ChangePasswordModal extends StatefulWidget {
   final UserModelSQL? user;
   final ProfileController controller;
@@ -99,10 +99,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     }
 
     if (newPass != confirmPass) {
-      AppSnackBar.showError(
-        context,
-        'Konfirmasi kata sandi baru tidak cocok!',
-      );
+      AppSnackBar.showError(context, 'Konfirmasi kata sandi baru tidak cocok!');
       return;
     }
 
@@ -135,10 +132,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
       final remaining = 5 - _failedAttempts;
       final errorMsg =
           widget.controller.errorMessage ?? 'Gagal mengubah kata sandi.';
-      AppSnackBar.showError(
-        context,
-        '$errorMsg (Sisa percobaan: $remaining)',
-      );
+      AppSnackBar.showError(context, '$errorMsg (Sisa percobaan: $remaining)');
     }
   }
 
@@ -432,9 +426,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
         ),
         suffixIcon: IconButton(
           icon: Icon(
-            obscure
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
+            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             color: AppColors.textGraySoft,
             size: 20,
           ),
@@ -448,10 +440,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
     );

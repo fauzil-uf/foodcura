@@ -2,20 +2,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_constants.dart';
 
-// Helper SharedPreferences untuk session login & preferensi lokal
+/// Helper SharedPreferences untuk session login & preferensi lokal
 class PreferenceHandler {
   PreferenceHandler._();
 
   static late SharedPreferences _prefs;
 
-  // Inisialisasi SharedPreferences saat start aplikasi
+  /// Inisialisasi SharedPreferences saat start aplikasi
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
   // --- AUTH & LOGIN SESSION ---
 
-  // Simpan user ID yang sedang login
+  /// Simpan user ID yang sedang login
   static Future<void> setLoggedInUserId(int id) async {
     await _prefs.setInt(AppConstants.keyLoggedInUserId, id);
   }
@@ -28,14 +28,14 @@ class PreferenceHandler {
   static bool get isLogin =>
       _prefs.getInt(AppConstants.keyLoggedInUserId) != null;
 
-  // Hapus session login (logout)
+  /// Hapus session login (logout)
   static Future<void> logout() async {
     await _prefs.remove(AppConstants.keyLoggedInUserId);
   }
 
   // --- ONBOARDING PREFERENCE ---
 
-  // Simpan status onboarding sudah dilihat
+  /// Simpan status onboarding sudah dilihat
   static Future<void> setHasSeenOnboarding(bool value) async {
     await _prefs.setBool('hasSeenOnboarding', value);
   }

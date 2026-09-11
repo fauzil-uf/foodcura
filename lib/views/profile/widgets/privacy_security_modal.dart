@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_typography.dart';
 
-/// Modal interaktif Kebijakan Privasi & Keamanan Data FoodCura (UU PDP No. 27/2022).
+//// Modal interaktif Kebijakan Privasi & Keamanan Data FoodCura (UU PDP No. 27/2022).
 class PrivacySecurityModal extends StatefulWidget {
   final VoidCallback? onAccept;
 
@@ -209,7 +209,9 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                     _buildParagraph(
                       'Kami mengumpulkan informasi yang diperlukan untuk menyediakan fungsi pelacak nutrisi harian dan pengelolaan inventaris bahan makanan secara optimal:',
                     ),
-                    _buildSubHeader('a. Data yang Anda Berikan Secara Langsung:'),
+                    _buildSubHeader(
+                      'a. Data yang Anda Berikan Secara Langsung:',
+                    ),
                     _buildBulletItem(
                       'Informasi Akun',
                       'Nama lengkap atau nama pengguna, alamat surat elektronik (email), dan kredensial kata sandi saat pendaftaran lokal atau informasi profil dasar saat masuk melalui akun Google.',
@@ -227,7 +229,9 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                       'Catatan konsistensi hari aktif (streak) dan poin reward (Eco Points) yang diperoleh dari kuis edukasi pangan.',
                     ),
                     const SizedBox(height: 6),
-                    _buildSubHeader('b. Informasi yang Dikumpulkan Secara Otomatis:'),
+                    _buildSubHeader(
+                      'b. Informasi yang Dikumpulkan Secara Otomatis:',
+                    ),
                     _buildBulletItem(
                       'Informasi Perangkat',
                       'Model perangkat, versi sistem operasi, resolusi layar, dan pengaturan bahasa sistem.',
@@ -403,10 +407,7 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
                     _buildParagraph(
                       'Jika Anda memiliki pertanyaan, saran, atau ingin mengajukan permohonan pelaksanaan hak data pribadi Anda, Anda dapat menghubungi kami melalui:',
                     ),
-                    _buildBulletItem(
-                      'Surel (Email)',
-                      'fauzil3710@gmail.com',
-                    ),
+                    _buildBulletItem('Surel (Email)', 'fauzil3710@gmail.com'),
                     _buildBulletItem(
                       'Repositori GitHub',
                       'github.com/fauzil-uf/foodcura',
@@ -638,7 +639,6 @@ class _PrivacySecurityModalState extends State<PrivacySecurityModal> {
       ),
     );
   }
-
 
   Widget _buildSecurityCard({
     required IconData icon,

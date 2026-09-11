@@ -4,7 +4,7 @@ import '../../../constants/app_date_formatter.dart';
 import '../../../constants/app_typography.dart';
 import '../../../models/user_model.dart';
 
-// Card hero profil user & tanggal bergabung
+/// Card hero profil user & tanggal bergabung
 class ProfileHeroCard extends StatelessWidget {
   final UserModelSQL? user;
   final Color avatarBg;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-// Komponen input teks standar aplikasi dengan dukungan validasi dan toggle password
+/// Komponen input teks standar aplikasi dengan dukungan validasi dan toggle password
 class AppTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hint;

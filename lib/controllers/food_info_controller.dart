@@ -215,12 +215,12 @@ const List<ArticleModel> _kArticles = [
   ),
 ];
 
-/// Controller edukasi Food Info (filter kategori & pencarian artikel).
+//// Controller edukasi Food Info (filter kategori & pencarian artikel).
 class FoodInfoController extends ChangeNotifier {
   final FirestoreService _firestoreService;
 
   FoodInfoController({FirestoreService? firestoreService})
-      : _firestoreService = firestoreService ?? FirestoreService() {
+    : _firestoreService = firestoreService ?? FirestoreService() {
     loadArticles();
   }
 
@@ -257,7 +257,8 @@ class FoodInfoController extends ChangeNotifier {
         // Seeding artikel awal ke Firestore secara otomatis di latar belakang
         _firestoreService.seedArticles(_kArticles).ignore();
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _isLoading = false;
       notifyListeners();
     }

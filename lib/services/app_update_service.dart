@@ -14,7 +14,7 @@ import '../services/app_notifiers.dart';
 /// - Saat buka app: cek versi lokal (offline, tanpa internet) dan tampilkan
 ///   notifikasi lonceng + bottom sheet jika ada perubahan versi.
 /// - Saat user klik "Periksa Pembaruan" manual: cek langsung ke Google Play
-///   Store via In-App Update API (butuh internet + app terinstal dari Play Store).
+////   Store via In-App Update API (butuh internet + app terinstal dari Play Store).
 class AppUpdateService {
   static const String _keyLastSeenVersion = 'last_seen_app_version';
 
@@ -185,7 +185,7 @@ class AppUpdateService {
 
 // ---------------------------------------------------------------------------
 // Enum mode tampilan bottom sheet
-// ---------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
 enum _UpdateMode {
   installed, // Baru saja diperbarui (notif otomatis saat buka app)
   latest, // Sudah versi terbaru (hasil cek manual)
@@ -195,7 +195,7 @@ enum _UpdateMode {
 
 // ---------------------------------------------------------------------------
 // Bottom Sheet universal
-// ---------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
 class _UpdateNoticeSheet extends StatelessWidget {
   final _UpdateMode mode;
   final int? availableVersionCode;
@@ -233,7 +233,10 @@ class _UpdateNoticeSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: _iconBg,
                 shape: BoxShape.circle,
-                border: Border.all(color: _iconColor.withValues(alpha: 0.2), width: 1.5),
+                border: Border.all(
+                  color: _iconColor.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
               ),
               child: Icon(_icon, color: _iconColor, size: 28),
             ),
@@ -255,7 +258,10 @@ class _UpdateNoticeSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: _badgeColor,
                     borderRadius: BorderRadius.circular(6),
@@ -346,81 +352,80 @@ class _UpdateNoticeSheet extends StatelessWidget {
   // ---------- helpers berdasarkan mode ----------
 
   String get _title => switch (mode) {
-        _UpdateMode.installed => 'Pembaruan Aktif',
-        _UpdateMode.latest => 'Aplikasi Terupdate',
-        _UpdateMode.available => 'Update Tersedia',
-        _UpdateMode.error => 'Tidak Dapat Memeriksa',
-      };
+    _UpdateMode.installed => 'Pembaruan Aktif',
+    _UpdateMode.latest => 'Aplikasi Terupdate',
+    _UpdateMode.available => 'Update Tersedia',
+    _UpdateMode.error => 'Tidak Dapat Memeriksa',
+  };
 
   String get _subtitle => switch (mode) {
-        _UpdateMode.installed =>
-          'FoodCura berhasil diperbarui ke ${AppConstants.appVersionDisplay} dengan perbaikan minor & pembaruan sistem.',
-        _UpdateMode.latest =>
-          'FoodCura sudah berada di versi terbaru. Semua fitur dan data nutrisi berjalan optimal.',
-        _UpdateMode.available =>
-          'Versi baru tersedia di Google Play Store. Perbarui sekarang untuk mendapatkan fitur & perbaikan terbaru.',
-        _UpdateMode.error =>
-          'Gagal menghubungi Google Play Store. Pastikan perangkat terhubung ke internet dan aplikasi terinstal dari Play Store.',
-      };
+    _UpdateMode.installed =>
+      'FoodCura berhasil diperbarui ke ${AppConstants.appVersionDisplay} dengan perbaikan minor & pembaruan sistem.',
+    _UpdateMode.latest =>
+      'FoodCura sudah berada di versi terbaru. Semua fitur dan data nutrisi berjalan optimal.',
+    _UpdateMode.available =>
+      'Versi baru tersedia di Google Play Store. Perbarui sekarang untuk mendapatkan fitur & perbaikan terbaru.',
+    _UpdateMode.error =>
+      'Gagal menghubungi Google Play Store. Pastikan perangkat terhubung ke internet dan aplikasi terinstal dari Play Store.',
+  };
 
   String get _infoText => switch (mode) {
-        _UpdateMode.installed =>
-          'Pembaruan sistem & perbaikan minor (${AppConstants.appVersionDisplay})',
-        _UpdateMode.latest =>
-          'Versi ${AppConstants.appVersionDisplay} — Tidak ada pembaruan yang tersedia',
-        _UpdateMode.available =>
-          'Update baru di Play Store — ketuk "Perbarui" untuk memulai',
-        _UpdateMode.error =>
-          'Coba lagi saat perangkat terhubung ke internet',
-      };
+    _UpdateMode.installed =>
+      'Pembaruan sistem & perbaikan minor (${AppConstants.appVersionDisplay})',
+    _UpdateMode.latest =>
+      'Versi ${AppConstants.appVersionDisplay} — Tidak ada pembaruan yang tersedia',
+    _UpdateMode.available =>
+      'Update baru di Play Store — ketuk "Perbarui" untuk memulai',
+    _UpdateMode.error => 'Coba lagi saat perangkat terhubung ke internet',
+  };
 
   String get _ctaLabel => switch (mode) {
-        _UpdateMode.available => 'Perbarui Sekarang',
-        _UpdateMode.error => 'Tutup',
-        _ => mode == _UpdateMode.installed ? 'Mengerti' : 'Tutup',
-      };
+    _UpdateMode.available => 'Perbarui Sekarang',
+    _UpdateMode.error => 'Tutup',
+    _ => mode == _UpdateMode.installed ? 'Mengerti' : 'Tutup',
+  };
 
   IconData get _icon => switch (mode) {
-        _UpdateMode.installed => Icons.system_update_rounded,
-        _UpdateMode.latest => Icons.check_circle_rounded,
-        _UpdateMode.available => Icons.new_releases_rounded,
-        _UpdateMode.error => Icons.cloud_off_rounded,
-      };
+    _UpdateMode.installed => Icons.system_update_rounded,
+    _UpdateMode.latest => Icons.check_circle_rounded,
+    _UpdateMode.available => Icons.new_releases_rounded,
+    _UpdateMode.error => Icons.cloud_off_rounded,
+  };
 
   IconData get _infoIcon => switch (mode) {
-        _UpdateMode.available => Icons.download_rounded,
-        _UpdateMode.error => Icons.wifi_off_rounded,
-        _ => Icons.build_circle_outlined,
-      };
+    _UpdateMode.available => Icons.download_rounded,
+    _UpdateMode.error => Icons.wifi_off_rounded,
+    _ => Icons.build_circle_outlined,
+  };
 
   Color get _iconColor => switch (mode) {
-        _UpdateMode.error => const Color(0xFFE65100),
-        _UpdateMode.available => const Color(0xFF1565C0),
-        _ => AppColors.primary,
-      };
+    _UpdateMode.error => const Color(0xFFE65100),
+    _UpdateMode.available => const Color(0xFF1565C0),
+    _ => AppColors.primary,
+  };
 
   Color get _iconBg => switch (mode) {
-        _UpdateMode.error => const Color(0xFFFFF3E0),
-        _UpdateMode.available => const Color(0xFFE3F2FD),
-        _ => const Color(0xFFE8F5E9),
-      };
+    _UpdateMode.error => const Color(0xFFFFF3E0),
+    _UpdateMode.available => const Color(0xFFE3F2FD),
+    _ => const Color(0xFFE8F5E9),
+  };
 
   Color get _badgeColor => switch (mode) {
-        _UpdateMode.error => const Color(0xFFE65100),
-        _UpdateMode.available => const Color(0xFF1565C0),
-        _ => AppColors.primary,
-      };
+    _UpdateMode.error => const Color(0xFFE65100),
+    _UpdateMode.available => const Color(0xFF1565C0),
+    _ => AppColors.primary,
+  };
 
   Color get _ctaColor => switch (mode) {
-        _UpdateMode.available => const Color(0xFF1565C0),
-        _ => AppColors.primary,
-      };
+    _UpdateMode.available => const Color(0xFF1565C0),
+    _ => AppColors.primary,
+  };
 
   Color get _infoBoxBg => switch (mode) {
-        _UpdateMode.error => const Color(0xFFFFF8F3),
-        _UpdateMode.available => const Color(0xFFF0F7FF),
-        _ => const Color(0xFFF7FAF7),
-      };
+    _UpdateMode.error => const Color(0xFFFFF8F3),
+    _UpdateMode.available => const Color(0xFFF0F7FF),
+    _ => const Color(0xFFF7FAF7),
+  };
 
   Future<void> _onCtaPressed(BuildContext context) async {
     if (mode == _UpdateMode.available) {

@@ -22,7 +22,7 @@ import 'widgets/profile_hero_card.dart';
 import 'widgets/profile_settings_menu.dart';
 import 'widgets/profile_stats_bento.dart';
 
-/// Layar profil pengguna & pengaturan akun.
+//// Layar profil pengguna & pengaturan akun.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -90,12 +90,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     _loadProfileData();
   }
 
-  // Update tampilan saat data profil berubah
+  /// Update tampilan saat data profil berubah
   void _onProfileChanged() {
     if (mounted) setState(() {});
   }
 
-  // Refresh count notifikasi unread
+  /// Refresh count notifikasi unread
   void _onNotifChanged() {
     if (mounted) _profileController.refreshNotifications();
   }
@@ -111,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  // Muat data profil user, streak, dan poin dari database
+  /// Muat data profil user, streak, dan poin dari database
   Future<void> _loadProfileData() async {
     await _profileController.loadProfile();
     if (mounted) {
@@ -119,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // Buka layar notifikasi
+  /// Buka layar notifikasi
   void _openNotifications() {
     Navigator.push(
       context,
@@ -127,14 +127,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     ).then((_) => _profileController.refreshNotifications());
   }
 
-  // Hitung warna latar avatar berdasarkan karakter pertama nama
+  /// Hitung warna latar avatar berdasarkan karakter pertama nama
   Color _getAvatarColor(String name) {
     if (name.isEmpty) return _avatarColors[0];
     final code = name.trim().toUpperCase().codeUnitAt(0);
     return _avatarColors[code % _avatarColors.length];
   }
 
-  // Buka modal edit profil user (nama & email)
+  /// Buka modal edit profil user (nama & email)
   Future<void> _showEditProfileModal() async {
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -152,18 +152,17 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // Buka modal pengaturan notifikasi dan jam makan
+  /// Buka modal pengaturan notifikasi dan jam makan
   void _showNotificationSettings() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) =>
-          NotificationSettingsModal(controller: _profileController),
+      builder: (_) => NotificationSettingsModal(controller: _profileController),
     );
   }
 
-  // Buka modal sinkronisasi Cloud Firestore
+  /// Buka modal sinkronisasi Cloud Firestore
   void _showCloudSyncModal() {
     showModalBottomSheet(
       context: context,
@@ -222,7 +221,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(16),
@@ -230,12 +232,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.access_time_rounded, size: 20, color: AppColors.textGray),
+                      const Icon(
+                        Icons.access_time_rounded,
+                        size: 20,
+                        color: AppColors.textGray,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
-                          child: Text(
+                        child: Text(
                           'Terakhir: $lastSyncText',
-                          style: AppTextStyles.caption.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -249,7 +258,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                       children: [
                         CircularProgressIndicator(color: Color(0xFF5E35B1)),
                         SizedBox(height: 12),
-                        Text('Sedang menyinkronkan data...', style: AppTextStyles.caption),
+                        Text(
+                          'Sedang menyinkronkan data...',
+                          style: AppTextStyles.caption,
+                        ),
                       ],
                     ),
                   )
@@ -264,20 +276,34 @@ class _ProfileScreenState extends State<ProfileScreen>
                         Navigator.of(ctx).pop();
                         if (!mounted) return;
                         if (res.success) {
-                          AppSnackBar.showSuccess(context, res.message ?? 'Cadangan cloud berhasil!');
+                          AppSnackBar.showSuccess(
+                            context,
+                            res.message ?? 'Cadangan cloud berhasil!',
+                          );
                         } else {
-                          AppSnackBar.showError(context, res.message ?? 'Gagal mencadangkan ke cloud.');
+                          AppSnackBar.showError(
+                            context,
+                            res.message ?? 'Gagal mencadangkan ke cloud.',
+                          );
                         }
                         _loadProfileData();
                       },
-                      icon: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
+                      icon: const Icon(
+                        Icons.cloud_upload_outlined,
+                        color: Colors.white,
+                      ),
                       label: const Text(
                         'Cadangkan ke Cloud (Backup)',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5E35B1),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -293,20 +319,34 @@ class _ProfileScreenState extends State<ProfileScreen>
                         Navigator.of(ctx).pop();
                         if (!mounted) return;
                         if (res.success) {
-                          AppSnackBar.showSuccess(context, res.message ?? 'Pemulihan cloud berhasil!');
+                          AppSnackBar.showSuccess(
+                            context,
+                            res.message ?? 'Pemulihan cloud berhasil!',
+                          );
                         } else {
-                          AppSnackBar.showError(context, res.message ?? 'Gagal memulihkan dari cloud.');
+                          AppSnackBar.showError(
+                            context,
+                            res.message ?? 'Gagal memulihkan dari cloud.',
+                          );
                         }
                         _loadProfileData();
                       },
-                      icon: const Icon(Icons.cloud_download_outlined, color: Color(0xFF5E35B1)),
+                      icon: const Icon(
+                        Icons.cloud_download_outlined,
+                        color: Color(0xFF5E35B1),
+                      ),
                       label: const Text(
                         'Pulihkan dari Cloud (Restore)',
-                        style: TextStyle(color: Color(0xFF5E35B1), fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Color(0xFF5E35B1),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFF5E35B1)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -321,7 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // Buka modal ganti kata sandi akun
+  /// Buka modal ganti kata sandi akun
   void _showChangePasswordModal() {
     if (_user?.isGoogleAccount == true) {
       showModalBottomSheet(
@@ -367,9 +407,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(height: 8),
               Text(
                 'Akun Anda (${_user?.email ?? ""}) terdaftar dan diamankan menggunakan Google Sign-In. Pengelolaan keamanan, verifikasi 2 langkah, dan kata sandi dikelola langsung oleh akun Google Anda.',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textGray,
-                ),
+                style: AppTextStyles.body.copyWith(color: AppColors.textGray),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -405,14 +443,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => ChangePasswordModal(
-        user: _user,
-        controller: _profileController,
-      ),
+      builder: (_) =>
+          ChangePasswordModal(user: _user, controller: _profileController),
     );
   }
 
-  // Buka modal kebijakan privasi dan keamanan data
+  /// Buka modal kebijakan privasi dan keamanan data
   void _showPrivacyModal() {
     showModalBottomSheet(
       context: context,
@@ -422,17 +458,17 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // Tampilkan dialog informasi rilis dan versi aplikasi FoodCura
+  /// Tampilkan dialog informasi rilis dan versi aplikasi FoodCura
   void _showAboutAppDialog() {
     showDialog(context: context, builder: (_) => const AboutFoodCuraDialog());
   }
 
-  // Periksa pembaruan langsung ke Google Play Store via In-App Update API
+  /// Periksa pembaruan langsung ke Google Play Store via In-App Update API
   void _showCheckUpdates() {
     AppUpdateService.checkForPlayStoreUpdate(context);
   }
 
-  // Tampilkan halaman lisensi open source pustaka pihak ketiga
+  /// Tampilkan halaman lisensi open source pustaka pihak ketiga
   void _showOpenSourceLicenses() {
     showLicensePage(
       context: context,
@@ -454,7 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // Tampilkan dialog konfirmasi dan proses keluar akun
+  /// Tampilkan dialog konfirmasi dan proses keluar akun
   Future<void> _logout() async {
     final confirm = await AppDialog.showConfirmDialog(
       context: context,
@@ -536,8 +572,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   onChangePassword: _showChangePasswordModal,
                                   onPrivacyPolicy: _showPrivacyModal,
                                   onAboutApp: _showAboutAppDialog,
-                                  onOpenSourceLicenses:
-                                      _showOpenSourceLicenses,
+                                  onOpenSourceLicenses: _showOpenSourceLicenses,
                                   onCheckUpdates: _showCheckUpdates,
                                   onLogout: _logout,
                                   isGoogleAccount:

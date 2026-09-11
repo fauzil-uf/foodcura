@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Desain sistem tipografi aplikasi FoodCura berbasis font "Plus Jakarta Sans".
+//// Desain sistem tipografi aplikasi FoodCura berbasis font "Plus Jakarta Sans".
 class AppTextStyles {
   AppTextStyles._();
 

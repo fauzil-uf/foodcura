@@ -1,4 +1,4 @@
-// Model bahan baku mentah untuk katalog pantry
+/// Model bahan baku mentah untuk katalog pantry
 class PantryIngredientModel {
   final String name;
   final String category;

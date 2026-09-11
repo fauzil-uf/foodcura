@@ -1,11 +1,11 @@
-/// Konstanta konfigurasi global aplikasi, database SQLite, dan kunci SharedPreferences.
+//// Konstanta konfigurasi global aplikasi, database SQLite, dan kunci SharedPreferences.
 class AppConstants {
   AppConstants._();
 
   static const appName = 'FoodCura';
-  static const appVersion = '2.3.1';
-  static const appBuildNumber = '13';
-  static const appVersionDisplay = 'v2.3.1';
+  static const appVersion = '2.3.5';
+  static const appBuildNumber = '14';
+  static const appVersionDisplay = 'v2.3.5';
 
   // Database (SQFLite)
   static const dbName = 'foodcura.db';

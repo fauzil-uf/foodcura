@@ -6,7 +6,7 @@ import '../../controllers/auth_controller.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/app_text_field.dart';
 
-/// Layar pemulihan kata sandi (reset link via email atau reset langsung).
+//// Layar pemulihan kata sandi (reset link via email atau reset langsung).
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -26,7 +26,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  // Kirim link reset password ke email yang diinput
+  /// Kirim link reset password ke email yang diinput
   Future<void> _sendResetLink() async {
     final email = emailController.text.trim();
     if (email.isEmpty) {
@@ -50,7 +50,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Navigator.pop(context);
     } else {
       final err =
-          _authController.errorMessage ?? 'Gagal mengirim email reset password.';
+          _authController.errorMessage ??
+          'Gagal mengirim email reset password.';
       if (err.contains('tidak terdaftar di sistem')) {
         await _showLocalResetDialog(email);
       } else {
@@ -102,9 +103,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Akun untuk $email tersimpan di database lokal perangkat Anda. Masukkan kata sandi baru untuk akun ini.',
-                  style: AppTextStyles.body.copyWith(
-                    color: AppColors.textGray,
-                  ),
+                  style: AppTextStyles.body.copyWith(color: AppColors.textGray),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),

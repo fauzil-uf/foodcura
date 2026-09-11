@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/article_model.dart';
 import '../../widgets/app_food_image.dart';
 
-// Kartu sorotan utama artikel edukasi pilihan (Featured Article)
+/// Kartu sorotan utama artikel edukasi pilihan (Featured Article)
 class FeaturedArticleCard extends StatelessWidget {
   final ArticleModel article;
   final VoidCallback onTap;

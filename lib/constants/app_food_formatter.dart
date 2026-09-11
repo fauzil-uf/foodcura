@@ -1,5 +1,5 @@
 /// Helper pemformat nama makanan dan takaran porsi (Food Tracker).
-/// Mencegah penumpukan kurung ganda dan membedakan varian nama dari takaran porsi.
+//// Mencegah penumpukan kurung ganda dan membedakan varian nama dari takaran porsi.
 class AppFoodFormatter {
   AppFoodFormatter._();
 
@@ -26,8 +26,9 @@ class AppFoodFormatter {
       return clean;
     }
 
-    final portionStr =
-        portion % 1 == 0 ? portion.toInt().toString() : portion.toString();
+    final portionStr = portion % 1 == 0
+        ? portion.toInt().toString()
+        : portion.toString();
 
     final match = RegExp(r'^(.*?)\s*\(([^)]+)\)$').firstMatch(clean);
     if (match != null) {
@@ -74,17 +75,19 @@ class AppFoodFormatter {
   static String cleanDisplayName(String rawName) {
     final trimmed = rawName.trim();
 
-    final doubleParenMatch =
-        RegExp(r'^(.*?)\s*\(([^)]+)\)\s*\(([^)]+)\)$').firstMatch(trimmed);
+    final doubleParenMatch = RegExp(
+      r'^(.*?)\s*\(([^)]+)\)\s*\(([^)]+)\)$',
+    ).firstMatch(trimmed);
     if (doubleParenMatch != null) {
       final baseName = doubleParenMatch.group(1)!.trim();
       final firstInner = doubleParenMatch.group(2)!.trim();
       final secondInner = doubleParenMatch.group(3)!.trim();
 
       if (isPortionUnit(firstInner) && isPortionUnit(secondInner)) {
-        final portionMatch =
-            RegExp(r'^(\d+(?:\.\d+)?)\s*porsi$', caseSensitive: false)
-                .firstMatch(secondInner);
+        final portionMatch = RegExp(
+          r'^(\d+(?:\.\d+)?)\s*porsi$',
+          caseSensitive: false,
+        ).firstMatch(secondInner);
         if (portionMatch != null) {
           final portionVal = double.tryParse(portionMatch.group(1)!) ?? 1.0;
           return formatFoodWithPortion('$baseName ($firstInner)', portionVal);
@@ -97,9 +100,9 @@ class AppFoodFormatter {
       }
     }
 
-    final tripleParenMatch =
-        RegExp(r'^(.*?)\s*\(([^)]+)\)\s*\(([^)]+)\)\s*\(([^)]+)\)$')
-            .firstMatch(trimmed);
+    final tripleParenMatch = RegExp(
+      r'^(.*?)\s*\(([^)]+)\)\s*\(([^)]+)\)\s*\(([^)]+)\)$',
+    ).firstMatch(trimmed);
     if (tripleParenMatch != null) {
       final base = tripleParenMatch.group(1)!.trim();
       final variant = tripleParenMatch.group(2)!.trim();
@@ -107,9 +110,10 @@ class AppFoodFormatter {
       final secondUnit = tripleParenMatch.group(4)!.trim();
 
       if (isPortionUnit(firstUnit) && isPortionUnit(secondUnit)) {
-        final portionMatch =
-            RegExp(r'^(\d+(?:\.\d+)?)\s*porsi$', caseSensitive: false)
-                .firstMatch(secondUnit);
+        final portionMatch = RegExp(
+          r'^(\d+(?:\.\d+)?)\s*porsi$',
+          caseSensitive: false,
+        ).firstMatch(secondUnit);
         if (portionMatch != null) {
           final portionVal = double.tryParse(portionMatch.group(1)!) ?? 1.0;
           return formatFoodWithPortion(

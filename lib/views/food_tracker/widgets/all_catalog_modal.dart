@@ -11,7 +11,7 @@ import '../../../models/food_log_model.dart';
 import '../../widgets/app_food_image.dart';
 import '../../widgets/app_snack_bar.dart';
 
-// Modal katalog makanan lengkap
+/// Modal katalog makanan lengkap
 class AllCatalogModal extends StatefulWidget {
   final String currentMealType;
   final DateTime? targetDate;
@@ -46,7 +46,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     _loadCatalog();
   }
 
-  // Muat seluruh daftar katalog makanan dari database lokal
+  /// Muat seluruh daftar katalog makanan dari database lokal
   Future<void> _loadCatalog() async {
     final list = await _controller.getFoodCatalog();
     if (mounted) {
@@ -58,7 +58,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     }
   }
 
-  // Filter katalog berdasarkan pencarian nama atau kategori (debounced 150ms)
+  /// Filter katalog berdasarkan pencarian nama atau kategori (debounced 150ms)
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 150), () {
@@ -80,7 +80,7 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
     });
   }
 
-  // Tambahkan item makanan dari katalog ke catatan log harian
+  /// Tambahkan item makanan dari katalog ke catatan log harian
   Future<void> _addFoodToLog(FoodItemModel food) async {
     if (_recentlyAddedFoods.contains(food.name)) return;
 
@@ -115,7 +115,8 @@ class _AllCatalogModalState extends State<AllCatalogModal> {
         AppSnackBar.showSuccess(
           context,
           '${food.name} Ditambahkan!',
-          subtitle: '${food.calories} kcal dicatat ke ${widget.currentMealType}',
+          subtitle:
+              '${food.calories} kcal dicatat ke ${widget.currentMealType}',
         );
       }
     }

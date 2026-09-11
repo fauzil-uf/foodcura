@@ -1,4 +1,4 @@
-/// Tingkat keparahan peringatan asupan nutrisi harian.
+//// Tingkat keparahan peringatan asupan nutrisi harian.
 enum NutrientWarningSeverity {
   /// Peringatan waspada (misal: asupan nutrisi mendekati batas harian).
   caution,
@@ -10,7 +10,7 @@ enum NutrientWarningSeverity {
 /// Model representasi data peringatan batas asupan nutrisi harian pengguna.
 ///
 /// Model ini memisahkan data bisnis peringatan dari detail rendering UI (seperti Color atau Icon),
-/// sehingga controller tetap murni dan mematuhi arsitektur MVC.
+//// sehingga controller tetap murni dan mematuhi arsitektur MVC.
 class NutrientWarningModel {
   /// Judul peringatan (misal: 'Peringatan Lemak Tinggi!').
   final String title;

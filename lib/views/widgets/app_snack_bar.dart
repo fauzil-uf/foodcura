@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-// Helper SnackBar seragam untuk seluruh aplikasi
+/// Helper SnackBar seragam untuk seluruh aplikasi
 class AppSnackBar {
   AppSnackBar._();
 
-  // SnackBar sukses
+  /// SnackBar sukses
   static void showSuccess(
     BuildContext context,
     String message, {
@@ -69,7 +69,7 @@ class AppSnackBar {
     );
   }
 
-  // SnackBar peringatan / warning nutrisi
+  /// SnackBar peringatan / warning nutrisi
   static void showWarning(
     BuildContext context, {
     required String title,
@@ -122,7 +122,7 @@ class AppSnackBar {
     );
   }
 
-  // SnackBar error / validasi gagal
+  /// SnackBar error / validasi gagal
   static void showError(
     BuildContext context,
     String message, {
@@ -161,7 +161,7 @@ class AppSnackBar {
     );
   }
 
-  // SnackBar informasi umum
+  /// SnackBar informasi umum
   static void showInfo(
     BuildContext context,
     String message, {

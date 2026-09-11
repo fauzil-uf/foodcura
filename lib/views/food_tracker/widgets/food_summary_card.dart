@@ -9,7 +9,7 @@ import '../../../models/nutrient_warning_model.dart';
 import '../../../services/nutrition_service.dart';
 import '../../widgets/app_circular_progress.dart';
 
-/// Kartu ringkasan kalori & makronutrien harian.
+//// Kartu ringkasan kalori & makronutrien harian.
 class FoodSummaryCard extends StatelessWidget {
   const FoodSummaryCard({
     super.key,
@@ -37,7 +37,7 @@ class FoodSummaryCard extends StatelessWidget {
     final makanMalamLogs = controller.logsForMeal('Makan Malam');
     final camilanLogs = controller.logsForMeal('Camilan');
 
-    // Hitung subtotal kalori per kategori makan menggunakan in-memory fold untuk performa render cepat.
+    /// Hitung subtotal kalori per kategori makan menggunakan in-memory fold untuk performa render cepat.
     int sumCals(List<FoodLogModel> list) =>
         list.fold(0, (sum, item) => sum + item.calories);
 
@@ -316,11 +316,7 @@ class FoodSummaryCard extends StatelessWidget {
                       color: warnColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      warnIcon,
-                      color: warnColor,
-                      size: 20,
-                    ),
+                    child: Icon(warnIcon, color: warnColor, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

@@ -5,7 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../models/article_model.dart';
 import '../../widgets/app_food_image.dart';
 
-// Modal baca artikel edukasi gizi
+/// Modal baca artikel edukasi gizi
 class ArticleDetailModal extends StatelessWidget {
   final ArticleModel article;
 
@@ -157,7 +157,7 @@ class ArticleDetailModal extends StatelessWidget {
   }
 }
 
-// Parser dan perender konten teks artikel dengan dukungan format markdown bold & numbered list
+/// Parser dan perender konten teks artikel dengan dukungan format markdown bold & numbered list
 class _ArticleContentRenderer extends StatelessWidget {
   final String content;
   const _ArticleContentRenderer({required this.content});
@@ -187,7 +187,7 @@ class _ArticleContentRenderer extends StatelessWidget {
     );
   }
 
-  // Item daftar bernomor
+  /// Item daftar bernomor
   Widget _buildListItem(String number, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,12 +215,12 @@ class _ArticleContentRenderer extends StatelessWidget {
     );
   }
 
-  // Paragraf teks dengan dukungan format tebal
+  /// Paragraf teks dengan dukungan format tebal
   Widget _buildRichParagraph(String text) {
     return RichText(text: TextSpan(children: _parseInline(text)));
   }
 
-  // Parse token format teks tebal (**teks**)
+  /// Parse token format teks tebal (**teks**)
   List<TextSpan> _parseInline(String text) {
     final spans = <TextSpan>[];
     final regex = RegExp(r'\*\*(.+?)\*\*');

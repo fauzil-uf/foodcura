@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 
-// Baris filter chip horizontal
+/// Baris filter chip horizontal
 class AppFilterChipRow extends StatelessWidget {
   const AppFilterChipRow({
     super.key,
