@@ -171,6 +171,11 @@ class NotificationService {
       if (androidImplementation != null) {
         final granted = await androidImplementation
             .requestNotificationsPermission();
+        try {
+          await androidImplementation.requestExactAlarmsPermission();
+        } catch (e) {
+          debugPrint('Error requesting exact alarm permission: $e');
+        }
         return granted ?? false;
       }
 

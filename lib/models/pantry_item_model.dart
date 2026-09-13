@@ -76,6 +76,7 @@ class PantryItemModel {
     return {
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (firestoreId != null) 'firestore_id': firestoreId,
       'name': name,
       'quantity': quantity,
       'unit': unit,

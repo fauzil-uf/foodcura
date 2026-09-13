@@ -270,7 +270,10 @@ class FoodTrackerController extends ChangeNotifier
     // Sinkronisasi catatan makan ke Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      await FirestoreService.instance.addFoodLog(uid, logWithId);
+      final firestoreId = await FirestoreService.instance.addFoodLog(uid, logWithId);
+      if (firestoreId != null) {
+        await _db.updateFoodLog(logWithId.copyWith(firestoreId: firestoreId));
+      }
     } catch (e) {
       debugPrint(
         '[FoodTrackerController] Gagal sync addFoodLog ke Firestore: $e',
@@ -316,7 +319,10 @@ class FoodTrackerController extends ChangeNotifier
     // Sinkronisasi update ke Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      await FirestoreService.instance.addFoodLog(uid, logWithUser);
+      final firestoreId = await FirestoreService.instance.addFoodLog(uid, logWithUser);
+      if (firestoreId != null && logWithUser.firestoreId != firestoreId) {
+        await _db.updateFoodLog(logWithUser.copyWith(firestoreId: firestoreId));
+      }
     } catch (e) {
       debugPrint(
         '[FoodTrackerController] Gagal sync updateFoodLog ke Firestore: $e',
@@ -343,21 +349,39 @@ class FoodTrackerController extends ChangeNotifier
 
   /// Menghapus log makanan berdasarkan id
   Future<void> deleteFoodLog(int id) async {
+    final activeUserId = await _db.getActiveUserId();
+    final logs = await _db.getFoodLogs(userId: activeUserId);
+    final targetLog = logs.where((l) => l.id == id).firstOrNull ?? _allLogs.where((l) => l.id == id).firstOrNull;
+
     // Optimistic UI update: hapus seketika dari RAM agar UI instan merespons
     _allLogs.removeWhere((l) => l.id == id);
     _calculateWarnings();
     notifyListeners();
 
-    final activeUserId = await _db.getActiveUserId();
-    final logs = await _db.getFoodLogs(userId: activeUserId);
-    final targetLog = logs.where((l) => l.id == id).firstOrNull;
-
     await _db.deleteFoodLog(id, userId: activeUserId);
+
+    final firestoreDocId = targetLog?.firestoreId ?? 'foodlog_$id';
+
+    // Simpan ID yang dihapus ke SharedPreferences agar tidak bangkit kembali saat sync cloud berjalan
+    if (activeUserId != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final deletedKey = 'deleted_food_logs_$activeUserId';
+        final deletedList = prefs.getStringList(deletedKey) ?? [];
+        if (!deletedList.contains(firestoreDocId)) {
+          deletedList.add(firestoreDocId);
+          if (deletedList.length > 200) {
+            deletedList.removeRange(0, deletedList.length - 200);
+          }
+          await prefs.setStringList(deletedKey, deletedList);
+        }
+      } catch (_) {}
+    }
 
     // Hapus dari Firestore
     try {
       final uid = AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
-      await FirestoreService.instance.deleteFoodLog(uid, 'foodlog_$id');
+      await FirestoreService.instance.deleteFoodLog(uid, firestoreDocId);
     } catch (e) {
       debugPrint(
         '[FoodTrackerController] Gagal sync deleteFoodLog ke Firestore: $e',

@@ -5,6 +5,7 @@ import '../../../constants/app_typography.dart';
 import '../../../controllers/profile_controller.dart';
 import '../../widgets/app_snack_bar.dart';
 import '../../widgets/app_wheel_time_picker.dart';
+import '../../../services/notification_service.dart';
 
 /// Modal pengaturan preferensi notifikasi
 class NotificationSettingsModal extends StatefulWidget {
@@ -478,6 +479,44 @@ class _NotificationSettingsModalState extends State<NotificationSettingsModal>
                         'Simpan Pengaturan',
                         style: AppTextStyles.buttonSmall,
                       ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                icon: const Icon(Icons.notifications_active_rounded, color: AppColors.primary, size: 18),
+                label: const Text(
+                  'Tes Notifikasi Saat App Ditutup (10 Detik)',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                onPressed: () async {
+                  await NotificationService.instance.scheduleFutureNotification(
+                    id: 99999,
+                    title: '🔔 FoodCura: Notifikasi Berhasil!',
+                    body: 'Hebat! Notifikasi terjadwal berhasil berdering saat aplikasi ditutup.',
+                    scheduledDateTime: DateTime.now().add(const Duration(seconds: 10)),
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Notifikasi dijadwalkan dalam 10 detik!',
+                      subtitle: 'Segera swipe close aplikasi sekarang dan tunggu 10 detik.',
+                    );
+                  }
+                },
               ),
             ),
           ],

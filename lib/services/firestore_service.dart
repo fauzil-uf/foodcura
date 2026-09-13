@@ -431,7 +431,8 @@ class FirestoreService {
     if (firestore == null) return null;
 
     try {
-      final docId = log.id != null ? 'foodlog_${log.id}' : null;
+      final docId =
+          log.firestoreId ?? (log.id != null ? 'foodlog_${log.id}' : null);
       final collection = firestore
           .collection(colUsers)
           .doc(uid)
@@ -494,18 +495,51 @@ class FirestoreService {
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
+        final rawId =
+            (data['id'] as num?)?.toInt() ??
+            (doc.id.startsWith('foodlog_')
+                ? int.tryParse(doc.id.replaceFirst('foodlog_', ''))
+                : null);
         return FoodLogModel(
-          foodName: data['food_name'] as String? ?? '',
-          mealType: data['meal_type'] as String? ?? '',
-          calories: (data['calories'] as num?)?.toInt() ?? 0,
-          protein: (data['protein'] as num?)?.toDouble() ?? 0.0,
-          carbs: (data['carbs'] as num?)?.toDouble() ?? 0.0,
-          fat: (data['fat'] as num?)?.toDouble() ?? 0.0,
-          cholesterol: (data['cholesterol'] as num?)?.toDouble() ?? 0.0,
-          imagePath: data['image_path'] as String? ?? '',
-          time: data['time'] as String? ?? '',
-          date: data['date'] as String? ?? date,
-          note: data['note'] as String?,
+          id: rawId,
+          firestoreId: doc.id,
+          foodName:
+              data['food_name']?.toString() ??
+              data['foodName']?.toString() ??
+              data['nama']?.toString() ??
+              '',
+          mealType:
+              data['meal_type']?.toString() ??
+              data['mealType']?.toString() ??
+              data['kategori']?.toString() ??
+              'Lainnya',
+          calories:
+              (data['calories'] ?? data['kalori'] as num?)?.toInt() ??
+              _parseDouble(data['calories'] ?? data['kalori'], 0.0).toInt(),
+          protein: _parseDouble(data['protein'], 0.0),
+          carbs: _parseDouble(
+            data['carbs'] ?? data['karbo'] ?? data['karbohidrat'],
+            0.0,
+          ),
+          fat: _parseDouble(data['fat'] ?? data['lemak'], 0.0),
+          cholesterol: _parseDouble(
+            data['cholesterol'] ?? data['kolesterol'],
+            0.0,
+          ),
+          imagePath:
+              data['image_path']?.toString() ??
+              data['imagePath']?.toString() ??
+              '',
+          time:
+              data['time']?.toString() ??
+              data['waktu']?.toString() ??
+              data['jam']?.toString() ??
+              '',
+          date:
+              data['date']?.toString() ??
+              data['tanggal']?.toString() ??
+              date,
+          note: data['note']?.toString() ?? data['catatan']?.toString(),
         );
       }).toList();
     } catch (e) {

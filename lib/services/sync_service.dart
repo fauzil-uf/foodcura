@@ -5,6 +5,7 @@ import '../constants/app_constants.dart';
 import '../database/db_helper.dart';
 import 'app_notifiers.dart';
 import 'auth_service.dart';
+import 'connectivity_service.dart';
 import 'firestore_service.dart';
 
 //// Status hasil sinkronisasi Cloud
@@ -58,6 +59,14 @@ class SyncService extends ChangeNotifier {
 
   /// Backup seluruh data SQLite lokal pengguna ke Cloud Firestore
   Future<SyncResult> backupAllToCloud({String? explicitUid}) async {
+    if (!ConnectivityService.instance.isOnline) {
+      return const SyncResult(
+        success: false,
+        message:
+            'Tidak ada koneksi internet. Pastikan perangkat Anda terhubung ke internet.',
+      );
+    }
+
     if (_isSyncing) {
       return const SyncResult(
         success: false,
@@ -165,6 +174,14 @@ class SyncService extends ChangeNotifier {
   /// Memulihkan data dari Cloud Firestore ke database SQLite lokal
   /// (Sangat berguna saat pengguna login di perangkat baru / instal ulang aplikasi)
   Future<SyncResult> restoreFromCloud({String? explicitUid}) async {
+    if (!ConnectivityService.instance.isOnline) {
+      return const SyncResult(
+        success: false,
+        message:
+            'Tidak ada koneksi internet. Pastikan perangkat Anda terhubung ke internet.',
+      );
+    }
+
     if (_isSyncing) {
       return const SyncResult(
         success: false,
@@ -218,6 +235,9 @@ class SyncService extends ChangeNotifier {
       for (final cItem in cloudPantry) {
         final existingIndex = localPantry.indexWhere(
           (l) =>
+              (l.firestoreId != null &&
+                  cItem.firestoreId != null &&
+                  l.firestoreId == cItem.firestoreId) ||
               (cItem.id != null && l.id == cItem.id) ||
               (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
                   l.storage.toLowerCase().trim() ==
@@ -232,7 +252,7 @@ class SyncService extends ChangeNotifier {
             _firestore
                 .updatePantryItem(
                   uid,
-                  'pantry_${local.id}',
+                  local.firestoreId ?? 'pantry_${local.id}',
                   local.copyWith(isUsed: true),
                 )
                 .ignore();
@@ -242,6 +262,7 @@ class SyncService extends ChangeNotifier {
             pantryRestored++;
           } else if (!cItem.isUsed && !local.isUsed) {
             final hasChanged =
+                local.firestoreId != cItem.firestoreId ||
                 local.quantity != cItem.quantity ||
                 local.name.trim() != cItem.name.trim() ||
                 local.storage != cItem.storage ||
@@ -252,13 +273,22 @@ class SyncService extends ChangeNotifier {
 
             if (hasChanged) {
               await _db.updatePantryItem(
-                cItem.copyWith(id: local.id, userId: targetUserId),
+                cItem.copyWith(
+                  id: local.id,
+                  userId: targetUserId,
+                  firestoreId: cItem.firestoreId ?? local.firestoreId,
+                ),
               );
               pantryRestored++;
             }
           }
         } else if (!cItem.isUsed) {
-          await _db.addPantryItem(cItem.copyWith(userId: targetUserId));
+          await _db.addPantryItem(
+            cItem.copyWith(
+              userId: targetUserId,
+              firestoreId: cItem.firestoreId,
+            ),
+          );
           pantryRestored++;
         }
       }
@@ -267,9 +297,25 @@ class SyncService extends ChangeNotifier {
       int logsRestored = 0;
       final localLogs = await _db.getFoodLogs(userId: targetUserId);
       final cloudLogs = await _firestore.getFoodLogs(uid);
+      final deletedFoodLogsKey = 'deleted_food_logs_$targetUserId';
+      final prefs = await SharedPreferences.getInstance();
+      final deletedFoodLogSet =
+          (prefs.getStringList(deletedFoodLogsKey) ?? []).toSet();
+
       for (final cLog in cloudLogs) {
+        final cDocId =
+            cLog.firestoreId ??
+            (cLog.id != null ? 'foodlog_${cLog.id}' : null);
+        if (cDocId != null && deletedFoodLogSet.contains(cDocId)) {
+          _firestore.deleteFoodLog(uid, cDocId).ignore();
+          continue;
+        }
+
         final existingIndex = localLogs.indexWhere(
           (l) =>
+              (l.firestoreId != null &&
+                  cLog.firestoreId != null &&
+                  l.firestoreId == cLog.firestoreId) ||
               (cLog.id != null && l.id == cLog.id) ||
               (l.foodName.toLowerCase().trim() ==
                       cLog.foodName.toLowerCase().trim() &&
@@ -280,6 +326,7 @@ class SyncService extends ChangeNotifier {
         if (existingIndex != -1) {
           final local = localLogs[existingIndex];
           final hasChanged =
+              local.firestoreId != cLog.firestoreId ||
               local.foodName != cLog.foodName ||
               local.calories != cLog.calories ||
               local.protein != cLog.protein ||
@@ -289,12 +336,21 @@ class SyncService extends ChangeNotifier {
               local.note != cLog.note;
           if (hasChanged) {
             await _db.updateFoodLog(
-              cLog.copyWith(id: local.id, userId: targetUserId),
+              cLog.copyWith(
+                id: local.id,
+                userId: targetUserId,
+                firestoreId: cLog.firestoreId ?? local.firestoreId,
+              ),
             );
             logsRestored++;
           }
         } else {
-          await _db.insertFoodLog(cLog.copyWith(userId: targetUserId));
+          await _db.insertFoodLog(
+            cLog.copyWith(
+              userId: targetUserId,
+              firestoreId: cLog.firestoreId,
+            ),
+          );
           logsRestored++;
         }
       }
@@ -421,7 +477,6 @@ class SyncService extends ChangeNotifier {
       await EcoPointsNotifier.instance.refresh();
 
       _lastSyncTime = DateTime.now();
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyLastSync, _lastSyncTime!.toIso8601String());
 
       return SyncResult(
@@ -446,6 +501,7 @@ class SyncService extends ChangeNotifier {
 
   /// Sinkronisasi cepat profil user & poin dari Cloud Firestore ke database lokal
   Future<bool> syncUserProfileFromCloud({String? explicitUid}) async {
+    if (!ConnectivityService.instance.isOnline) return false;
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
@@ -500,6 +556,7 @@ class SyncService extends ChangeNotifier {
 
   /// Sinkronisasi cepat inventaris pantry dari Cloud Firestore ke SQLite lokal
   Future<int> syncPantryFromCloud({String? explicitUid}) async {
+    if (!ConnectivityService.instance.isOnline) return 0;
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
@@ -519,6 +576,9 @@ class SyncService extends ChangeNotifier {
       for (final cItem in cloudPantry) {
         final existingIndex = localPantry.indexWhere(
           (l) =>
+              (l.firestoreId != null &&
+                  cItem.firestoreId != null &&
+                  l.firestoreId == cItem.firestoreId) ||
               (cItem.id != null && l.id == cItem.id) ||
               (l.name.toLowerCase().trim() == cItem.name.toLowerCase().trim() &&
                   l.storage.toLowerCase().trim() ==
@@ -533,7 +593,7 @@ class SyncService extends ChangeNotifier {
             _firestore
                 .updatePantryItem(
                   uid,
-                  'pantry_${local.id}',
+                  local.firestoreId ?? 'pantry_${local.id}',
                   local.copyWith(isUsed: true),
                 )
                 .ignore();
@@ -543,6 +603,7 @@ class SyncService extends ChangeNotifier {
             changeCount++;
           } else if (!cItem.isUsed && !local.isUsed) {
             final hasChanged =
+                local.firestoreId != cItem.firestoreId ||
                 local.quantity != cItem.quantity ||
                 local.name.trim() != cItem.name.trim() ||
                 local.storage != cItem.storage ||
@@ -553,13 +614,22 @@ class SyncService extends ChangeNotifier {
 
             if (hasChanged) {
               await _db.updatePantryItem(
-                cItem.copyWith(id: local.id, userId: targetUserId),
+                cItem.copyWith(
+                  id: local.id,
+                  userId: targetUserId,
+                  firestoreId: cItem.firestoreId ?? local.firestoreId,
+                ),
               );
               changeCount++;
             }
           }
         } else if (!cItem.isUsed) {
-          await _db.addPantryItem(cItem.copyWith(userId: targetUserId));
+          await _db.addPantryItem(
+            cItem.copyWith(
+              userId: targetUserId,
+              firestoreId: cItem.firestoreId,
+            ),
+          );
           changeCount++;
         }
       }
@@ -576,6 +646,7 @@ class SyncService extends ChangeNotifier {
 
   /// Sinkronisasi cepat catatan makan dari Cloud Firestore ke SQLite lokal
   Future<int> syncFoodLogsFromCloud({String? explicitUid}) async {
+    if (!ConnectivityService.instance.isOnline) return 0;
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;
@@ -590,11 +661,26 @@ class SyncService extends ChangeNotifier {
       if (cloudLogs.isEmpty) return 0;
 
       final localLogs = await _db.getFoodLogs(userId: targetUserId);
+      final deletedFoodLogsKey = 'deleted_food_logs_$targetUserId';
+      final prefs = await SharedPreferences.getInstance();
+      final deletedFoodLogSet =
+          (prefs.getStringList(deletedFoodLogsKey) ?? []).toSet();
       int changeCount = 0;
 
       for (final cLog in cloudLogs) {
+        final cDocId =
+            cLog.firestoreId ??
+            (cLog.id != null ? 'foodlog_${cLog.id}' : null);
+        if (cDocId != null && deletedFoodLogSet.contains(cDocId)) {
+          _firestore.deleteFoodLog(uid, cDocId).ignore();
+          continue;
+        }
+
         final existingIndex = localLogs.indexWhere(
           (l) =>
+              (l.firestoreId != null &&
+                  cLog.firestoreId != null &&
+                  l.firestoreId == cLog.firestoreId) ||
               (cLog.id != null && l.id == cLog.id) ||
               (l.foodName.toLowerCase().trim() ==
                       cLog.foodName.toLowerCase().trim() &&
@@ -605,6 +691,7 @@ class SyncService extends ChangeNotifier {
         if (existingIndex != -1) {
           final local = localLogs[existingIndex];
           final hasChanged =
+              local.firestoreId != cLog.firestoreId ||
               local.foodName != cLog.foodName ||
               local.calories != cLog.calories ||
               local.protein != cLog.protein ||
@@ -616,12 +703,21 @@ class SyncService extends ChangeNotifier {
               local.note != cLog.note;
           if (hasChanged) {
             await _db.updateFoodLog(
-              cLog.copyWith(id: local.id, userId: targetUserId),
+              cLog.copyWith(
+                id: local.id,
+                userId: targetUserId,
+                firestoreId: cLog.firestoreId ?? local.firestoreId,
+              ),
             );
             changeCount++;
           }
         } else {
-          await _db.insertFoodLog(cLog.copyWith(userId: targetUserId));
+          await _db.insertFoodLog(
+            cLog.copyWith(
+              userId: targetUserId,
+              firestoreId: cLog.firestoreId,
+            ),
+          );
           changeCount++;
         }
       }
@@ -640,6 +736,7 @@ class SyncService extends ChangeNotifier {
 
   /// Sinkronisasi cepat notifikasi dari Cloud Firestore ke SQLite lokal
   Future<int> syncNotificationsFromCloud({String? explicitUid}) async {
+    if (!ConnectivityService.instance.isOnline) return 0;
     try {
       final user = await _db.getLoggedInUser();
       final targetUserId = user?.id;

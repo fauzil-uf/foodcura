@@ -10,7 +10,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-%23039BE5.svg?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com)
 [![SQLite](https://img.shields.io/badge/SQLite-%2307405E.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Google Gemini AI](https://img.shields.io/badge/Google%20Gemini%20AI-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)](https://ai.google.dev)
-[![Version](https://img.shields.io/badge/Version-v2.3.6-blue?style=for-the-badge)](pubspec.yaml)
+[![Version](https://img.shields.io/badge/Version-v2.3.7-blue?style=for-the-badge)](pubspec.yaml)
 [![Tests](https://img.shields.io/badge/Tests-96%20Passed-2ea44f?style=for-the-badge&logo=flutter&logoColor=white)](test/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](#-kontribusi--pedoman-pengembangan)
@@ -72,7 +72,7 @@ Dengan mengintegrasikan tabel komposisi pangan Indonesia (TKPI), pelacak masa ke
 ### 4. 🤖 Asisten Cerdas Google Gemini AI
 * **AI Daily Nutrition Coach**: Analisis otomatis asupan harian dengan rekomendasi menu sehat berikutnya yang dipersonalisasi.
 * **AI Interactive Mini Quiz**: Generator 5 soal kuis pilihan ganda edukatif seputar gizi dan pencegahan *food waste* dengan mode JSON terstruktur (*Structured Output*), bobot panjang opsi seimbang, dan reward +10 Eco Points per jawaban benar.
-* **Multi-Model Fallback Chain**: Rangkaian fallback model cerdas (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-flash-latest`) serta *Curated Offline Pool* sehingga aplikasi tetap berfungsi normal tanpa koneksi internet.
+* **Multi-Model Fallback Chain**: Rangkaian fallback model cerdas (`gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-flash-latest`, `gemini-flash-lite-latest`) serta *Curated Offline Pool* sehingga aplikasi tetap berfungsi normal tanpa koneksi internet.
 
 ### 5. 📚 Food Info & Edukasi Gizi
 * **Artikel & Panduan Praktis**: Kumpulan artikel edukasi gizi seimbang, tips penyimpanan bahan makanan di kulkas, dan panduan *meal prep* hemat.
@@ -311,7 +311,23 @@ Kontribusi dari komunitas sangat terbuka! Jika Anda ingin berkontribusi:
 
 ## 📋 Changelog
 
-### **v2.3.6** — SQLite Schema Hardening, Cross-Device Provisioning & Asset Sync Resilience *(Current)*
+### **v2.3.7** — Cross-Tab Sync Hardening, Play Store Compliance, Offline-First Resilience & Gemini Multi-Model Cascade *(Current)*
+#### [Fixed & Enhanced]
+* **Sinkronisasi Data Seluruh Tab & Cloud Firestore (Zero Ghost Data)**:
+  - Mengatasi desinkronisasi saat menandai bahan dimasak dari Dashboard (`markPantryItemUsed`), sehingga status `isUsed: true` langsung disinkronkan ke Cloud Firestore dan menyiarkan `PantryUpdateNotifier`.
+  - Mengintegrasikan penambahan `EcoPointsNotifier.instance.addPoints(5)` secara otomatis saat bahan makanan belum kedaluwarsa dimasak/digunakan dari tab Pantry maupun Dashboard.
+  - Menambahkan tracking ID log makanan terhapus di `SharedPreferences` saat offline untuk mencegah pemulihan kembali (*ghost resurrects*) ketika sinkronisasi cloud berjalan.
+* **Kepatuhan Kebijakan Google Play Store (Alarm & Reminder)**:
+  - Menghapus izin sensitif `USE_EXACT_ALARM` dari AndroidManifest.xml guna mencegah penolakan Play Store; mengoptimalkan penggunaan izin resmi `SCHEDULE_EXACT_ALARM` dan fallback `inexactAllowWhileIdle` yang ramah baterai.
+* **Ketangguhan Mode Offline & Auto-Sync Jaringan**:
+  - Menambahkan validasi `ConnectivityService.instance.isOnline` sebelum menjalankan pencadangan/pemulihan manual agar tidak mengalami *timeout* atau *socket exception*.
+  - Menambahkan pemulihan otomatis (*auto-sync background*) di `AppConnectivityBanner` saat perangkat beralih dari offline kembali ke online.
+* **Konfigurasi Gemini AI Terdepan**:
+  - Memperbarui rantai fallback model Gemini di [gemini_service.dart](lib/services/gemini_service.dart) dengan prioritas `gemini-3.8-flash`, `gemini-3.7-flash`, didukung alias auto-adjusting `gemini-flash-latest` dan varian paling bawah `gemini-flash-lite-latest`.
+* **Pembaruan Versi**:
+  - Menaikkan versi aplikasi menjadi `version: 2.3.7+16` di [pubspec.yaml](pubspec.yaml) dan [app_constants.dart](lib/constants/app_constants.dart).
+
+### **v2.3.6** — SQLite Schema Hardening, Cross-Device Provisioning & Asset Sync Resilience
 #### [Fixed & Enhanced]
 * **Hardening Skema SQLite & Sinkronisasi Cloud Firestore**:
   - Menyelaraskan skema tabel SQLite `pantry_items` (`image_url`, `firestore_id`) dan `food_logs` (`firestore_id`) dengan migrasi otomatis `ensureTableColumns` saat inisialisasi database.

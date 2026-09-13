@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_typography.dart';
 import '../../services/connectivity_service.dart';
+import '../../services/sync_service.dart';
 
 /// Floating Connectivity Banner ala Google Chrome di bagian atas layar.
 //// Menampilkan indikator saat perangkat offline dan pita pemulihan saat kembali online.
@@ -56,6 +57,12 @@ class _AppConnectivityBannerState extends State<AppConnectivityBanner> {
       setState(() {
         _showBackOnline = true;
       });
+
+      // Otomatis sinkronisasi data dari cloud saat koneksi internet pulih
+      SyncService.instance.syncUserProfileFromCloud().ignore();
+      SyncService.instance.syncPantryFromCloud().ignore();
+      SyncService.instance.syncFoodLogsFromCloud().ignore();
+      SyncService.instance.syncNotificationsFromCloud().ignore();
 
       _dismissTimer = Timer(const Duration(milliseconds: 2800), () {
         if (mounted) {

@@ -864,6 +864,22 @@ class DBHelper {
     return results.map((map) => PantryItemModel.fromMap(map)).toList();
   }
 
+  /// Ambil 1 item bahan pantry berdasarkan ID
+  Future<PantryItemModel?> getPantryItemById(int id, {int? userId}) async {
+    final targetUserId = userId ?? await getActiveUserId();
+    final db = await database;
+    final results = await db.query(
+      tablePantryItems,
+      where: targetUserId != null
+          ? 'id = ? AND (user_id = ? OR user_id = 0 OR user_id IS NULL)'
+          : 'id = ?',
+      whereArgs: targetUserId != null ? [id, targetUserId] : [id],
+      limit: 1,
+    );
+    if (results.isEmpty) return null;
+    return PantryItemModel.fromMap(results.first);
+  }
+
   /// Ambil seluruh bahan pantry user (termasuk yang is_used = 1) untuk keperluan sinkronisasi
   Future<List<PantryItemModel>> getAllPantryItemsRaw({int? userId}) async {
     final targetUserId = userId ?? await getActiveUserId();

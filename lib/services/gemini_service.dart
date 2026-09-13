@@ -183,6 +183,18 @@ class GeminiService {
     }).toList();
   }
 
+  /// Model Gemini yang digunakan secara berjenjang:
+  /// 1. 'gemini-3.8-flash': model generasi 3.8 terdepan
+  /// 2. 'gemini-3.7-flash': model generasi 3.7
+  /// 3. 'gemini-flash-latest': alias resmi yang selalu otomatis menyesuaikan ke versi Flash terbaru
+  /// 4. 'gemini-flash-lite-latest': alias resmi untuk versi paling bawah/ringan (Lite) yang otomatis auto-adjust
+  static const List<String> _geminiModels = [
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+  ];
+
   /// Menghasilkan 5 butir soal kuis edukatif seputar nutrisi & pencegahan food waste.
   /// Menggunakan REST API Google Gemini jika perangkat terhubung ke internet dan API key tersedia,
   /// serta otomatis fallback ke kumpulan soal offline kurasi jika offline.
@@ -222,13 +234,7 @@ Kembalikan HANYA array JSON murni:
 ]
 ''';
 
-      final models = [
-        'gemini-3.7-flash',
-        'gemini-3.6-flash',
-        'gemini-flash-latest',
-      ];
-
-      for (final model in models) {
+      for (final model in _geminiModels) {
         try {
           final url = Uri.parse(
             'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
@@ -311,13 +317,7 @@ Sebagai Nutrition Coach cerdas di aplikasi FoodCura, berikan analisis singkat da
 Tuliskan evaluasi dalam Bahasa Indonesia yang santai, edukatif, dan langsung memberi solusi menu untuk makanan selanjutnya. Kembalikan teks saran langsung tanpa format JSON/markdown.
 ''';
 
-      final models = [
-        'gemini-3.7-flash',
-        'gemini-3.6-flash',
-        'gemini-flash-latest',
-      ];
-
-      for (final model in models) {
+      for (final model in _geminiModels) {
         try {
           final url = Uri.parse(
             'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',

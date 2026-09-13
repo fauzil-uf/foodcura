@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../constants/app_date_formatter.dart';
 import '../database/db_helper.dart';
-import '../models/food_log_model.dart';
 import '../models/notification_model.dart';
 import 'auth_service.dart';
 import 'firestore_service.dart';
@@ -662,8 +661,8 @@ class ReminderService {
       );
     }
 
-    await syncMealAlarms();
-    await syncPantryExpiryAlarms(userId: targetUserId);
+    await syncMealAlarms(userId: targetUserId, force: true);
+    await syncPantryExpiryAlarms(userId: targetUserId, force: true);
   }
 
   /// Mensinkronkan seluruh jadwal notifikasi pengingat jam makan harian ke sistem operasi
@@ -681,16 +680,8 @@ class ReminderService {
         prefs.getBool(AppConstants.keyNotifDailyMealLog) ?? true;
 
     final targetUserId = userId ?? await _db.getActiveUserId();
-    final todayStr = AppDateFormatter.formatToday();
     final todayDateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-
-    List<FoodLogModel> todayLogs = [];
-    if (targetUserId != null) {
-      try {
-        todayLogs = await _db.getFoodLogs(date: todayStr, userId: targetUserId);
-      } catch (_) {}
-    }
 
     for (var i = 0; i < mealConfigs.length; i++) {
       final meal = mealConfigs[i];
@@ -705,22 +696,29 @@ class ReminderService {
       }
 
       final mealType = meal['type']!;
-      bool alreadyDoneToday = false;
-      if (targetUserId != null) {
-        final dismissedKey = 'dismissed_meal_${targetUserId}_$mealType';
-        if (prefs.getString(dismissedKey) == todayDateStr) {
-          alreadyDoneToday = true;
-        } else if (todayLogs.any(
-          (l) => l.mealType.toLowerCase() == mealType.toLowerCase(),
-        )) {
-          alreadyDoneToday = true;
-        }
-      }
-
       final timeStr = prefs.getString(meal['timeKey']!) ?? meal['defaultTime']!;
       final parts = timeStr.split(':');
       final targetHour = int.tryParse(parts[0]) ?? 12;
       final targetMinute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final scheduledToday = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        targetHour,
+        targetMinute,
+      );
+
+      bool alreadyDoneToday = false;
+      // Jika jam jadwal sudah lewat hari ini, jadwalkan untuk besok
+      if (scheduledToday.isBefore(now)) {
+        alreadyDoneToday = true;
+      } else if (targetUserId != null) {
+        // Jika belum lewat tapi pengguna sudah mendismiss pengingat secara manual hari ini
+        final dismissedKey = 'dismissed_meal_${targetUserId}_$mealType';
+        if (prefs.getString(dismissedKey) == todayDateStr) {
+          alreadyDoneToday = true;
+        }
+      }
 
       await _notificationService.scheduleDailyMealNotification(
         id: systemNotifId,

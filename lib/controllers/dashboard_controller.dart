@@ -110,11 +110,38 @@ class DashboardController extends ChangeNotifier {
 
   /// Menandai bahan makanan di pantry sudah digunakan langsung dari Dashboard
   Future<void> markPantryItemUsed(int id) async {
-    await _db.markPantryItemUsed(id);
-    await _db.deleteNotificationsByPantryId(id);
+    final targetItem = await _db.getPantryItemById(id);
+    final activeUserId = await _db.getActiveUserId();
+    await _db.markPantryItemUsed(id, userId: activeUserId);
+
+    // Sinkronisasi status terpakai ke Firestore agar konsisten dengan cloud
+    if (targetItem != null) {
+      try {
+        final uid =
+            AuthService.instance.currentUser?.uid ?? 'user_$activeUserId';
+        final firestoreDocId = targetItem.firestoreId ?? 'pantry_$id';
+        await FirestoreService.instance.updatePantryItem(
+          uid,
+          firestoreDocId,
+          targetItem.copyWith(isUsed: true),
+        );
+      } catch (e) {
+        debugPrint(
+          '[DashboardController] Gagal sync markPantryItemUsed ke Firestore: $e',
+        );
+      }
+    }
+
+    // Tambahkan Eco Points jika bahan dimasak sebelum kedaluwarsa (mencegah food waste)
+    if (targetItem != null && targetItem.daysUntilExpiry >= 0) {
+      await EcoPointsNotifier.instance.addPoints(5);
+    }
+
+    await _db.deleteNotificationsByPantryId(id, userId: activeUserId);
     await NotificationService.instance.cancelPantryNotifications(id);
     await _reminderService.syncPantryExpiryAlarms();
     await NotificationNotifier.instance.refresh();
+    PantryUpdateNotifier.instance.notifyPantryChanged();
     await loadDashboardData();
   }
 
@@ -228,17 +255,20 @@ class DashboardController extends ChangeNotifier {
     _cancelCloudSubscriptions();
 
     _cloudSubscriptions.add(
-      FirestoreService.instance.streamPantryItems(uid).listen((_) {
+      FirestoreService.instance.streamPantryItems(uid).listen((_) async {
+        await SyncService.instance.syncPantryFromCloud();
         _debouncedLoadDashboardData();
       }),
     );
     _cloudSubscriptions.add(
-      FirestoreService.instance.streamFoodLogs(uid).listen((_) {
+      FirestoreService.instance.streamFoodLogs(uid).listen((_) async {
+        await SyncService.instance.syncFoodLogsFromCloud();
         _debouncedLoadDashboardData();
       }),
     );
     _cloudSubscriptions.add(
-      FirestoreService.instance.streamUserProfile(uid).listen((_) {
+      FirestoreService.instance.streamUserProfile(uid).listen((_) async {
+        await SyncService.instance.syncUserProfileFromCloud();
         _debouncedLoadDashboardData();
       }),
     );
